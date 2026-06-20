@@ -1,6 +1,14 @@
+import { AUTH_CONFIG } from './auth-config.js';
+
 const app = document.querySelector('#root');
 const STORAGE_KEY = 'bondy.profile.v1';
 const savedUser = loadUser();
+const authState = {
+  client: null,
+  configured: Boolean(AUTH_CONFIG.supabaseUrl && AUTH_CONFIG.supabaseAnonKey),
+  user: null,
+  ready: false
+};
 
 const state = {
   screen: savedUser ? 'map' : 'login',
@@ -22,35 +30,9 @@ const state = {
 
 const people = [];
 const network = [];
-const connectionRows = [
-  { name: '佐藤 健', tag: 'ビジネス', desc: '株式会社Mesh / エンジニア', common: '山田 太郎、高橋 優斗', time: '2時間前' },
-  { name: '田中 花子', tag: '大学', desc: '名古屋大学 経営学部 4年', common: '伊藤 大輝、中村 翼', time: '5時間前' },
-  { name: '渡辺 翔平', tag: '地元', desc: '愛知県 名古屋市出身', common: '鈴木 花子', time: '1日前' },
-  { name: '加藤 美咲', tag: '家族', desc: '従姉妹', common: '佐々木 彩', time: '2日前' },
-  { name: '中村 翼', tag: 'イベント', desc: '国際交流サークル', common: '鈴木 花子、田中 優里', time: '3日前' },
-  { name: '小林 由奈', tag: '恋人', desc: '恋人', common: '伊藤 大輝', time: '4日前' },
-  { name: '高橋 優斗', tag: 'ビジネス', desc: '株式会社Mesh / デザイナー', common: '山田 太郎、佐藤 健', time: '5日前' },
-  { name: '伊藤 大輝', tag: '大学', desc: '東京大学 経済学部 3年', common: '田中 花子、小林 由奈', time: '6日前' },
-  { name: '山田 太郎', tag: 'ビジネス', desc: '株式会社Mesh / マーケター', common: '佐藤 健、高橋 優斗', time: '1週間前' }
-];
-const mapNodes = [
-  { name: '山田 太郎', tag: '大学', avatar: 'man1', x: 50, y: 18, color: '#2f8fe5' },
-  { name: '伊藤 大輝', tag: '大学', avatar: 'woman2', x: 77, y: 28, color: '#9b62d7' },
-  { name: '渡辺 翔平', tag: 'ビジネス', avatar: 'man2', x: 82, y: 55, color: '#47b66f' },
-  { name: '佐藤 一郎', tag: '地元', avatar: 'woman1', x: 71, y: 82, color: '#e7a53d' },
-  { name: '中村 翼', tag: 'イベント', avatar: 'man2', x: 50, y: 90, color: '#8955d6' },
-  { name: '鈴木 花子', tag: '恋人', avatar: 'woman1', x: 29, y: 78, color: '#df5a8c' },
-  { name: '高橋 優斗', tag: 'ビジネス', avatar: 'man1', x: 17, y: 58, color: '#3d88dc' },
-  { name: '田中 美咲', tag: '地元', avatar: 'woman2', x: 27, y: 34, color: '#55b96d' }
-];
-const friendOfFriendNodes = [
-  { name: '佐藤 健', tag: 'ビジネス', avatar: 'man1', x: 50, y: 18, color: '#2f8fe5' },
-  { name: '田中 花子', tag: '大学', avatar: 'woman1', x: 77, y: 28, color: '#9b62d7' },
-  { name: '小林 由奈', tag: '大学', avatar: 'woman2', x: 82, y: 55, color: '#47b66f' },
-  { name: '加藤 美咲', tag: '家族', avatar: 'woman1', x: 71, y: 82, color: '#e7a53d' },
-  { name: '山田 太郎', tag: 'ビジネス', avatar: 'man2', x: 50, y: 90, color: '#8955d6' },
-  { name: '高橋 優斗', tag: 'ビジネス', avatar: 'man1', x: 17, y: 58, color: '#3d88dc' }
-];
+const connectionRows = [];
+const mapNodes = [];
+const friendOfFriendNodes = [];
 const universityOptions = buildUniversityOptions();
 const locationOptions = buildLocationOptions();
 const mapInteraction = {
@@ -189,6 +171,61 @@ function saveUser(user) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.user));
 }
 
+async function initAuth() {
+  if (!authState.configured) {
+    authState.ready = true;
+    return;
+  }
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    authState.client = createClient(AUTH_CONFIG.supabaseUrl, AUTH_CONFIG.supabaseAnonKey);
+    const { data } = await authState.client.auth.getSession();
+    authState.user = data.session?.user || null;
+    authState.client.auth.onAuthStateChange((event, session) => {
+      authState.user = session?.user || null;
+      if (event === 'SIGNED_IN' && !state.user) {
+        go('register', 'メール認証が完了しました');
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    showToast('認証サービスの読み込みに失敗しました');
+  } finally {
+    authState.ready = true;
+  }
+}
+
+async function signUpWithEmail(email, password) {
+  if (!authState.configured || !authState.client) {
+    showToast('Supabase設定を入れると認証メールを送れます');
+    return;
+  }
+  const redirectTo = `${window.location.origin}${window.location.pathname}`;
+  const { error } = await authState.client.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: redirectTo }
+  });
+  if (error) {
+    showToast(error.message);
+    return;
+  }
+  showToast('認証メールを送信しました');
+}
+
+async function signInWithEmail(email, password) {
+  if (!authState.configured || !authState.client) {
+    showToast('Supabase設定を入れるとログインできます');
+    return;
+  }
+  const { error } = await authState.client.auth.signInWithPassword({ email, password });
+  if (error) {
+    showToast(error.message);
+    return;
+  }
+  go(state.user ? 'map' : 'register', 'ログインしました');
+}
+
 function currentUser() {
   return normalizeUser(state.user || {});
 }
@@ -198,6 +235,7 @@ function normalizeUser(user) {
   return {
     name: '',
     handle: '',
+    email: '',
     school: '',
     company: '',
     location: '',
@@ -284,8 +322,14 @@ function loginScreen() {
         <h1>Bondy</h1>
         <p>人との出会いを、資産に。</p>
       </section>
-      <section class="login-actions">
-        <button class="pill primary" data-action="start-register">${icon('mail', 25)}メールアドレスで登録</button>
+      <form class="email-auth-form" data-auth-form>
+        <label>メールアドレス<input name="email" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+        <label>パスワード<input name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="8文字以上"></label>
+        <button class="pill primary" name="intent" value="signup" type="submit">${icon('mail', 25)}認証メールを送る</button>
+        <button class="pill secondary" name="intent" value="signin" type="submit">ログイン</button>
+        ${authState.configured ? '' : '<p class="auth-note">メール認証を使うには Supabase の設定が必要です。</p>'}
+      </form>
+      <section class="login-actions compact">
         <div class="divider"><span></span><em>または</em><span></span></div>
         ${socialButton('apple', '●', 'Appleで続ける')}
         ${socialButton('google', 'G', 'Googleで続ける')}
@@ -440,9 +484,9 @@ function mapScreen() {
       </div>
     </section>
     <section class="map-stats">
-      <div>${icon('users')}<span>つながり数</span><b>128 人</b><small>▲ 12今週</small></div>
-      <div>${icon('building')}<span>共通の会社・学校</span><b>18 件</b></div>
-      <div>${icon('users')}<span>共通の知人</span><b>56 人</b></div>
+      <div>${icon('users')}<span>つながり数</span><b>${connectionRows.length} 人</b><small>登録後に追加</small></div>
+      <div>${icon('building')}<span>共通の会社・学校</span><b>0 件</b></div>
+      <div>${icon('users')}<span>共通の知人</span><b>0 人</b></div>
     </section>
   `;
 }
@@ -822,7 +866,7 @@ function openOverlay(type) {
   render();
 }
 
-app.addEventListener('click', (event) => {
+app.addEventListener('click', async (event) => {
   const universityButton = event.target.closest('[data-university-open]');
   const locationButton = event.target.closest('[data-location-open]');
   const action = event.target.closest('[data-action]')?.dataset.action;
@@ -938,6 +982,7 @@ app.addEventListener('click', (event) => {
   if (['search', 'filter', 'add', 'display', 'notifications'].includes(action)) return openOverlay(action);
   if (action === 'logout') {
     state.overlay = null;
+    await authState.client?.auth.signOut();
     return go('login', 'ログアウトしました');
   }
   if (['account-security', 'manage-connections', 'suggested-users', 'blocked-users', 'profile-visibility', 'privacy-settings', 'help-support', 'terms', 'privacy-policy', 'version-info'].includes(action)) {
@@ -1031,10 +1076,28 @@ function openOptionPicker(trigger, config) {
 }
 
 app.addEventListener('submit', async (event) => {
+  const authForm = event.target.closest('[data-auth-form]');
   const registerForm = event.target.closest('[data-register-form]');
   const editForm = event.target.closest('[data-edit-form]');
-  if (!registerForm && !editForm) return;
+  if (!authForm && !registerForm && !editForm) return;
   event.preventDefault();
+
+  if (authForm) {
+    const formData = new FormData(authForm);
+    const email = String(formData.get('email') || '').trim();
+    const password = String(formData.get('password') || '');
+    const intent = event.submitter?.value || 'signup';
+    if (password.length < 8) {
+      showToast('パスワードは8文字以上にしてください');
+      return;
+    }
+    if (intent === 'signin') {
+      await signInWithEmail(email, password);
+      return;
+    }
+    await signUpWithEmail(email, password);
+    return;
+  }
 
   if (registerForm) {
     const formData = new FormData(registerForm);
@@ -1046,6 +1109,7 @@ app.addEventListener('submit', async (event) => {
       company: String(formData.get('company') || '').trim(),
       location: String(formData.get('location') || '').trim(),
       birthday: String(formData.get('birthday') || '').trim(),
+      email: authState.user?.email || '',
       photo: photo && photo.size ? await readFileAsDataUrl(photo) : '',
       locationPublic: formData.get('locationPublic') === 'true',
       birthdayPublic: formData.get('birthdayPublic') === 'true',
@@ -1240,3 +1304,4 @@ function readFileAsDataUrl(file) {
 }
 
 render();
+initAuth();
