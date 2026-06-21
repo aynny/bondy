@@ -2,6 +2,7 @@ import { AUTH_CONFIG } from './auth-config.js';
 
 const app = document.querySelector('#root');
 const STORAGE_KEY = 'bondy.profile.v1';
+const LAST_EMAIL_KEY = 'bondy.auth.email.v1';
 const savedUser = loadUser();
 const authState = {
   client: null,
@@ -172,6 +173,15 @@ function saveUser(user) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.user));
 }
 
+function loadLastEmail() {
+  return localStorage.getItem(LAST_EMAIL_KEY) || '';
+}
+
+function saveLastEmail(email) {
+  const cleanEmail = String(email || '').trim();
+  if (cleanEmail) localStorage.setItem(LAST_EMAIL_KEY, cleanEmail);
+}
+
 async function initAuth() {
   if (!authState.configured) {
     authState.ready = true;
@@ -179,11 +189,27 @@ async function initAuth() {
   }
   try {
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    authState.client = createClient(AUTH_CONFIG.supabaseUrl, AUTH_CONFIG.supabaseAnonKey);
+    authState.client = createClient(AUTH_CONFIG.supabaseUrl, AUTH_CONFIG.supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storage: window.localStorage
+      }
+    });
     const { data } = await authState.client.auth.getSession();
     authState.user = data.session?.user || null;
+    if (authState.user?.email) saveLastEmail(authState.user.email);
+    if (authState.user && state.screen === 'login' && state.authMode !== 'updatePassword') {
+      go(state.user ? 'map' : 'register');
+    }
+    if (!authState.user && state.screen !== 'login' && state.screen !== 'register') {
+      state.authMode = 'signin';
+      go('login');
+    }
     authState.client.auth.onAuthStateChange((event, session) => {
       authState.user = session?.user || null;
+      if (authState.user?.email) saveLastEmail(authState.user.email);
       if (event === 'PASSWORD_RECOVERY') {
         state.screen = 'login';
         state.authMode = 'updatePassword';
@@ -207,6 +233,7 @@ async function signUpWithEmail(email, password) {
     showToast('Supabase設定を入れると認証メールを送れます');
     return;
   }
+  saveLastEmail(email);
   const redirectTo = `${window.location.origin}${window.location.pathname}`;
   const { error } = await authState.client.auth.signUp({
     email,
@@ -225,6 +252,7 @@ async function sendPasswordReset(email) {
     showToast('Supabase設定を入れると再設定メールを送れます');
     return;
   }
+  saveLastEmail(email);
   const redirectTo = `${window.location.origin}${window.location.pathname}`;
   const { error } = await authState.client.auth.resetPasswordForEmail(email, { redirectTo });
   if (error) {
@@ -253,6 +281,7 @@ async function signInWithEmail(email, password) {
     showToast('Supabase設定を入れるとログインできます');
     return;
   }
+  saveLastEmail(email);
   const { error } = await authState.client.auth.signInWithPassword({ email, password });
   if (error) {
     showToast(error.message);
@@ -350,6 +379,7 @@ function escapeHtml(value) {
 
 function loginScreen() {
   const mode = state.authMode;
+  const rememberedEmail = escapeHtml(loadLastEmail() || authState.user?.email || state.user?.email || '');
   const authCopy = {
     signin: {
       title: 'おかえりなさい',
@@ -394,7 +424,7 @@ function loginScreen() {
           <h2>${authCopy.title}</h2>
           <p>${authCopy.lead}</p>
         </div>
-        ${needsEmail ? '<label>メールアドレス<input name="email" type="email" autocomplete="email" required placeholder="you@example.com"></label>' : ''}
+        ${needsEmail ? `<label>メールアドレス<input name="email" type="email" autocomplete="email" required placeholder="you@example.com" value="${rememberedEmail}"></label>` : ''}
         ${needsPassword ? `<label>パスワード<input name="password" type="password" autocomplete="${authCopy.autocomplete}" required minlength="8" placeholder="8文字以上"></label>` : ''}
         ${mode === 'signup' || mode === 'updatePassword' ? '<label>パスワード確認<input name="passwordConfirm" type="password" autocomplete="new-password" required minlength="8" placeholder="もう一度入力"></label>' : ''}
         <button class="pill primary" name="intent" value="${authCopy.intent}" type="submit">${mode === 'signin' ? '' : icon('mail', 25)}${authCopy.submit}</button>
