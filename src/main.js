@@ -729,6 +729,17 @@ function initialsAvatar(name = 'ユーザー', size = 58) {
   return `<div class="avatar initial-avatar" style="--size:${size}px"><b>${escapeHtml(initials)}</b></div>`;
 }
 
+function personModalContent(person) {
+  const name = person?.name || 'ユーザー';
+  const avatarHtml = person?.photo
+    ? `<div class="avatar" style="--size:70px"><img src="${escapeHtml(person.photo)}" alt=""></div>`
+    : person?.avatar
+      ? avatar(person.avatar, 70)
+      : initialsAvatar(name, 70);
+  const desc = person?.desc || '登録したプロフィール情報を確認できます。';
+  return `<div class="modal-avatar">${avatarHtml}</div><h2>${escapeHtml(name)}</h2><p>${escapeHtml(desc)}</p><button data-close>閉じる</button>`;
+}
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({
     '&': '&amp;',
@@ -1103,11 +1114,11 @@ function introRows() {
       : initialsAvatar(person.name, 58);
     return `
       <article class="request-row ${handled ? 'handled' : ''}">
-        ${requestAvatar}
-        <button class="request-copy" data-person="${person.name}">
-          <h3>${person.name}<small>${person.tag}</small></h3>
-          <p>${person.desc}</p>
-          <p>共通のつながり：${person.common}</p>
+        <button class="request-avatar-button" data-person-id="${person.id}" data-person="${escapeHtml(person.name)}" aria-label="${escapeHtml(person.name)}のプロフィールを見る">${requestAvatar}</button>
+        <button class="request-copy" data-person-id="${person.id}" data-person="${escapeHtml(person.name)}">
+          <h3>${escapeHtml(person.name)}<small>${escapeHtml(person.tag)}</small></h3>
+          <p>${escapeHtml(person.desc)}</p>
+          <p>共通のつながり：${escapeHtml(person.common)}</p>
         </button>
         <div class="request-side">
           <time>${person.time} ${icon('chevronRight', 18)}</time>
@@ -1277,7 +1288,7 @@ function overlay() {
   if (!state.overlay) return '';
   const type = state.overlay.type;
   const user = currentUser();
-  if (type === 'person') return modal(`<div class="modal-avatar">${profileAvatar(70)}</div><h2>${escapeHtml(state.overlay.name)}</h2><p>登録したプロフィール情報を確認できます。</p><button data-close>閉じる</button>`);
+  if (type === 'person') return modal(personModalContent(state.overlay));
   if (type === 'connect-profile') return modal(connectProfileContent(state.overlay.target), 'connect-modal');
   if (type === 'search') return modal(idSearchContent('検索'), 'connect-modal');
   if (type === 'filter') return modal(`<h2>絞り込み</h2><div class="modal-grid">${mapFilters().map((f) => `<button class="${state.filter === f ? 'selected' : ''} ${f === '恋人' ? 'heart-filter-button' : ''}" data-filter="${f}" aria-label="${f}">${f === '恋人' ? icon('heart', 18) : f}</button>`).join('')}</div><button data-close>閉じる</button>`);
@@ -1412,7 +1423,9 @@ app.addEventListener('click', async (event) => {
   const filter = event.target.closest('[data-filter]')?.dataset.filter;
   const request = event.target.closest('[data-request]');
   const mapNodeButton = event.target.closest('[data-map-node]');
-  const person = event.target.closest('[data-person]')?.dataset.person;
+  const personElement = event.target.closest('[data-person], [data-person-id]');
+  const person = personElement?.dataset.person;
+  const personId = personElement?.dataset.personId;
   const toastButton = event.target.closest('[data-toast]')?.dataset.toast;
 
   if (universityButton) {
@@ -1495,12 +1508,19 @@ app.addEventListener('click', async (event) => {
       render();
       return;
     }
-    state.overlay = { type: 'person', name };
+    const node = [...mapNodes, ...friendOfFriendNodes].find((item) => item.name === name);
+    state.overlay = { type: 'person', name, avatar: node?.avatar, desc: node?.tag ? `${node.tag}のつながりです。` : '' };
     render();
     return;
   }
-  if (person) {
-    state.overlay = { type: 'person', name: person };
+  if (person || personId) {
+    const requestPerson = state.requests.find((item) => item.id === personId);
+    state.overlay = {
+      type: 'person',
+      name: requestPerson?.name || person,
+      photo: requestPerson?.photo || '',
+      desc: requestPerson?.desc || '登録したプロフィール情報を確認できます。'
+    };
     render();
     return;
   }

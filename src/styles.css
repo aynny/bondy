@@ -811,6 +811,8 @@ button, a, input {
 }
 .request-row.simple { grid-template-columns: 64px 1fr auto; }
 .request-row.handled { opacity: .55; }
+.request-avatar-button { width: var(--size, 58px); height: var(--size, 58px); display: block; border-radius: 50%; }
+.request-avatar-button .avatar { pointer-events: none; }
 .request-copy { min-width: 0; text-align: left; overflow: hidden; }
 .request-row h3 { margin: 0 0 8px; font-size: 20px; line-height: 1; font-weight: 900; letter-spacing: -.2px; }
 .request-row p { margin: 7px 0 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.1px; }
