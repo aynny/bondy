@@ -35,7 +35,8 @@ const state = {
   connections: [],
   requests: [],
   notifications: [],
-  mapNodePositions: loadMapNodePositions()
+  mapNodePositions: loadMapNodePositions(),
+  authSubmitting: false
 };
 
 const universityOptions = buildUniversityOptions();
@@ -1032,7 +1033,7 @@ function loginScreen() {
         ${needsEmail ? `<label>メールアドレス<input name="email" type="email" autocomplete="email" required placeholder="you@example.com" value="${rememberedEmail}"></label>` : ''}
         ${needsPassword ? `<label>パスワード<input name="password" type="password" autocomplete="${authCopy.autocomplete}" required minlength="8" placeholder="8文字以上"></label>` : ''}
         ${mode === 'signup' || mode === 'updatePassword' ? '<label>パスワード確認<input name="passwordConfirm" type="password" autocomplete="new-password" required minlength="8" placeholder="もう一度入力"></label>' : ''}
-        <button class="pill primary" name="intent" value="${authCopy.intent}" type="submit">${mode === 'signin' ? '' : icon('mail', 25)}${authCopy.submit}</button>
+        <button class="pill primary ${state.authSubmitting ? 'is-loading' : ''}" name="intent" value="${authCopy.intent}" type="submit" ${state.authSubmitting ? 'disabled' : ''}>${state.authSubmitting ? '<span class="button-spinner"></span>ログイン中…' : `${mode === 'signin' ? '' : icon('mail', 25)}${authCopy.submit}`}</button>
         ${mode === 'signin' ? '<button class="auth-text-button" type="button" data-action="auth-mode" data-auth-mode="forgot">パスワードを忘れた方</button>' : ''}
         ${mode === 'signin' ? '<button class="pill secondary" type="button" data-action="auth-mode" data-auth-mode="signup">新規登録</button>' : '<button class="pill secondary" type="button" data-action="auth-mode" data-auth-mode="signin">ログインに戻る</button>'}
         ${authState.configured ? '' : '<p class="auth-note">メール認証を使うには Supabase の設定が必要です。</p>'}
@@ -2025,6 +2026,7 @@ app.addEventListener('submit', async (event) => {
   }
 
   if (authForm) {
+    if (state.authSubmitting) return;
     const formData = new FormData(authForm);
     const email = String(formData.get('email') || '').trim();
     const password = String(formData.get('password') || '');
@@ -2051,7 +2053,14 @@ app.addEventListener('submit', async (event) => {
       return;
     }
     if (intent === 'signin') {
-      await signInWithEmail(email, password);
+      state.authSubmitting = true;
+      render();
+      try {
+        await signInWithEmail(email, password);
+      } finally {
+        state.authSubmitting = false;
+        render();
+      }
       return;
     }
     if (intent === 'update-password') {
