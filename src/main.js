@@ -3,6 +3,7 @@ import { AUTH_CONFIG } from './auth-config.js';
 const app = document.querySelector('#root');
 const STORAGE_KEY = 'bondy.profile.v1';
 const LAST_EMAIL_KEY = 'bondy.auth.email.v1';
+const REMOTE_PROFILE_TABLE = 'profiles';
 const savedUser = loadUser();
 const authState = {
   client: null,
@@ -172,11 +173,20 @@ function loadStoredUser(key) {
   }
 }
 
-function saveUser(user) {
+function saveUserLocal(user) {
   state.user = normalizeUser(user);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.user));
   const key = accountProfileKey();
   if (key) localStorage.setItem(key, JSON.stringify(state.user));
+  return state.user;
+}
+
+async function saveUser(user, options = {}) {
+  const saved = saveUserLocal(user);
+  if (options.remote !== false) {
+    await saveRemoteUser(saved, options);
+  }
+  return saved;
 }
 
 function loadLastEmail() {
@@ -198,17 +208,59 @@ function loadAccountUser() {
   return key ? loadStoredUser(key) : null;
 }
 
-function restoreAccountUser() {
+async function loadRemoteUser() {
+  if (!authState.client || !authState.user) return null;
+  const { data, error } = await authState.client
+    .from(REMOTE_PROFILE_TABLE)
+    .select('profile')
+    .eq('id', authState.user.id)
+    .maybeSingle();
+  if (error) {
+    console.warn('Remote profile load failed', error);
+    return null;
+  }
+  return data?.profile ? normalizeUser(data.profile) : null;
+}
+
+async function saveRemoteUser(user, options = {}) {
+  if (!authState.client || !authState.user) return false;
+  const profile = normalizeUser({
+    ...user,
+    email: user.email || authState.user.email || ''
+  });
+  const { error } = await authState.client
+    .from(REMOTE_PROFILE_TABLE)
+    .upsert({
+      id: authState.user.id,
+      email: authState.user.email || profile.email,
+      profile,
+      updated_at: new Date().toISOString()
+    });
+  if (error) {
+    console.warn('Remote profile save failed', error);
+    if (!options.silent) showToast('プロフィールのクラウド保存設定を確認してください');
+    return false;
+  }
+  return true;
+}
+
+async function restoreAccountUser() {
   if (!authState.user) return false;
   const email = authState.user.email || '';
+  const remoteUser = await loadRemoteUser();
+  if (remoteUser) {
+    saveUserLocal({ ...remoteUser, email: remoteUser.email || email });
+    return true;
+  }
   const accountUser = loadAccountUser();
   if (accountUser) {
-    state.user = normalizeUser({ ...accountUser, email: accountUser.email || email });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.user));
+    saveUserLocal({ ...accountUser, email: accountUser.email || email });
+    await saveRemoteUser(state.user, { silent: true });
     return true;
   }
   if (state.user && (!state.user.email || state.user.email === email)) {
-    saveUser({ ...state.user, email: state.user.email || email });
+    saveUserLocal({ ...state.user, email: state.user.email || email });
+    await saveRemoteUser(state.user, { silent: true });
     return true;
   }
   state.user = null;
@@ -234,7 +286,7 @@ async function initAuth() {
     const { data } = await authState.client.auth.getSession();
     authState.user = data.session?.user || null;
     if (authState.user?.email) saveLastEmail(authState.user.email);
-    if (authState.user) restoreAccountUser();
+    if (authState.user) await restoreAccountUser();
     if (authState.user && state.screen === 'login' && state.authMode !== 'updatePassword') {
       go('map');
     }
@@ -242,10 +294,10 @@ async function initAuth() {
       state.authMode = 'signin';
       go('login');
     }
-    authState.client.auth.onAuthStateChange((event, session) => {
+    authState.client.auth.onAuthStateChange(async (event, session) => {
       authState.user = session?.user || null;
       if (authState.user?.email) saveLastEmail(authState.user.email);
-      if (authState.user) restoreAccountUser();
+      if (authState.user) await restoreAccountUser();
       if (event === 'PASSWORD_RECOVERY') {
         state.screen = 'login';
         state.authMode = 'updatePassword';
@@ -1298,7 +1350,7 @@ app.addEventListener('submit', async (event) => {
       showToast('名前・ID・大学・誕生日を入力してください');
       return;
     }
-    saveUser(user);
+    await saveUser(user);
     go('profile', '登録しました');
     return;
   }
@@ -1307,7 +1359,7 @@ app.addEventListener('submit', async (event) => {
     const formData = new FormData(editForm);
     const photo = formData.get('photo');
     const current = currentUser();
-    saveUser({
+    await saveUser({
       ...current,
       name: String(formData.get('name') || '').trim(),
       handle: String(formData.get('handle') || '').trim().replace(/^@/, ''),
@@ -1330,7 +1382,7 @@ app.addEventListener('change', async (event) => {
   if (!photoInput) return;
   const file = photoInput.files?.[0];
   if (!file) return;
-  saveUser({
+  await saveUser({
     ...currentUser(),
     photo: await readFileAsDataUrl(file)
   });
