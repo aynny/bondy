@@ -201,7 +201,7 @@ async function initAuth() {
     authState.user = data.session?.user || null;
     if (authState.user?.email) saveLastEmail(authState.user.email);
     if (authState.user && state.screen === 'login' && state.authMode !== 'updatePassword') {
-      go(state.user ? 'map' : 'register');
+      go('map');
     }
     if (!authState.user && state.screen !== 'login' && state.screen !== 'register') {
       state.authMode = 'signin';
@@ -216,8 +216,8 @@ async function initAuth() {
         render();
         return;
       }
-      if (event === 'SIGNED_IN' && !state.user) {
-        go('register', 'メール認証が完了しました');
+      if (event === 'SIGNED_IN') {
+        go('map', 'ログインしました');
       }
     });
   } catch (error) {
@@ -273,7 +273,7 @@ async function updatePassword(password) {
     return;
   }
   state.authMode = 'signin';
-  go(state.user ? 'map' : 'login', 'パスワードを更新しました');
+  go('map', 'パスワードを更新しました');
 }
 
 async function signInWithEmail(email, password) {
@@ -287,11 +287,19 @@ async function signInWithEmail(email, password) {
     showToast(error.message);
     return;
   }
-  go(state.user ? 'map' : 'register', 'ログインしました');
+  go('map', 'ログインしました');
 }
 
 function currentUser() {
-  return normalizeUser(state.user || {});
+  const email = authState.user?.email || loadLastEmail();
+  const fallbackHandle = email ? email.split('@')[0] : '';
+  const user = state.user || {};
+  return normalizeUser({
+    ...user,
+    email: user.email || email,
+    handle: user.handle || fallbackHandle,
+    name: user.name || fallbackHandle
+  });
 }
 
 function normalizeUser(user) {
@@ -363,7 +371,7 @@ function profileAvatar(size = 58) {
   if (user.photo) {
     return `<div class="avatar profile-avatar" style="--size:${size}px"><img src="${user.photo}" alt=""></div>`;
   }
-  const initials = (user.name || 'あなた').trim().slice(0, 2);
+  const initials = (user.name || user.handle || user.email || 'あなた').trim().slice(0, 2).toUpperCase();
   return `<div class="avatar initial-avatar" style="--size:${size}px"><b>${escapeHtml(initials)}</b></div>`;
 }
 
@@ -647,9 +655,9 @@ function mapCenterProfile() {
   const user = currentUser();
   if (state.mapCenter === 'you') {
     return {
-      name: user.name || 'ゆうた',
+      name: user.name || user.handle || 'あなた',
       badge: 'あなた',
-      avatar: user.photo ? 'user' : 'profile'
+      avatar: 'user'
     };
   }
   const selected = mapNodes.find((node) => node.name === state.mapCenter) || mapNodes[0];
@@ -661,7 +669,6 @@ function mapCenterProfile() {
 }
 
 function mapCenterAvatar(center = mapCenterProfile()) {
-  const user = currentUser();
   if (center.avatar === 'user') return profileAvatar(82);
   return avatar(center.avatar, 82);
 }
