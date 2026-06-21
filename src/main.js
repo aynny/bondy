@@ -1421,17 +1421,19 @@ function introRows() {
 
 function profileScreen() {
   const user = currentUser();
-  const profileUrl = profileLink(user);
   return `
     <header class="profile-actions">
       <button data-action="settings">${icon('settings', 32)}</button>
       <span></span>
       <button data-action="edit">${icon('edit', 31)}</button>
-      <button data-action="share">${icon('share', 32)}</button>
     </header>
     <section class="profile-hero">
       <label class="profile-photo" aria-label="プロフィール写真を変更">${profileAvatar(132)}<input type="file" accept="image/*" data-photo-input><span>${icon('camera', 24)}</span></label>
-      <div><h1>${escapeHtml(user.name || '未設定')} <span>登録済み</span></h1><p>@${escapeHtml(user.handle || 'your.id')}</p></div>
+      <div class="profile-identity">
+        <h1>${escapeHtml(user.name || '未設定')} <span>登録済み</span></h1>
+        <p>@${escapeHtml(user.handle || 'your.id')}</p>
+        <button class="profile-share-button" data-action="share-profile">${icon('qr', 18)}プロフィールを共有</button>
+      </div>
     </section>
     <section class="info-rows">
       ${infoRow('grad', '大学', user.school || '未入力')}
@@ -1440,12 +1442,7 @@ function profileScreen() {
       ${infoRow('calendar', '誕生日', user.birthdayPublic ? (user.birthday || '未入力') : '非公開')}
       <div class="info-row">${icon('link', 25)}<span>SNS</span><strong class="sns">${snsLinks(user)}</strong></div>
     </section>
-    <section class="stats-card">${[['users', 'つながり', String(connectionRowsData().length)], ['user', '共通の知人', '0'], ['users', '所属グループ', '0'], ['copy', '保存した人', state.saved ? '1' : '0']].map(([ic, label, value]) => `<div>${icon(ic, 28)}<span>${label}</span><b>${value}</b></div>`).join('')}</section>
-    <section class="share-card">
-      <h2>${icon('external', 28)}プロフィールを共有</h2>
-      <div class="share-content"><p>QRコードをシェアして、<br>あなたのプロフィールを<br>簡単に共有できます。</p><div><div class="qr" aria-label="${escapeHtml(profileUrl)}">${profileQr(profileUrl)}</div><button data-action="save-qr">${icon('download', 18)}QRコードを保存</button></div></div>
-      <button class="copy-link" data-action="copy-link">${icon('link', 22)}プロフィールリンクをコピー</button>
-    </section>
+    <section class="stats-card profile-stats">${[['users', 'つながり', String(connectionRowsData().length)], ['user', '共通の知人', '0'], ['users', '所属グループ', '0']].map(([ic, label, value]) => `<div>${icon(ic, 28)}<span>${label}</span><b>${value}</b></div>`).join('')}</section>
   `;
 }
 
@@ -1557,7 +1554,7 @@ function snsLinks(user) {
     .map(({ key, icon: label }) => [key, label, user.sns[key]])
     .filter(([, , url]) => url);
   if (!links.length) return '<small>未連携</small>';
-  return links.map(([name, label, url]) => `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer" aria-label="${name}">${label}</a>`).join('');
+  return links.map(([name, label, url]) => `<a class="sns-link" href="${escapeHtml(url)}" target="_blank" rel="noreferrer" aria-label="${name}" title="${name}">${label}</a>`).join('');
 }
 
 function buttonIcon(ic, action, cls = '') {
@@ -1579,6 +1576,7 @@ function overlay() {
   const type = state.overlay.type;
   const user = currentUser();
   if (type === 'person') return modal(personModalContent(state.overlay));
+  if (type === 'share-profile') return modal(shareProfileContent(), 'connect-modal profile-share-modal');
   if (type === 'connect-profile') return modal(connectProfileContent(state.overlay.target), 'connect-modal');
   if (type === 'search') return modal(idSearchContent('検索'), 'connect-modal');
   if (type === 'filter') return modal(`<h2>絞り込み</h2><div class="modal-grid">${mapFilters().map((f) => `<button class="${state.filter === f ? 'selected' : ''} ${f === '恋人' ? 'heart-filter-button' : ''}" data-filter="${f}" aria-label="${f}">${f === '恋人' ? icon('heart', 18) : f}</button>`).join('')}</div><button data-close>閉じる</button>`);
@@ -1618,6 +1616,18 @@ function notificationsContent() {
         </article>
       `).join('')}</div>`
       : '<p>通知はまだありません。</p>'}
+    <button data-close>閉じる</button>
+  `;
+}
+
+function shareProfileContent() {
+  const profileUrl = profileLink();
+  return `
+    <h2>プロフィールを共有</h2>
+    <p>QRコードを見せると、相手があなたに申請できます。</p>
+    <div class="qr large-qr" aria-label="${escapeHtml(profileUrl)}">${profileQr(profileUrl)}</div>
+    <button data-action="copy-link">${icon('link', 20)}プロフィールリンクをコピー</button>
+    <button data-action="save-qr">${icon('download', 18)}QRコードを保存</button>
     <button data-close>閉じる</button>
   `;
 }
@@ -1879,7 +1889,7 @@ app.addEventListener('click', async (event) => {
     state.overlay = null;
     return go('register', '最初から登録できます');
   }
-  if (['search', 'filter', 'add', 'display', 'help-support', 'terms', 'privacy-policy', 'account-security', 'manage-connections', 'profile-visibility', 'privacy-settings', 'version-info'].includes(action)) return openOverlay(action);
+  if (['search', 'filter', 'add', 'display', 'share-profile', 'help-support', 'terms', 'privacy-policy', 'account-security', 'manage-connections', 'profile-visibility', 'privacy-settings', 'version-info'].includes(action)) return openOverlay(action);
   if (action === 'scan-qr') return startQrScanner();
   if (action === 'send-request') {
     const targetId = event.target.closest('[data-target-id]')?.dataset.targetId;
