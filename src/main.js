@@ -1075,7 +1075,7 @@ function helpSupportContent() {
     <div class="document-body">
       <section><h3>お問い合わせ</h3><p>不具合、ログイン、プロフィール、データ保存に関する相談はメールで受け付けています。</p><a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></section>
       <section><h3>返信について</h3><p>内容を確認のうえ、順次返信します。お問い合わせ時は、利用している端末、ブラウザ、発生した画面を一緒に送ると確認しやすくなります。</p></section>
-      <section><h3>よくある確認</h3><p>GoogleログインがLINE内ブラウザで開けない場合は、SafariまたはChromeで開き直してください。プロフィールが復元されない場合は、同じアカウントでログインしているか確認してください。</p></section>
+      <section><h3>よくある確認</h3><p>Googleログインがうまく開けない場合は、SafariまたはChromeで開き直してください。プロフィールが復元されない場合は、同じアカウントでログインしているか確認してください。</p></section>
     </div>
   `;
 }
