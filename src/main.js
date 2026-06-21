@@ -4,6 +4,7 @@ const app = document.querySelector('#root');
 const STORAGE_KEY = 'bondy.profile.v1';
 const LAST_EMAIL_KEY = 'bondy.auth.email.v1';
 const REMOTE_PROFILE_TABLE = 'profiles';
+const SUPPORT_EMAIL = 'bondy1.app@gmail.com';
 const savedUser = loadUser();
 const authState = {
   client: null,
@@ -1055,11 +1056,55 @@ function overlay() {
   if (type === 'display') return modal(`<h2>表示設定</h2><label><input type="checkbox" checked> つながりの強さを表示</label><label><input type="checkbox" checked> 共通点を表示</label><label><input type="checkbox"> 名前だけ表示</label><button data-close>完了</button>`);
   if (type === 'settings') return modal(`<h2>設定</h2><p>登録データはこの端末内に保存されています。</p><button data-action="restart-registration">最初から登録し直す</button><button data-close>閉じる</button>`);
   if (type === 'notifications') return modal(`<h2>通知</h2><p>通知はまだありません。</p><button data-close>閉じる</button>`);
+  if (type === 'help-support') return modal(helpSupportContent(), 'document-modal');
+  if (type === 'terms') return modal(termsContent(), 'document-modal');
+  if (type === 'privacy-policy') return modal(privacyPolicyContent(), 'document-modal');
   return modal(`<h2>追加</h2><p>QRコード、連絡先、紹介リンクから新しいつながりを追加できます。</p><button data-toast="招待リンクを作成しました">招待リンクを作成</button><button data-close>閉じる</button>`);
 }
 
-function modal(content) {
-  return `<div class="scrim" data-close></div><section class="modal-sheet">${content}</section>`;
+function helpSupportContent() {
+  return `
+    <header><h2>ヘルプ・サポート</h2><button data-close>閉じる</button></header>
+    <div class="document-body">
+      <section><h3>お問い合わせ</h3><p>不具合、ログイン、プロフィール、データ保存に関する相談はメールで受け付けています。</p><a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></section>
+      <section><h3>返信について</h3><p>内容を確認のうえ、順次返信します。お問い合わせ時は、利用している端末、ブラウザ、発生した画面を一緒に送ると確認しやすくなります。</p></section>
+      <section><h3>よくある確認</h3><p>GoogleログインがLINE内ブラウザで開けない場合は、SafariまたはChromeで開き直してください。プロフィールが復元されない場合は、同じアカウントでログインしているか確認してください。</p></section>
+    </div>
+  `;
+}
+
+function termsContent() {
+  return `
+    <header><h2>利用規約</h2><button data-close>閉じる</button></header>
+    <div class="document-body">
+      <p class="document-date">最終更新日：2026年6月21日</p>
+      <section><h3>1. 適用</h3><p>本規約は、Bondyの利用条件を定めるものです。ユーザーは本アプリを利用することで、本規約に同意したものとみなされます。</p></section>
+      <section><h3>2. アカウント</h3><p>ユーザーは正確な情報を登録し、自分の責任でアカウントを管理するものとします。不正利用が疑われる場合は、速やかにサポートへ連絡してください。</p></section>
+      <section><h3>3. 禁止事項</h3><p>虚偽情報の登録、第三者へのなりすまし、迷惑行為、法令または公序良俗に反する行為、本アプリの運営を妨げる行為を禁止します。</p></section>
+      <section><h3>4. サービスの変更</h3><p>本アプリは、機能の追加、変更、停止を行う場合があります。重要な変更がある場合は、可能な範囲でアプリ内またはその他の方法で通知します。</p></section>
+      <section><h3>5. 免責</h3><p>本アプリは、つながりや紹介に関する情報の完全性、正確性、有用性を保証するものではありません。ユーザー間のやり取りは各自の責任で行ってください。</p></section>
+      <section><h3>6. お問い合わせ</h3><p>本規約に関する問い合わせ先：<a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p></section>
+    </div>
+  `;
+}
+
+function privacyPolicyContent() {
+  return `
+    <header><h2>プライバシーポリシー</h2><button data-close>閉じる</button></header>
+    <div class="document-body">
+      <p class="document-date">最終更新日：2026年6月21日</p>
+      <section><h3>1. 取得する情報</h3><p>メールアドレス、プロフィール情報、大学、所在地、誕生日、SNSリンク、プロフィール写真、ログインに必要な認証情報を取得する場合があります。</p></section>
+      <section><h3>2. 利用目的</h3><p>アカウント管理、プロフィール表示、つながりや紹介機能の提供、問い合わせ対応、品質改善、不正利用防止のために利用します。</p></section>
+      <section><h3>3. 保存と復元</h3><p>ログインしたアカウントで同じ情報を復元できるよう、プロフィール情報をSupabaseに保存します。端末内にも表示高速化のため一部情報を保存することがあります。</p></section>
+      <section><h3>4. 第三者提供</h3><p>法令に基づく場合を除き、本人の同意なく個人情報を第三者に提供しません。ログインやデータ保存にはSupabaseおよびGoogle等の外部サービスを利用する場合があります。</p></section>
+      <section><h3>5. 公開範囲</h3><p>プロフィールの所在地や誕生日など、一部項目は公開・非公開を選択できます。公開設定はユーザー自身で管理してください。</p></section>
+      <section><h3>6. お問い合わせ</h3><p>個人情報の確認、修正、削除などの相談先：<a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p></section>
+    </div>
+  `;
+}
+
+function modal(content, cls = '') {
+  return `<div class="scrim" data-close></div><section class="modal-sheet ${cls}">${content}</section>`;
 }
 
 function go(screen, message = '') {
@@ -1211,14 +1256,14 @@ app.addEventListener('click', async (event) => {
     return go('register', '最初から登録できます');
   }
   if (action === 'login') return go('map', 'ログインしました');
-  if (['search', 'filter', 'add', 'display', 'notifications'].includes(action)) return openOverlay(action);
+  if (['search', 'filter', 'add', 'display', 'notifications', 'help-support', 'terms', 'privacy-policy'].includes(action)) return openOverlay(action);
   if (action === 'logout') {
     state.overlay = null;
     await authState.client?.auth.signOut();
     state.authMode = 'signin';
     return go('login', 'ログアウトしました');
   }
-  if (['account-security', 'manage-connections', 'suggested-users', 'blocked-users', 'profile-visibility', 'privacy-settings', 'help-support', 'terms', 'privacy-policy', 'version-info'].includes(action)) {
+  if (['account-security', 'manage-connections', 'suggested-users', 'blocked-users', 'profile-visibility', 'privacy-settings', 'version-info'].includes(action)) {
     return showToast('この設定は準備中です');
   }
   if (action === 'locate') {

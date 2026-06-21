@@ -917,6 +917,52 @@ button { border: 0; background: none; padding: 0; cursor: pointer; }
 .modal-sheet p { margin: 0; color: #555; line-height: 1.6; }
 .modal-sheet button { min-height: 44px; border: 1px solid #ddd; border-radius: 13px; background: #fff; font-weight: 850; }
 .modal-sheet button:first-of-type { background: #000; color: #fff; border-color: #000; }
+.document-modal {
+  top: 54px;
+  bottom: 18px;
+  align-content: start;
+  overflow: hidden;
+}
+.document-modal header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.document-modal header button {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #000;
+  color: #fff;
+  border-color: #000;
+  font-size: 13px;
+}
+.document-body {
+  display: grid;
+  gap: 17px;
+  max-height: calc(100svh - 152px);
+  overflow: auto;
+  padding-right: 3px;
+}
+.document-body section {
+  display: grid;
+  gap: 7px;
+}
+.document-body h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 820;
+}
+.document-body a {
+  color: #000;
+  font-weight: 780;
+  text-underline-offset: 4px;
+}
+.document-date {
+  color: #777;
+  font-size: 13px;
+}
 .modal-edit-form {
   display: grid;
   gap: 10px;
