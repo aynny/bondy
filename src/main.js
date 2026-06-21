@@ -49,6 +49,8 @@ const mapInteraction = {
   startY: 0,
   startPanX: 0,
   startPanY: 0,
+  startNodeX: 0,
+  startNodeY: 0,
   dragged: false,
   pointers: new Map(),
   pinchStartDistance: 0,
@@ -1808,16 +1810,16 @@ app.addEventListener('click', async (event) => {
       return;
     }
     const name = mapNodeButton.dataset.mapNode;
+    const node = personByIdOrName(name);
     if (mapNodeButton.dataset.centerable === 'true') {
       state.mapCenter = name;
       state.filter = 'すべて';
       state.mapPan = { x: 0, y: 0 };
       state.zoom = 1;
-      showToast(`${name}を中心にしました`);
+      showToast(`${node?.name || mapNodeButton.dataset.person || 'ユーザー'}を中心にしました`);
       render();
       return;
     }
-    const node = personByIdOrName(name);
     state.overlay = {
       type: 'person',
       name: node?.name || name,
@@ -2125,6 +2127,7 @@ app.addEventListener('pointerdown', (event) => {
   const workspace = event.target.closest('[data-map-workspace]');
   if (!workspace || state.screen !== 'map') return;
   event.preventDefault();
+  event.stopPropagation();
   const nodeButton = event.target.closest('[data-map-node]');
   mapInteraction.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
@@ -2150,6 +2153,8 @@ app.addEventListener('pointerdown', (event) => {
   mapInteraction.startY = event.clientY;
   mapInteraction.startPanX = state.mapPan.x;
   mapInteraction.startPanY = state.mapPan.y;
+  mapInteraction.startNodeX = mapInteraction.node?.x || 0;
+  mapInteraction.startNodeY = mapInteraction.node?.y || 0;
   mapInteraction.dragged = false;
   workspace.setPointerCapture?.(event.pointerId);
 });
@@ -2162,6 +2167,7 @@ app.addEventListener('pointermove', (event) => {
   if (!workspace || state.screen !== 'map') return;
   if (mapInteraction.pointers.has(event.pointerId) || mapInteraction.active) {
     event.preventDefault();
+    event.stopPropagation();
   }
 
   if (mapInteraction.mode === 'pinch' && mapInteraction.pointers.size >= 2) {
@@ -2192,9 +2198,9 @@ app.addEventListener('pointermove', (event) => {
   if (Math.hypot(dx, dy) > 4) mapInteraction.dragged = true;
 
   if (mapInteraction.mode === 'node' && mapInteraction.node) {
-    const point = clientToMapPoint(event.clientX, event.clientY, workspace);
-    mapInteraction.node.x = point.x;
-    mapInteraction.node.y = point.y;
+    const rect = workspace.getBoundingClientRect();
+    mapInteraction.node.x = Math.max(4, Math.min(96, Number((mapInteraction.startNodeX + (dx / (rect.width * state.zoom)) * 100).toFixed(1))));
+    mapInteraction.node.y = Math.max(5, Math.min(95, Number((mapInteraction.startNodeY + (dy / (rect.height * state.zoom)) * 100).toFixed(1))));
     updateDraggedNode(mapInteraction.node);
     return;
   }
