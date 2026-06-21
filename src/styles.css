@@ -811,14 +811,14 @@ button, a, input {
 }
 .request-row.simple { grid-template-columns: 64px 1fr auto; }
 .request-row.handled { opacity: .55; }
-.request-copy { text-align: left; }
+.request-copy { min-width: 0; text-align: left; overflow: hidden; }
 .request-row h3 { margin: 0 0 8px; font-size: 20px; line-height: 1; font-weight: 900; letter-spacing: -.2px; }
-.request-row p { margin: 7px 0 0; font-size: 14px; white-space: nowrap; letter-spacing: -.1px; }
+.request-row p { margin: 7px 0 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.1px; }
 .request-side { align-self: stretch; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; padding-top: 3px; }
 .request-side time { display: flex; align-items: center; font-size: 14px; white-space: nowrap; }
-.request-side div { display: flex; gap: 11px; }
-.request-side button { width: 51px; height: 29px; border: 1px solid #111; border-radius: 10px; font-size: 15px; font-weight: 800; }
-.request-side .accept { width: 62px; background: #000; color: #fff; }
+.request-side div { display: flex; justify-content: flex-end; gap: 8px; width: 100%; }
+.request-side button { flex: 0 0 49px; height: 29px; border: 1px solid #111; border-radius: 10px; font-size: 15px; font-weight: 800; }
+.request-side .accept { flex-basis: 58px; background: #000; color: #fff; }
 .request-side > span { padding: 6px 12px; border-radius: 999px; background: #000; color: #fff; font-size: 13px; font-weight: 850; }
 
 .profile-actions { height: 75px; display: grid; grid-template-columns: auto 1fr auto auto; gap: 26px; align-items: center; padding: 18px 31px 0; }
@@ -1197,9 +1197,11 @@ button, a, input {
 }
 
 @media (max-width: 390px) {
-  .request-row { grid-template-columns: 58px 1fr 115px; padding-left: 17px; padding-right: 14px; }
+  .request-row { grid-template-columns: 58px minmax(0, 1fr) 123px; padding-left: 17px; padding-right: 12px; }
   .request-row p { font-size: 13px; }
-  .request-side div { gap: 7px; }
+  .request-side div { gap: 6px; }
+  .request-side button { flex-basis: 48px; }
+  .request-side .accept { flex-basis: 56px; }
   .info-row { grid-template-columns: 31px 86px 1fr; }
   .display-settings { top: 611px; }
   .graph-controls { top: 505px; }
