@@ -4,6 +4,7 @@ const app = document.querySelector('#root');
 const STORAGE_KEY = 'bondy.profile.v1';
 const LAST_EMAIL_KEY = 'bondy.auth.email.v1';
 const REMOTE_PROFILE_TABLE = 'profiles';
+const CONNECTION_REQUEST_TABLE = 'connection_requests';
 const SUPPORT_EMAIL = 'bondy1.app@gmail.com';
 const savedUser = loadUser();
 const authState = {
@@ -26,6 +27,7 @@ const state = {
   overlay: null,
   toast: '',
   handledRequests: {},
+  handledConnectToken: '',
   saved: false,
   user: savedUser,
   connections: [],
@@ -239,6 +241,7 @@ async function saveRemoteUser(user, options = {}) {
     .upsert({
       id: authState.user.id,
       email: authState.user.email || profile.email,
+      handle: profile.handle || authState.user.id,
       profile,
       updated_at: new Date().toISOString()
     });
@@ -248,6 +251,152 @@ async function saveRemoteUser(user, options = {}) {
     return false;
   }
   return true;
+}
+
+function profileFromRemoteRow(row) {
+  if (!row) return null;
+  const profile = normalizeUser(row.profile || {});
+  return {
+    id: row.id,
+    email: row.email || profile.email,
+    handle: row.handle || profile.handle,
+    profile: {
+      ...profile,
+      email: profile.email || row.email || '',
+      handle: profile.handle || row.handle || ''
+    }
+  };
+}
+
+function connectTokenFromValue(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    return url.searchParams.get('connect') || url.pathname.split('/').filter(Boolean).pop() || raw;
+  } catch {
+    return raw.replace(/^@/, '');
+  }
+}
+
+async function findProfileByIdOrHandle(value) {
+  if (!authState.client || !authState.user) {
+    showToast('ログインすると検索できます');
+    return null;
+  }
+  const token = connectTokenFromValue(value);
+  if (!token) return null;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(token);
+  const query = authState.client
+    .from(REMOTE_PROFILE_TABLE)
+    .select('id,email,handle,profile')
+    .limit(1);
+  const { data, error } = isUuid
+    ? await query.eq('id', token)
+    : await query.ilike('handle', token);
+  if (error) {
+    console.warn('Profile search failed', error);
+    showToast('プロフィール検索の設定を確認してください');
+    return null;
+  }
+  const found = profileFromRemoteRow(data?.[0]);
+  if (!found) showToast('該当するユーザーが見つかりません');
+  return found;
+}
+
+async function sendConnectionRequest(targetId, message = '') {
+  if (!authState.client || !authState.user) {
+    showToast('ログインすると申請できます');
+    return false;
+  }
+  if (!targetId || targetId === authState.user.id) {
+    showToast('自分には申請できません');
+    return false;
+  }
+  const { error } = await authState.client
+    .from(CONNECTION_REQUEST_TABLE)
+    .upsert({
+      requester_id: authState.user.id,
+      recipient_id: targetId,
+      message,
+      status: 'pending'
+    }, { onConflict: 'requester_id,recipient_id' });
+  if (error) {
+    console.warn('Connection request failed', error);
+    showToast('申請保存の設定を確認してください');
+    return false;
+  }
+  showToast('申請を送信しました');
+  return true;
+}
+
+async function showConnectTarget(value) {
+  const target = await findProfileByIdOrHandle(value);
+  if (!target) return;
+  state.overlay = { type: 'connect-profile', target };
+  render();
+}
+
+async function handleIncomingConnect() {
+  const token = new URLSearchParams(window.location.search).get('connect');
+  if (!token || token === state.handledConnectToken) return;
+  state.handledConnectToken = token;
+  await showConnectTarget(token);
+}
+
+async function startQrScanner() {
+  if (!('BarcodeDetector' in window) || !navigator.mediaDevices?.getUserMedia) {
+    showToast('このブラウザではID検索を使ってください');
+    return;
+  }
+  const root = document.createElement('div');
+  root.className = 'qr-scanner-root';
+  root.innerHTML = `
+    <div class="scrim"></div>
+    <section class="qr-scanner">
+      <h2>QRコードを読み取る</h2>
+      <video playsinline muted></video>
+      <p>相手のBondy QRコードを枠内に入れてください。</p>
+      <button type="button">閉じる</button>
+    </section>
+  `;
+  document.body.appendChild(root);
+  const video = root.querySelector('video');
+  const close = root.querySelector('button');
+  let stream;
+  let scanning = true;
+  const stop = () => {
+    scanning = false;
+    stream?.getTracks().forEach((track) => track.stop());
+    root.remove();
+  };
+  close.addEventListener('click', stop);
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    video.srcObject = stream;
+    await video.play();
+    const detector = new BarcodeDetector({ formats: ['qr_code'] });
+    const scan = async () => {
+      if (!scanning) return;
+      try {
+        const codes = await detector.detect(video);
+        const value = codes[0]?.rawValue;
+        if (value) {
+          stop();
+          await showConnectTarget(value);
+          return;
+        }
+      } catch (error) {
+        console.warn('QR scan failed', error);
+      }
+      requestAnimationFrame(scan);
+    };
+    scan();
+  } catch (error) {
+    console.warn('Camera unavailable', error);
+    stop();
+    showToast('カメラを使えませんでした。ID検索を使ってください');
+  }
 }
 
 async function restoreAccountUser() {
@@ -293,6 +442,7 @@ async function initAuth() {
     authState.user = data.session?.user || null;
     if (authState.user?.email) saveLastEmail(authState.user.email);
     if (authState.user) await restoreAccountUser();
+    if (authState.user) await handleIncomingConnect();
     if (authState.user && state.screen === 'login' && state.authMode !== 'updatePassword') {
       go('map');
     }
@@ -304,6 +454,7 @@ async function initAuth() {
       authState.user = session?.user || null;
       if (authState.user?.email) saveLastEmail(authState.user.email);
       if (authState.user) await restoreAccountUser();
+      if (authState.user) await handleIncomingConnect();
       if (event === 'PASSWORD_RECOVERY') {
         state.screen = 'login';
         state.authMode = 'updatePassword';
@@ -899,34 +1050,14 @@ function profileScreen() {
 }
 
 function profileLink(user = currentUser()) {
-  return `https://bondy.app/${encodeURIComponent(user.handle || 'me')}`;
+  const token = authState.user?.id || user.handle || 'me';
+  const base = `${window.location.origin}${window.location.pathname}`;
+  return `${base}?connect=${encodeURIComponent(token)}`;
 }
 
 function profileQr(value) {
-  const size = 17;
-  let seed = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    seed = (seed * 31 + value.charCodeAt(index)) >>> 0;
-  }
-  const finder = (x, y) => {
-    const inTopLeft = x < 5 && y < 5;
-    const inTopRight = x >= size - 5 && y < 5;
-    const inBottomLeft = x < 5 && y >= size - 5;
-    if (!inTopLeft && !inTopRight && !inBottomLeft) return null;
-    const localX = inTopRight ? x - (size - 5) : x;
-    const localY = inBottomLeft ? y - (size - 5) : y;
-    return localX === 0 || localX === 4 || localY === 0 || localY === 4 || (localX >= 2 && localX <= 2 && localY >= 2 && localY <= 2);
-  };
-  const cells = [];
-  for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      const marker = finder(x, y);
-      seed = (seed * 1664525 + 1013904223) >>> 0;
-      const filled = marker ?? (((seed >>> 24) + x * 7 + y * 11) % 3 !== 0);
-      cells.push(`<span class="${filled ? 'on' : ''}"></span>`);
-    }
-  }
-  return `<div class="qr-grid" style="--qr-size:${size}">${cells.join('')}</div>`;
+  const src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=10&data=${encodeURIComponent(value)}`;
+  return `<img src="${src}" alt="プロフィール交換用QRコード" loading="lazy">`;
 }
 
 function settingsScreen() {
@@ -1048,7 +1179,8 @@ function overlay() {
   const type = state.overlay.type;
   const user = currentUser();
   if (type === 'person') return modal(`<div class="modal-avatar">${profileAvatar(70)}</div><h2>${escapeHtml(state.overlay.name)}</h2><p>登録したプロフィール情報を確認できます。</p><button data-close>閉じる</button>`);
-  if (type === 'search') return modal(`<h2>検索</h2><input class="modal-input" placeholder="名前・会社・学校で検索"><p>まだ検索できるつながりはありません。つながりを追加すると、名前・大学・会社で探せるようになります。</p><button data-action="add">つながりを追加</button><button data-close>閉じる</button>`);
+  if (type === 'connect-profile') return modal(connectProfileContent(state.overlay.target), 'connect-modal');
+  if (type === 'search') return modal(idSearchContent('検索'), 'connect-modal');
   if (type === 'filter') return modal(`<h2>絞り込み</h2><div class="modal-grid">${mapFilters().map((f) => `<button class="${state.filter === f ? 'selected' : ''} ${f === '恋人' ? 'heart-filter-button' : ''}" data-filter="${f}" aria-label="${f}">${f === '恋人' ? icon('heart', 18) : f}</button>`).join('')}</div><button data-close>閉じる</button>`);
   if (type === 'display') return modal(`<h2>表示設定</h2><label><input type="checkbox" checked> つながりの強さを表示</label><label><input type="checkbox" checked> 共通点を表示</label><label><input type="checkbox"> 名前だけ表示</label><button data-close>完了</button>`);
   if (type === 'settings') return modal(`<h2>設定</h2><p>登録データはこの端末内に保存されています。</p><button data-action="restart-registration">最初から登録し直す</button><button data-close>閉じる</button>`);
@@ -1061,7 +1193,46 @@ function overlay() {
   if (type === 'help-support') return modal(helpSupportContent(), 'document-modal');
   if (type === 'terms') return modal(termsContent(), 'document-modal');
   if (type === 'privacy-policy') return modal(privacyPolicyContent(), 'document-modal');
-  return modal(`<h2>つながりを追加</h2><p>まずはプロフィールリンクやQRコードを共有して、Bondy上でつながりを増やせます。</p><button data-action="copy-link">プロフィールリンクをコピー</button><button data-nav="profile">QRコードを表示</button><button data-close>閉じる</button>`);
+  return modal(addConnectionContent(), 'connect-modal');
+}
+
+function addConnectionContent() {
+  return `
+    <h2>つながりを追加</h2>
+    <p>QRコードを読み取るか、相手のIDを検索して申請を送れます。</p>
+    <button data-action="scan-qr">${icon('qr', 20)}QRコードを読み取る</button>
+    ${idSearchContent('IDで検索', false)}
+    <button data-nav="profile">自分のQRコードを表示</button>
+    <button data-close>閉じる</button>
+  `;
+}
+
+function idSearchContent(title = 'IDで検索', wrap = true) {
+  const form = `
+    <form class="id-search-form" data-id-search-form>
+      <h3>${title}</h3>
+      <label>@ID またはプロフィールURL<input name="query" class="modal-input" placeholder="@your.id"></label>
+      <button type="submit">${icon('search', 18)}検索する</button>
+    </form>
+  `;
+  return wrap ? `${form}<button data-close>閉じる</button>` : form;
+}
+
+function connectProfileContent(target) {
+  if (!target) return `<h2>ユーザーが見つかりません</h2><p>IDを確認してもう一度検索してください。</p><button data-action="add">検索に戻る</button>`;
+  const profile = target.profile;
+  const title = profile.name || target.handle || 'ユーザー';
+  const subtitle = [profile.school, profile.company].filter(Boolean).join(' / ') || `@${target.handle || 'unknown'}`;
+  return `
+    <div class="connect-preview">
+      <div class="avatar initial-avatar" style="--size:72px"><b>${escapeHtml((title || 'U').slice(0, 2).toUpperCase())}</b></div>
+      <h2>${escapeHtml(title)}</h2>
+      <p>${escapeHtml(subtitle)}</p>
+      <small>@${escapeHtml(target.handle || profile.handle || '')}</small>
+    </div>
+    <button data-action="send-request" data-target-id="${escapeHtml(target.id)}">申請を送る</button>
+    <button data-action="add">別の人を探す</button>
+  `;
 }
 
 function helpSupportContent() {
@@ -1255,6 +1426,16 @@ app.addEventListener('click', async (event) => {
   }
   if (action === 'login') return go('map', 'ログインしました');
   if (['search', 'filter', 'add', 'display', 'notifications', 'help-support', 'terms', 'privacy-policy', 'account-security', 'manage-connections', 'profile-visibility', 'privacy-settings', 'version-info'].includes(action)) return openOverlay(action);
+  if (action === 'scan-qr') return startQrScanner();
+  if (action === 'send-request') {
+    const targetId = event.target.closest('[data-target-id]')?.dataset.targetId;
+    const sent = await sendConnectionRequest(targetId);
+    if (sent) {
+      state.overlay = null;
+      render();
+    }
+    return;
+  }
   if (action === 'logout') {
     state.overlay = null;
     await authState.client?.auth.signOut();
@@ -1356,8 +1537,15 @@ app.addEventListener('submit', async (event) => {
   const authForm = event.target.closest('[data-auth-form]');
   const registerForm = event.target.closest('[data-register-form]');
   const editForm = event.target.closest('[data-edit-form]');
-  if (!authForm && !registerForm && !editForm) return;
+  const idSearchForm = event.target.closest('[data-id-search-form]');
+  if (!authForm && !registerForm && !editForm && !idSearchForm) return;
   event.preventDefault();
+
+  if (idSearchForm) {
+    const formData = new FormData(idSearchForm);
+    await showConnectTarget(String(formData.get('query') || ''));
+    return;
+  }
 
   if (authForm) {
     const formData = new FormData(authForm);

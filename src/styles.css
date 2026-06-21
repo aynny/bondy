@@ -855,6 +855,11 @@ button, a, input {
 .share-content { display: grid; grid-template-columns: 1fr 126px; gap: 10px; align-items: center; padding: 20px 18px 16px; }
 .share-content p { margin: 0; line-height: 2; font-size: 15px; }
 .qr { width: 126px; height: 126px; display: grid; place-items: center; border: 1px solid #ddd; border-radius: 8px; }
+.qr img {
+  width: 112px;
+  height: 112px;
+  display: block;
+}
 .share-content button { width: 143px; height: 30px; display: flex; align-items: center; justify-content: center; gap: 5px; margin: 8px 0 0 -8px; border: 1px solid #ddd; border-radius: 999px; font-size: 13px; }
 .copy-link { width: 100%; height: 48px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 13px; background: #000; color: #fff; font-size: 16px; font-weight: 850; box-shadow: 0 8px 18px rgba(0,0,0,.14); }
 
@@ -971,6 +976,84 @@ button, a, input {
 .document-date {
   color: #777;
   font-size: 13px;
+}
+.connect-modal {
+  gap: 14px;
+}
+.id-search-form {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid #eeeeee;
+  border-radius: 16px;
+  background: #fafafa;
+}
+.id-search-form h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.id-search-form label {
+  display: grid;
+  gap: 7px;
+  color: #555;
+  font-size: 13px;
+  font-weight: 760;
+}
+.id-search-form button,
+.connect-modal > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.connect-preview {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 8px 0 4px;
+  text-align: center;
+}
+.connect-preview h2 {
+  margin-top: 5px;
+}
+.connect-preview small {
+  color: #777;
+  font-weight: 760;
+}
+.qr-scanner-root .scrim {
+  z-index: 70;
+}
+.qr-scanner {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 71;
+  width: min(90vw, 386px);
+  display: grid;
+  gap: 13px;
+  padding: 20px;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 18px 50px rgba(0,0,0,.25);
+  transform: translate(-50%, -50%);
+}
+.qr-scanner h2,
+.qr-scanner p {
+  margin: 0;
+}
+.qr-scanner video {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 18px;
+  background: #000;
+}
+.qr-scanner button {
+  min-height: 44px;
+  border-radius: 13px;
+  background: #000;
+  color: #fff;
+  font-weight: 850;
 }
 .modal-edit-form {
   display: grid;
@@ -1691,7 +1774,8 @@ body {
   padding: 9px;
 }
 
-.qr svg {
+.qr svg,
+.qr img {
   width: 98px;
   height: 98px;
 }
