@@ -549,10 +549,7 @@ function loginScreen() {
       </form>
       ${mode === 'signin' ? `<section class="login-actions compact">
         <div class="divider"><span></span><em>または</em><span></span></div>
-        ${socialButton('apple', '●', 'Appleで続ける')}
         ${socialButton('google', 'G', 'Googleで続ける')}
-        ${socialButton('line', 'LINE', 'LINEで続ける')}
-        ${socialButton('twitter', '♞', 'Twitterで続ける')}
       </section>` : ''}
       <p class="terms">ログインすることで、利用規約とプライバシーポリシーに<br>同意したものとみなされます</p>
       <div class="home-indicator"></div>

@@ -199,6 +199,12 @@ button, a, input {
 .login-actions.compact {
   padding-top: 16px;
 }
+.login-actions.compact .divider {
+  margin: 22px 0 18px;
+}
+.login-actions.compact .social {
+  margin-bottom: 0;
+}
 .pill, .social {
   width: 100%;
   height: 64px;
