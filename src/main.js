@@ -3,6 +3,7 @@ import { AUTH_CONFIG } from './auth-config.js';
 const app = document.querySelector('#root');
 const STORAGE_KEY = 'bondy.profile.v1';
 const LAST_EMAIL_KEY = 'bondy.auth.email.v1';
+const SIGNUP_PENDING_KEY = 'bondy.auth.pendingSignup.v1';
 const REMOTE_PROFILE_TABLE = 'profiles';
 const CONNECTION_REQUEST_TABLE = 'connection_requests';
 const SUPPORT_EMAIL = 'bondy1.app@gmail.com';
@@ -506,6 +507,22 @@ async function restoreAccountUser() {
   return false;
 }
 
+function profileIsComplete(user = state.user) {
+  const profile = normalizeUser(user || {});
+  return Boolean(profile.name && profile.handle && profile.school && profile.birthday);
+}
+
+async function finishAuthenticatedEntry(message = '') {
+  await loadIncomingRequests({ silent: true });
+  await handleIncomingConnect();
+  if (state.overlay?.type === 'connect-profile') return;
+  if (profileIsComplete()) {
+    go('map', message);
+    return;
+  }
+  go('register', 'プロフィールを登録してください');
+}
+
 async function initAuth() {
   if (!authState.configured) {
     authState.ready = true;
@@ -525,10 +542,10 @@ async function initAuth() {
     authState.user = data.session?.user || null;
     if (authState.user?.email) saveLastEmail(authState.user.email);
     if (authState.user) await restoreAccountUser();
-    if (authState.user && state.screen === 'login' && state.authMode !== 'updatePassword') {
-      go('map');
-    }
-    if (authState.user) {
+    const needsProfile = authState.user && !profileIsComplete();
+    if (authState.user && state.authMode !== 'updatePassword' && (state.screen === 'login' || needsProfile)) {
+      await finishAuthenticatedEntry();
+    } else if (authState.user) {
       await loadIncomingRequests({ silent: true });
       await handleIncomingConnect();
     }
@@ -547,9 +564,7 @@ async function initAuth() {
         return;
       }
       if (event === 'SIGNED_IN') {
-        go('map', 'ログインしました');
-        await loadIncomingRequests({ silent: true });
-        await handleIncomingConnect();
+        await finishAuthenticatedEntry(profileIsComplete() ? 'ログインしました' : '');
         return;
       }
       if (authState.user) {
@@ -571,14 +586,21 @@ async function signUpWithEmail(email, password) {
     return;
   }
   saveLastEmail(email);
+  localStorage.setItem(SIGNUP_PENDING_KEY, email);
   const redirectTo = `${window.location.origin}${window.location.pathname}`;
-  const { error } = await authState.client.auth.signUp({
+  const { data, error } = await authState.client.auth.signUp({
     email,
     password,
     options: { emailRedirectTo: redirectTo }
   });
   if (error) {
     showToast(error.message);
+    return;
+  }
+  if (data.session?.user) {
+    authState.user = data.session.user;
+    await restoreAccountUser();
+    go('register', 'プロフィールを登録してください');
     return;
   }
   showToast('認証メールを送信しました');
@@ -619,12 +641,15 @@ async function signInWithEmail(email, password) {
     return;
   }
   saveLastEmail(email);
-  const { error } = await authState.client.auth.signInWithPassword({ email, password });
+  const { data, error } = await authState.client.auth.signInWithPassword({ email, password });
   if (error) {
     showToast(error.message);
     return;
   }
-  go('map', 'ログインしました');
+  authState.user = data.user || authState.user;
+  localStorage.removeItem(SIGNUP_PENDING_KEY);
+  await restoreAccountUser();
+  await finishAuthenticatedEntry(profileIsComplete() ? 'ログインしました' : '');
 }
 
 async function signInWithProvider(provider) {
