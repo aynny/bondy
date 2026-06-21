@@ -35,11 +35,6 @@ const state = {
   requests: []
 };
 
-const people = [];
-const network = [];
-const connectionRows = [];
-const mapNodes = [];
-const friendOfFriendNodes = [];
 const universityOptions = buildUniversityOptions();
 const locationOptions = buildLocationOptions();
 const mapInteraction = {
@@ -319,7 +314,7 @@ async function sendConnectionRequest(targetId, message = '') {
     .insert({
       requester_id: authState.user.id,
       recipient_id: targetId,
-      message,
+      message: relationshipFromValue(message) || '紹介',
       status: 'pending'
     });
   if (error) {
@@ -354,17 +349,26 @@ function requestPersonFromRow(row, profilesById) {
   const remote = profilesById.get(row.requester_id);
   const profile = remote?.profile || {};
   const name = profile.name || remote?.handle || 'ユーザー';
-  const tag = profile.school ? '大学' : profile.company ? 'ビジネス' : '紹介';
+  const tag = relationshipFromValue(row.message) || (profile.school ? '大学' : profile.company ? 'ビジネス' : '紹介');
   return {
     id: row.id,
     requesterId: row.requester_id,
     name,
     tag,
     desc: profile.company || profile.school || (remote?.handle ? `@${remote.handle}` : 'Bondyユーザー'),
-    common: row.message || 'QR / ID検索からの申請',
+    common: `${tag}として申請`,
     time: relativeTime(row.created_at),
     photo: profile.photo || ''
   };
+}
+
+function relationshipTypes() {
+  return ['大学', 'ビジネス', '地元', '家族', 'イベント', '恋人'];
+}
+
+function relationshipFromValue(value) {
+  const cleanValue = String(value || '').trim();
+  return relationshipTypes().includes(cleanValue) ? cleanValue : '';
 }
 
 function relativeTime(value) {
@@ -412,6 +416,56 @@ async function loadIncomingRequests(options = {}) {
   return true;
 }
 
+function connectionPersonFromRow(row, profilesById) {
+  const currentId = authState.user?.id;
+  const otherId = row.requester_id === currentId ? row.recipient_id : row.requester_id;
+  const remote = profilesById.get(otherId);
+  const profile = remote?.profile || {};
+  const tag = relationshipFromValue(row.message) || (profile.school ? '大学' : profile.company ? 'ビジネス' : '紹介');
+  const name = profile.name || remote?.handle || 'ユーザー';
+  return {
+    id: otherId,
+    requestId: row.id,
+    name,
+    tag,
+    desc: profile.company || profile.school || (remote?.handle ? `@${remote.handle}` : 'Bondyユーザー'),
+    common: `${tag}のつながり`,
+    time: relativeTime(row.updated_at || row.created_at),
+    photo: profile.photo || ''
+  };
+}
+
+async function loadAcceptedConnections(options = {}) {
+  if (!authState.client || !authState.user) return false;
+  const { data, error } = await authState.client
+    .from(CONNECTION_REQUEST_TABLE)
+    .select('id,requester_id,recipient_id,status,message,created_at,updated_at')
+    .eq('status', 'accepted')
+    .or(`requester_id.eq.${authState.user.id},recipient_id.eq.${authState.user.id}`)
+    .order('updated_at', { ascending: false });
+  if (error) {
+    console.warn('Accepted connections load failed', error);
+    if (!options.silent) showToast('つながりの読み込み設定を確認してください');
+    return false;
+  }
+  const otherIds = [...new Set((data || []).map((row) => row.requester_id === authState.user.id ? row.recipient_id : row.requester_id).filter(Boolean))];
+  const profilesById = new Map();
+  if (otherIds.length) {
+    const { data: profiles, error: profileError } = await authState.client
+      .from(REMOTE_PROFILE_TABLE)
+      .select('id,email,handle,profile')
+      .in('id', otherIds);
+    if (profileError) {
+      console.warn('Connection profile load failed', profileError);
+    } else {
+      (profiles || []).forEach((row) => profilesById.set(row.id, profileFromRemoteRow(row)));
+    }
+  }
+  state.connections = (data || []).map((row) => connectionPersonFromRow(row, profilesById));
+  render();
+  return true;
+}
+
 async function updateConnectionRequestStatus(requestId, result) {
   if (!authState.client || !authState.user) return false;
   const status = result === '承認' ? 'accepted' : 'rejected';
@@ -425,6 +479,7 @@ async function updateConnectionRequestStatus(requestId, result) {
     showToast('申請の更新設定を確認してください');
     return false;
   }
+  if (status === 'accepted') await loadAcceptedConnections({ silent: true });
   return true;
 }
 
@@ -514,6 +569,7 @@ function profileIsComplete(user = state.user) {
 
 async function finishAuthenticatedEntry(message = '', options = {}) {
   await loadIncomingRequests({ silent: true });
+  await loadAcceptedConnections({ silent: true });
   await handleIncomingConnect();
   if (state.overlay?.type === 'connect-profile') return;
   if (!options.requireProfile || profileIsComplete()) {
@@ -548,6 +604,7 @@ async function initAuth() {
       await finishAuthenticatedEntry('', { requireProfile: hasPendingSignup });
     } else if (authState.user) {
       await loadIncomingRequests({ silent: true });
+      await loadAcceptedConnections({ silent: true });
       await handleIncomingConnect();
     }
     if (!authState.user && state.screen !== 'login' && state.screen !== 'register') {
@@ -571,6 +628,7 @@ async function initAuth() {
       }
       if (authState.user) {
         await loadIncomingRequests({ silent: true });
+        await loadAcceptedConnections({ silent: true });
         await handleIncomingConnect();
       }
     });
@@ -957,6 +1015,7 @@ function topHeader(title, extra = '') {
 }
 
 function mapScreen() {
+  const rows = connectionRowsData();
   const visibleNodes = mapVisibleNodes();
   const filtered = state.filter === 'すべて'
     ? visibleNodes
@@ -980,7 +1039,7 @@ function mapScreen() {
       </div>
     </section>
     <section class="map-stats">
-      <div>${icon('users')}<span>つながり数</span><b>${connectionRows.length} 人</b><small>登録後に追加</small></div>
+      <div>${icon('users')}<span>つながり数</span><b>${rows.length} 人</b><small>承認済み</small></div>
       <div>${icon('building')}<span>共通の会社・学校</span><b>0 件</b></div>
       <div>${icon('users')}<span>共通の知人</span><b>0 人</b></div>
     </section>
@@ -1003,6 +1062,36 @@ function mapFilters() {
   return ['すべて', '大学', 'ビジネス', '地元', '家族', 'イベント', '恋人'];
 }
 
+function connectionRowsData() {
+  return state.connections || [];
+}
+
+function mapNodeData() {
+  const colors = {
+    '大学': '#3b82f6',
+    'ビジネス': '#22c55e',
+    '地元': '#f59e0b',
+    '家族': '#ef476f',
+    'イベント': '#8b5cf6',
+    '恋人': '#ec4899',
+    '紹介': '#111'
+  };
+  const positions = [
+    [50, 18], [74, 30], [80, 58], [68, 78], [50, 84], [30, 78],
+    [20, 58], [27, 30], [88, 44], [12, 44], [38, 16], [62, 16]
+  ];
+  return connectionRowsData().map((person, index) => {
+    const [x, y] = positions[index % positions.length];
+    return {
+      ...person,
+      x,
+      y,
+      color: colors[person.tag] || '#111',
+      centerable: state.mapCenter === 'you'
+    };
+  });
+}
+
 function networkGraph(nodes) {
   const center = mapCenterProfile();
   return `
@@ -1012,7 +1101,7 @@ function networkGraph(nodes) {
           ${nodes.map((node) => `<line x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="${node.color}" />`).join('')}
         </svg>
         <div class="center-node">${mapCenterAvatar(center)}<h3>${escapeHtml(center.name)}</h3><span>${escapeHtml(center.badge)}</span></div>
-        ${nodes.map((node) => `<button class="map-node ${node.centerable ? 'centerable' : 'profile-only'}" type="button" style="left:${node.x}%;top:${node.y}%" data-map-node="${node.name}" data-centerable="${node.centerable ? 'true' : 'false'}" data-person="${node.name}">${avatar(node.avatar, 54)}<b>${node.name}</b><em>${node.centerable ? '中心にする' : node.tag}</em></button>`).join('')}
+        ${nodes.map((node) => `<button class="map-node ${node.centerable ? 'centerable' : 'profile-only'}" type="button" style="left:${node.x}%;top:${node.y}%" data-map-node="${escapeHtml(node.id || node.name)}" data-centerable="${node.centerable ? 'true' : 'false'}" data-person-id="${escapeHtml(node.id || '')}" data-person="${escapeHtml(node.name)}">${personAvatar(node, 54)}<b>${escapeHtml(node.name)}</b><em>${node.centerable ? '中心にする' : escapeHtml(node.tag)}</em></button>`).join('')}
         ${nodes.length ? '<div class="more-node left">+2<span>他2人</span></div><div class="more-node right">+3<span>他3人</span></div><div class="more-node bottom">+4<span>他4人</span></div>' : '<div class="empty-map">まだつながりはありません<br>右上の＋から追加できます</div>'}
       </div>
     </section>
@@ -1025,15 +1114,30 @@ function mapCanvasStyle() {
 
 function mapVisibleNodes() {
   if (state.mapCenter === 'you') {
-    return mapNodes.map((node) => {
+    return mapNodeData().map((node) => {
       node.centerable = true;
       return node;
     });
   }
-  return friendOfFriendNodes.map((node) => {
-    node.centerable = false;
-    return node;
-  });
+  return connectionRowsData()
+    .filter((node) => node.id !== state.mapCenter)
+    .slice(0, 8)
+    .map((node, index) => {
+      const positions = [[50, 22], [72, 34], [76, 62], [50, 78], [28, 62], [28, 34], [86, 50], [14, 50]];
+      const [x, y] = positions[index % positions.length];
+      return { ...node, x, y, color: '#d9d9d9', centerable: false };
+    });
+}
+
+function personByIdOrName(value) {
+  return connectionRowsData().find((person) => person.id === value || person.name === value)
+    || state.requests.find((person) => person.id === value || person.name === value);
+}
+
+function personAvatar(person, size = 58) {
+  if (person?.photo) return `<div class="avatar" style="--size:${size}px"><img src="${escapeHtml(person.photo)}" alt=""></div>`;
+  if (person?.avatar) return avatar(person.avatar, size);
+  return initialsAvatar(person?.name || 'ユーザー', size);
 }
 
 function mapCenterProfile() {
@@ -1045,15 +1149,17 @@ function mapCenterProfile() {
       avatar: 'user'
     };
   }
-  const selected = mapNodes.find((node) => node.name === state.mapCenter) || mapNodes[0];
+  const selected = personByIdOrName(state.mapCenter) || connectionRowsData()[0] || {};
   return {
-    name: selected.name,
-    badge: selected.tag,
-    avatar: selected.avatar
+    name: selected.name || 'ユーザー',
+    badge: selected.tag || 'つながり',
+    avatar: selected.avatar,
+    photo: selected.photo
   };
 }
 
 function mapCenterAvatar(center = mapCenterProfile()) {
+  if (center.photo) return `<div class="avatar profile-avatar" style="--size:82px"><img src="${escapeHtml(center.photo)}" alt=""></div>`;
   if (center.avatar === 'user') return profileAvatar(82);
   return avatar(center.avatar, 82);
 }
@@ -1071,9 +1177,10 @@ function emptyPanel(title, body) {
 
 function connectionsScreen() {
   const filters = ['すべて', '大学', 'ビジネス', '地元', '家族', 'イベント', '恋人'];
+  const allRows = connectionRowsData();
   const rows = state.connectionFilter === 'すべて'
-    ? connectionRows
-    : connectionRows.filter((person) => person.tag === state.connectionFilter);
+    ? allRows
+    : allRows.filter((person) => person.tag === state.connectionFilter);
   return `
     ${appHeader('', `${buttonIcon('search', 'search')}${buttonIcon('bell', 'notifications')}`)}
     <section class="connection-filter-bar">
@@ -1090,8 +1197,8 @@ function connectionsScreen() {
 
 function connectionRow(person) {
   return `
-    <article class="connection-row" data-person="${person.name}">
-      <div class="connection-placeholder">${icon('user', 31)}</div>
+    <article class="connection-row" data-person-id="${escapeHtml(person.id || '')}" data-person="${escapeHtml(person.name)}">
+      ${personAvatar(person, 58)}
       <button class="connection-copy" type="button">
         <h3>${escapeHtml(person.name)}${connectionTag(person.tag)}</h3>
         <p>${escapeHtml(person.desc)}</p>
@@ -1177,7 +1284,7 @@ function profileScreen() {
       ${infoRow('calendar', '誕生日', user.birthdayPublic ? (user.birthday || '未入力') : '非公開')}
       <div class="info-row">${icon('link', 25)}<span>SNS</span><strong class="sns">${snsLinks(user)}</strong></div>
     </section>
-    <section class="stats-card">${[['users', 'つながり', String(state.connections.length)], ['user', '共通の知人', '0'], ['users', '所属グループ', '0'], ['copy', '保存した人', state.saved ? '1' : '0']].map(([ic, label, value]) => `<div>${icon(ic, 28)}<span>${label}</span><b>${value}</b></div>`).join('')}</section>
+    <section class="stats-card">${[['users', 'つながり', String(connectionRowsData().length)], ['user', '共通の知人', '0'], ['users', '所属グループ', '0'], ['copy', '保存した人', state.saved ? '1' : '0']].map(([ic, label, value]) => `<div>${icon(ic, 28)}<span>${label}</span><b>${value}</b></div>`).join('')}</section>
     <section class="share-card">
       <h2>${icon('external', 28)}プロフィールを共有</h2>
       <div class="share-content"><p>QRコードをシェアして、<br>あなたのプロフィールを<br>簡単に共有できます。</p><div><div class="qr" aria-label="${escapeHtml(profileUrl)}">${profileQr(profileUrl)}</div><button data-action="save-qr">${icon('download', 18)}QRコードを保存</button></div></div>
@@ -1323,7 +1430,7 @@ function overlay() {
   if (type === 'settings') return modal(`<h2>設定</h2><p>登録データはこの端末内に保存されています。</p><button data-action="restart-registration">最初から登録し直す</button><button data-close>閉じる</button>`);
   if (type === 'notifications') return modal(`<h2>通知</h2><p>通知はまだありません。</p><button data-close>閉じる</button>`);
   if (type === 'account-security') return modal(`<h2>アカウントとセキュリティ</h2><p>ログイン中のメールアドレス：${escapeHtml(authState.user?.email || currentUser().email || '未ログイン')}</p><p>パスワードを変更したい場合は、ログイン画面の「パスワードを忘れた方」から再設定できます。</p><button data-action="logout">ログアウト</button><button data-close>閉じる</button>`);
-  if (type === 'manage-connections') return modal(`<h2>つながりの管理</h2><p>現在のつながり数は ${connectionRows.length} 人です。今後、承認済みの紹介や追加した人をここから管理できるようにします。</p><button data-action="add">つながりを追加</button><button data-close>閉じる</button>`);
+  if (type === 'manage-connections') return modal(`<h2>つながりの管理</h2><p>現在のつながり数は ${connectionRowsData().length} 人です。承認済みの申請がここに反映されます。</p><button data-action="add">つながりを追加</button><button data-close>閉じる</button>`);
   if (type === 'profile-visibility') return modal(`<h2>プロフィールの公開範囲</h2><p>所在地と誕生日はプロフィール編集から公開・非公開を選べます。SNSリンクは入力したものだけプロフィールに表示されます。</p><button data-action="edit">プロフィールを編集</button><button data-close>閉じる</button>`);
   if (type === 'privacy-settings') return modal(`<h2>プライバシー設定</h2><p>プロフィール情報はログイン中のアカウントに紐づいて保存されます。公開範囲はプロフィール編集から変更できます。</p><button data-action="edit">公開設定を変更</button><button data-close>閉じる</button>`);
   if (type === 'version-info') return modal(`<h2>バージョン情報</h2><p>Bondy Web App<br>Ver. 1.3.0</p><p>プロフィールのクラウド保存、Googleログイン、マップ操作改善に対応しています。</p><button data-close>閉じる</button>`);
@@ -1367,6 +1474,10 @@ function connectProfileContent(target) {
       <p>${escapeHtml(subtitle)}</p>
       <small>@${escapeHtml(target.handle || profile.handle || '')}</small>
     </div>
+    <fieldset class="relationship-picker">
+      <legend>何の関係でつながりますか？</legend>
+      ${relationshipTypes().map((type, index) => `<label><input type="radio" name="relationshipType" value="${escapeHtml(type)}" ${index === 0 ? 'checked' : ''}>${type === '恋人' ? icon('heart', 15) : escapeHtml(type)}</label>`).join('')}
+    </fieldset>
     <button data-action="send-request" data-target-id="${escapeHtml(target.id)}">申請を送る</button>
     <button data-action="add">別の人を探す</button>
   `;
@@ -1483,6 +1594,7 @@ app.addEventListener('click', async (event) => {
   if (nav) {
     go(nav);
     if (nav === 'intro') await loadIncomingRequests({ silent: true });
+    if (nav === 'connections' || nav === 'map' || nav === 'profile') await loadAcceptedConnections({ silent: true });
     return;
   }
   if (tab) {
@@ -1516,6 +1628,7 @@ app.addEventListener('click', async (event) => {
     if (!updated) return;
     state.handledRequests[requestId] = result;
     state.requests = state.requests.filter((item) => item.id !== requestId);
+    if (result === '承認') await loadAcceptedConnections({ silent: true });
     showToast(`${result}しました`);
     render();
     return;
@@ -1535,8 +1648,14 @@ app.addEventListener('click', async (event) => {
       render();
       return;
     }
-    const node = [...mapNodes, ...friendOfFriendNodes].find((item) => item.name === name);
-    state.overlay = { type: 'person', name, avatar: node?.avatar, desc: node?.tag ? `${node.tag}のつながりです。` : '' };
+    const node = personByIdOrName(name);
+    state.overlay = {
+      type: 'person',
+      name: node?.name || name,
+      avatar: node?.avatar,
+      photo: node?.photo || '',
+      desc: node?.tag ? `${node.tag}のつながりです。` : ''
+    };
     render();
     return;
   }
@@ -1584,7 +1703,8 @@ app.addEventListener('click', async (event) => {
   if (action === 'scan-qr') return startQrScanner();
   if (action === 'send-request') {
     const targetId = event.target.closest('[data-target-id]')?.dataset.targetId;
-    const sent = await sendConnectionRequest(targetId);
+    const relationship = event.target.closest('.modal-sheet')?.querySelector('input[name="relationshipType"]:checked')?.value || '紹介';
+    const sent = await sendConnectionRequest(targetId, relationship);
     if (sent) {
       state.overlay = null;
       render();

@@ -1022,6 +1022,37 @@ button, a, input {
   color: #777;
   font-weight: 760;
 }
+.relationship-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 13px;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  background: #fafafa;
+}
+.relationship-picker legend {
+  width: 100%;
+  margin-bottom: 2px;
+  color: #555;
+  font-size: 13px;
+  font-weight: 820;
+}
+.relationship-picker label {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px;
+  border: 1px solid #e2e2e2;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 820;
+}
+.relationship-picker input {
+  accent-color: #000;
+}
 .qr-scanner-root .scrim {
   z-index: 70;
 }
