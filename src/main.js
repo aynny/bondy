@@ -315,13 +315,17 @@ async function sendConnectionRequest(targetId, message = '') {
   }
   const { error } = await authState.client
     .from(CONNECTION_REQUEST_TABLE)
-    .upsert({
+    .insert({
       requester_id: authState.user.id,
       recipient_id: targetId,
       message,
       status: 'pending'
-    }, { onConflict: 'requester_id,recipient_id' });
+    });
   if (error) {
+    if (error.code === '23505') {
+      showToast('すでに申請済みです');
+      return true;
+    }
     console.warn('Connection request failed', error);
     showToast('申請保存の設定を確認してください');
     return false;
@@ -332,16 +336,95 @@ async function sendConnectionRequest(targetId, message = '') {
 
 async function showConnectTarget(value) {
   const target = await findProfileByIdOrHandle(value);
-  if (!target) return;
+  if (!target) return false;
   state.overlay = { type: 'connect-profile', target };
   render();
+  return true;
 }
 
 async function handleIncomingConnect() {
   const token = new URLSearchParams(window.location.search).get('connect');
   if (!token || token === state.handledConnectToken) return;
-  state.handledConnectToken = token;
-  await showConnectTarget(token);
+  const shown = await showConnectTarget(token);
+  if (shown) state.handledConnectToken = token;
+}
+
+function requestPersonFromRow(row, profilesById) {
+  const remote = profilesById.get(row.requester_id);
+  const profile = remote?.profile || {};
+  const name = profile.name || remote?.handle || 'ユーザー';
+  const tag = profile.school ? '大学' : profile.company ? 'ビジネス' : '紹介';
+  return {
+    id: row.id,
+    requesterId: row.requester_id,
+    name,
+    tag,
+    desc: profile.company || profile.school || (remote?.handle ? `@${remote.handle}` : 'Bondyユーザー'),
+    common: row.message || 'QR / ID検索からの申請',
+    time: relativeTime(row.created_at),
+    photo: profile.photo || ''
+  };
+}
+
+function relativeTime(value) {
+  const time = new Date(value).getTime();
+  if (!time) return '';
+  const diff = Math.max(0, Date.now() - time);
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'たった今';
+  if (minutes < 60) return `${minutes}分前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}時間前`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}日前`;
+  return `${Math.floor(days / 7)}週間前`;
+}
+
+async function loadIncomingRequests(options = {}) {
+  if (!authState.client || !authState.user) return false;
+  const { data, error } = await authState.client
+    .from(CONNECTION_REQUEST_TABLE)
+    .select('id,requester_id,recipient_id,status,message,created_at,updated_at')
+    .eq('recipient_id', authState.user.id)
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.warn('Connection request load failed', error);
+    if (!options.silent) showToast('申請の読み込み設定を確認してください');
+    return false;
+  }
+  const requesterIds = [...new Set((data || []).map((row) => row.requester_id).filter(Boolean))];
+  const profilesById = new Map();
+  if (requesterIds.length) {
+    const { data: profiles, error: profileError } = await authState.client
+      .from(REMOTE_PROFILE_TABLE)
+      .select('id,email,handle,profile')
+      .in('id', requesterIds);
+    if (profileError) {
+      console.warn('Request profile load failed', profileError);
+    } else {
+      (profiles || []).forEach((row) => profilesById.set(row.id, profileFromRemoteRow(row)));
+    }
+  }
+  state.requests = (data || []).map((row) => requestPersonFromRow(row, profilesById));
+  render();
+  return true;
+}
+
+async function updateConnectionRequestStatus(requestId, result) {
+  if (!authState.client || !authState.user) return false;
+  const status = result === '承認' ? 'accepted' : 'rejected';
+  const { error } = await authState.client
+    .from(CONNECTION_REQUEST_TABLE)
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', requestId)
+    .eq('recipient_id', authState.user.id);
+  if (error) {
+    console.warn('Connection request update failed', error);
+    showToast('申請の更新設定を確認してください');
+    return false;
+  }
+  return true;
 }
 
 async function startQrScanner() {
@@ -442,9 +525,12 @@ async function initAuth() {
     authState.user = data.session?.user || null;
     if (authState.user?.email) saveLastEmail(authState.user.email);
     if (authState.user) await restoreAccountUser();
-    if (authState.user) await handleIncomingConnect();
     if (authState.user && state.screen === 'login' && state.authMode !== 'updatePassword') {
       go('map');
+    }
+    if (authState.user) {
+      await loadIncomingRequests({ silent: true });
+      await handleIncomingConnect();
     }
     if (!authState.user && state.screen !== 'login' && state.screen !== 'register') {
       state.authMode = 'signin';
@@ -454,7 +540,6 @@ async function initAuth() {
       authState.user = session?.user || null;
       if (authState.user?.email) saveLastEmail(authState.user.email);
       if (authState.user) await restoreAccountUser();
-      if (authState.user) await handleIncomingConnect();
       if (event === 'PASSWORD_RECOVERY') {
         state.screen = 'login';
         state.authMode = 'updatePassword';
@@ -463,6 +548,13 @@ async function initAuth() {
       }
       if (event === 'SIGNED_IN') {
         go('map', 'ログインしました');
+        await loadIncomingRequests({ silent: true });
+        await handleIncomingConnect();
+        return;
+      }
+      if (authState.user) {
+        await loadIncomingRequests({ silent: true });
+        await handleIncomingConnect();
       }
     });
   } catch (error) {
@@ -629,7 +721,11 @@ function profileAvatar(size = 58) {
   if (user.photo) {
     return `<div class="avatar profile-avatar" style="--size:${size}px"><img src="${user.photo}" alt=""></div>`;
   }
-  const initials = (user.name || user.handle || user.email || 'あなた').trim().slice(0, 2).toUpperCase();
+  return initialsAvatar(user.name || user.handle || user.email || 'あなた', size);
+}
+
+function initialsAvatar(name = 'ユーザー', size = 58) {
+  const initials = String(name || 'ユーザー').trim().slice(0, 2).toUpperCase();
   return `<div class="avatar initial-avatar" style="--size:${size}px"><b>${escapeHtml(initials)}</b></div>`;
 }
 
@@ -1002,9 +1098,12 @@ function introRows() {
   }
   return state.requests.map((person) => {
     const handled = state.handledRequests[person.id];
+    const requestAvatar = person.photo
+      ? `<div class="avatar" style="--size:58px"><img src="${escapeHtml(person.photo)}" alt=""></div>`
+      : initialsAvatar(person.name, 58);
     return `
       <article class="request-row ${handled ? 'handled' : ''}">
-        ${avatar(person.avatar, 58)}
+        ${requestAvatar}
         <button class="request-copy" data-person="${person.name}">
           <h3>${person.name}<small>${person.tag}</small></h3>
           <p>${person.desc}</p>
@@ -1341,10 +1440,15 @@ app.addEventListener('click', async (event) => {
     render();
     return;
   }
-  if (nav) return go(nav);
+  if (nav) {
+    go(nav);
+    if (nav === 'intro') await loadIncomingRequests({ silent: true });
+    return;
+  }
   if (tab) {
     state.introTab = tab;
     render();
+    if (tab === '申請') await loadIncomingRequests({ silent: true });
     return;
   }
   if (connectionFilter) {
@@ -1366,8 +1470,13 @@ app.addEventListener('click', async (event) => {
     return;
   }
   if (request) {
-    state.handledRequests[request.dataset.request] = request.dataset.result;
-    showToast(`${request.dataset.result}しました`);
+    const requestId = request.dataset.request;
+    const result = request.dataset.result;
+    const updated = await updateConnectionRequestStatus(requestId, result);
+    if (!updated) return;
+    state.handledRequests[requestId] = result;
+    state.requests = state.requests.filter((item) => item.id !== requestId);
+    showToast(`${result}しました`);
     render();
     return;
   }
