@@ -4,6 +4,7 @@ const app = document.querySelector('#root');
 const STORAGE_KEY = 'bondy.profile.v1';
 const LAST_EMAIL_KEY = 'bondy.auth.email.v1';
 const SIGNUP_PENDING_KEY = 'bondy.auth.pendingSignup.v1';
+const MAP_POSITIONS_KEY = 'bondy.map.positions.v1';
 const REMOTE_PROFILE_TABLE = 'profiles';
 const CONNECTION_REQUEST_TABLE = 'connection_requests';
 const SUPPORT_EMAIL = 'bondy1.app@gmail.com';
@@ -33,7 +34,8 @@ const state = {
   user: savedUser,
   connections: [],
   requests: [],
-  notifications: []
+  notifications: [],
+  mapNodePositions: loadMapNodePositions()
 };
 
 const universityOptions = buildUniversityOptions();
@@ -167,6 +169,21 @@ function render() {
 
 function loadUser() {
   return loadStoredUser(STORAGE_KEY);
+}
+
+function loadMapNodePositions() {
+  try {
+    const value = JSON.parse(localStorage.getItem(MAP_POSITIONS_KEY));
+    return value && typeof value === 'object' ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveMapNodePosition(node) {
+  if (!node?.id) return;
+  state.mapNodePositions[node.id] = { x: node.x, y: node.y };
+  localStorage.setItem(MAP_POSITIONS_KEY, JSON.stringify(state.mapNodePositions));
 }
 
 function loadStoredUser(key) {
@@ -1210,10 +1227,11 @@ function mapNodeData() {
   ];
   return connectionRowsData().map((person, index) => {
     const [x, y] = positions[index % positions.length];
+    const saved = state.mapNodePositions[person.id] || {};
     return {
       ...person,
-      x,
-      y,
+      x: Number.isFinite(saved.x) ? saved.x : x,
+      y: Number.isFinite(saved.y) ? saved.y : y,
       color: colors[person.tag] || '#111',
       centerable: state.mapCenter === 'you'
     };
@@ -1226,7 +1244,7 @@ function networkGraph(nodes) {
     <section class="network" data-map-workspace>
       <div class="map-canvas" data-map-canvas style="${mapCanvasStyle()}">
         <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
-          ${nodes.map((node) => `<line x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="${node.color}" />`).join('')}
+          ${nodes.map((node) => `<line data-line-node="${escapeHtml(node.id || node.name)}" x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="${node.color}" />`).join('')}
         </svg>
         <div class="center-node">${mapCenterAvatar(center)}<h3>${escapeHtml(center.name)}</h3><span>${escapeHtml(center.badge)}</span></div>
         ${nodes.map((node) => `<button class="map-node ${node.centerable ? 'centerable' : 'profile-only'}" type="button" style="left:${node.x}%;top:${node.y}%" data-map-node="${escapeHtml(node.id || node.name)}" data-centerable="${node.centerable ? 'true' : 'false'}" data-person-id="${escapeHtml(node.id || '')}" data-person="${escapeHtml(node.name)}">${personAvatar(node, 54)}<b>${escapeHtml(node.name)}</b><em>${node.centerable ? '中心にする' : escapeHtml(node.tag)}</em></button>`).join('')}
@@ -1253,7 +1271,14 @@ function mapVisibleNodes() {
     .map((node, index) => {
       const positions = [[50, 22], [72, 34], [76, 62], [50, 78], [28, 62], [28, 34], [86, 50], [14, 50]];
       const [x, y] = positions[index % positions.length];
-      return { ...node, x, y, color: '#d9d9d9', centerable: false };
+      const saved = state.mapNodePositions[node.id] || {};
+      return {
+        ...node,
+        x: Number.isFinite(saved.x) ? saved.x : x,
+        y: Number.isFinite(saved.y) ? saved.y : y,
+        color: '#d9d9d9',
+        centerable: false
+      };
     });
 }
 
@@ -2119,7 +2144,7 @@ app.addEventListener('pointerdown', (event) => {
 
   mapInteraction.active = true;
   mapInteraction.mode = nodeButton ? 'node' : 'pan';
-  mapInteraction.node = nodeButton ? mapVisibleNodes().find((node) => node.name === nodeButton.dataset.mapNode) : null;
+  mapInteraction.node = nodeButton ? mapVisibleNodes().find((node) => (node.id || node.name) === nodeButton.dataset.mapNode) : null;
   mapInteraction.pointerId = event.pointerId;
   mapInteraction.startX = event.clientX;
   mapInteraction.startY = event.clientY;
@@ -2210,6 +2235,9 @@ function finishMapPointer(event) {
     mapInteraction.mode = '';
   }
   if (event.pointerId !== mapInteraction.pointerId) return;
+  if (mapInteraction.mode === 'node' && mapInteraction.node && mapInteraction.dragged) {
+    saveMapNodePosition(mapInteraction.node);
+  }
   mapInteraction.active = false;
   mapInteraction.node = null;
   mapInteraction.pointerId = null;
@@ -2268,12 +2296,13 @@ function scheduleMapCanvasUpdate() {
 }
 
 function updateDraggedNode(node) {
-  const button = document.querySelector(`[data-map-node="${cssEscape(node.name)}"]`);
+  const nodeKey = node.id || node.name;
+  const button = document.querySelector(`[data-map-node="${cssEscape(nodeKey)}"]`);
   if (button) {
     button.style.left = `${node.x}%`;
     button.style.top = `${node.y}%`;
   }
-  const line = [...document.querySelectorAll('.lines line')].find((item) => item.getAttribute('stroke') === node.color);
+  const line = document.querySelector(`.lines line[data-line-node="${cssEscape(nodeKey)}"]`);
   if (line) {
     line.setAttribute('x2', node.x);
     line.setAttribute('y2', node.y);
