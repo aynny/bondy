@@ -717,11 +717,17 @@ function connectionTag(tag) {
     : `<small>${escapeHtml(tag)}</small>`;
 }
 
+function pendingIntroRequests() {
+  return state.requests.filter((request) => !state.handledRequests[request.id]);
+}
+
 function introScreen() {
+  const pendingCount = pendingIntroRequests().length;
+  const hasIntroNotice = pendingCount > 0;
   return `
-    ${appHeader('', `${buttonIcon('search', 'search')}${buttonIcon('bell', 'notifications', 'dot')}`)}
+    ${appHeader('', `${buttonIcon('search', 'search')}${buttonIcon('bell', 'notifications', hasIntroNotice ? 'dot' : '')}`)}
     <div class="screen-tabs tabs">
-      ${['申請', '紹介された', '紹介した'].map((tab) => `<button class="${state.introTab === tab ? 'active' : ''}" data-tab="${tab}">${tab}${tab === '申請' ? '<b>3</b>' : ''}</button>`).join('')}
+      ${['申請', '紹介された', '紹介した'].map((tab) => `<button class="${state.introTab === tab ? 'active' : ''}" data-tab="${tab}">${tab}${tab === '申請' && pendingCount ? `<b>${pendingCount}</b>` : ''}</button>`).join('')}
     </div>
     <section class="request-list">
       ${introRows()}
