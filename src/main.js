@@ -51,7 +51,12 @@ const mapInteraction = {
   dragged: false,
   pointers: new Map(),
   pinchStartDistance: 0,
-  pinchStartZoom: 1
+  pinchStartZoom: 1,
+  pinchStartPanX: 0,
+  pinchStartPanY: 0,
+  pinchStartCenterX: 0,
+  pinchStartCenterY: 0,
+  raf: null
 };
 
 function buildUniversityOptions() {
@@ -738,7 +743,7 @@ function networkGraph(nodes) {
 }
 
 function mapCanvasStyle() {
-  return `transform: translate(${state.mapPan.x}px, ${state.mapPan.y}px) scale(${state.zoom})`;
+  return `transform: translate3d(${state.mapPan.x}px, ${state.mapPan.y}px, 0) scale(${state.zoom})`;
 }
 
 function mapVisibleNodes() {
@@ -1051,15 +1056,20 @@ function overlay() {
   const type = state.overlay.type;
   const user = currentUser();
   if (type === 'person') return modal(`<div class="modal-avatar">${profileAvatar(70)}</div><h2>${escapeHtml(state.overlay.name)}</h2><p>登録したプロフィール情報を確認できます。</p><button data-close>閉じる</button>`);
-  if (type === 'search') return modal(`<h2>検索</h2><input class="modal-input" placeholder="名前・会社・学校で検索"><p>まだ検索できるつながりはありません。</p><button data-close>閉じる</button>`);
+  if (type === 'search') return modal(`<h2>検索</h2><input class="modal-input" placeholder="名前・会社・学校で検索"><p>まだ検索できるつながりはありません。つながりを追加すると、名前・大学・会社で探せるようになります。</p><button data-action="add">つながりを追加</button><button data-close>閉じる</button>`);
   if (type === 'filter') return modal(`<h2>絞り込み</h2><div class="modal-grid">${mapFilters().map((f) => `<button class="${state.filter === f ? 'selected' : ''} ${f === '恋人' ? 'heart-filter-button' : ''}" data-filter="${f}" aria-label="${f}">${f === '恋人' ? icon('heart', 18) : f}</button>`).join('')}</div><button data-close>閉じる</button>`);
   if (type === 'display') return modal(`<h2>表示設定</h2><label><input type="checkbox" checked> つながりの強さを表示</label><label><input type="checkbox" checked> 共通点を表示</label><label><input type="checkbox"> 名前だけ表示</label><button data-close>完了</button>`);
   if (type === 'settings') return modal(`<h2>設定</h2><p>登録データはこの端末内に保存されています。</p><button data-action="restart-registration">最初から登録し直す</button><button data-close>閉じる</button>`);
   if (type === 'notifications') return modal(`<h2>通知</h2><p>通知はまだありません。</p><button data-close>閉じる</button>`);
+  if (type === 'account-security') return modal(`<h2>アカウントとセキュリティ</h2><p>ログイン中のメールアドレス：${escapeHtml(authState.user?.email || currentUser().email || '未ログイン')}</p><p>パスワードを変更したい場合は、ログイン画面の「パスワードを忘れた方」から再設定できます。</p><button data-action="logout">ログアウト</button><button data-close>閉じる</button>`);
+  if (type === 'manage-connections') return modal(`<h2>つながりの管理</h2><p>現在のつながり数は ${connectionRows.length} 人です。今後、承認済みの紹介や追加した人をここから管理できるようにします。</p><button data-action="add">つながりを追加</button><button data-close>閉じる</button>`);
+  if (type === 'profile-visibility') return modal(`<h2>プロフィールの公開範囲</h2><p>所在地と誕生日はプロフィール編集から公開・非公開を選べます。SNSリンクは入力したものだけプロフィールに表示されます。</p><button data-action="edit">プロフィールを編集</button><button data-close>閉じる</button>`);
+  if (type === 'privacy-settings') return modal(`<h2>プライバシー設定</h2><p>プロフィール情報はログイン中のアカウントに紐づいて保存されます。公開範囲はプロフィール編集から変更できます。</p><button data-action="edit">公開設定を変更</button><button data-close>閉じる</button>`);
+  if (type === 'version-info') return modal(`<h2>バージョン情報</h2><p>Bondy Web App<br>Ver. 1.3.0</p><p>プロフィールのクラウド保存、Googleログイン、マップ操作改善に対応しています。</p><button data-close>閉じる</button>`);
   if (type === 'help-support') return modal(helpSupportContent(), 'document-modal');
   if (type === 'terms') return modal(termsContent(), 'document-modal');
   if (type === 'privacy-policy') return modal(privacyPolicyContent(), 'document-modal');
-  return modal(`<h2>追加</h2><p>QRコード、連絡先、紹介リンクから新しいつながりを追加できます。</p><button data-toast="招待リンクを作成しました">招待リンクを作成</button><button data-close>閉じる</button>`);
+  return modal(`<h2>つながりを追加</h2><p>まずはプロフィールリンクやQRコードを共有して、Bondy上でつながりを増やせます。</p><button data-action="copy-link">プロフィールリンクをコピー</button><button data-nav="profile">QRコードを表示</button><button data-close>閉じる</button>`);
 }
 
 function helpSupportContent() {
@@ -1256,14 +1266,14 @@ app.addEventListener('click', async (event) => {
     return go('register', '最初から登録できます');
   }
   if (action === 'login') return go('map', 'ログインしました');
-  if (['search', 'filter', 'add', 'display', 'notifications', 'help-support', 'terms', 'privacy-policy'].includes(action)) return openOverlay(action);
+  if (['search', 'filter', 'add', 'display', 'notifications', 'help-support', 'terms', 'privacy-policy', 'account-security', 'manage-connections', 'profile-visibility', 'privacy-settings', 'version-info'].includes(action)) return openOverlay(action);
   if (action === 'logout') {
     state.overlay = null;
     await authState.client?.auth.signOut();
     state.authMode = 'signin';
     return go('login', 'ログアウトしました');
   }
-  if (['account-security', 'manage-connections', 'suggested-users', 'blocked-users', 'profile-visibility', 'privacy-settings', 'version-info'].includes(action)) {
+  if (['suggested-users', 'blocked-users'].includes(action)) {
     return showToast('この設定は準備中です');
   }
   if (action === 'locate') {
@@ -1275,6 +1285,7 @@ app.addEventListener('click', async (event) => {
   }
   if (action === 'zoom-in' || action === 'zoom-out') {
     state.zoom = clampZoom(state.zoom + (action === 'zoom-in' ? 0.12 : -0.12));
+    state.mapPan = constrainMapPan(state.mapPan);
     showToast(`ズーム ${Math.round(state.zoom * 100)}%`);
     render();
     return;
@@ -1458,11 +1469,16 @@ app.addEventListener('pointerdown', (event) => {
   mapInteraction.pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
   if (mapInteraction.pointers.size === 2) {
+    const center = pointerCenter();
     mapInteraction.mode = 'pinch';
     mapInteraction.active = false;
     mapInteraction.node = null;
     mapInteraction.pinchStartDistance = pointerDistance();
     mapInteraction.pinchStartZoom = state.zoom;
+    mapInteraction.pinchStartPanX = state.mapPan.x;
+    mapInteraction.pinchStartPanY = state.mapPan.y;
+    mapInteraction.pinchStartCenterX = center.x;
+    mapInteraction.pinchStartCenterY = center.y;
     return;
   }
 
@@ -1489,10 +1505,22 @@ app.addEventListener('pointermove', (event) => {
   }
 
   if (mapInteraction.mode === 'pinch' && mapInteraction.pointers.size >= 2) {
+    const rect = workspace.getBoundingClientRect();
     const distance = pointerDistance();
     if (mapInteraction.pinchStartDistance) {
-      state.zoom = clampZoom(mapInteraction.pinchStartZoom * (distance / mapInteraction.pinchStartDistance));
-      updateMapCanvas();
+      const nextZoom = clampZoom(mapInteraction.pinchStartZoom * (distance / mapInteraction.pinchStartDistance));
+      const center = pointerCenter();
+      const originX = mapInteraction.pinchStartCenterX - rect.left;
+      const originY = mapInteraction.pinchStartCenterY - rect.top;
+      const startScale = mapInteraction.pinchStartZoom;
+      const worldX = (originX - mapInteraction.pinchStartPanX) / startScale;
+      const worldY = (originY - mapInteraction.pinchStartPanY) / startScale;
+      state.zoom = nextZoom;
+      state.mapPan = constrainMapPan({
+        x: center.x - rect.left - worldX * nextZoom,
+        y: center.y - rect.top - worldY * nextZoom
+      }, rect);
+      scheduleMapCanvasUpdate();
       mapInteraction.dragged = true;
     }
     return;
@@ -1512,11 +1540,11 @@ app.addEventListener('pointermove', (event) => {
   }
 
   if (mapInteraction.mode === 'pan') {
-    state.mapPan = {
+    state.mapPan = constrainMapPan({
       x: mapInteraction.startPanX + dx,
       y: mapInteraction.startPanY + dy
-    };
-    updateMapCanvas();
+    }, workspace.getBoundingClientRect());
+    scheduleMapCanvasUpdate();
   }
 }, { passive: false });
 
@@ -1527,9 +1555,18 @@ app.addEventListener('wheel', (event) => {
   const workspace = event.target.closest('[data-map-workspace]');
   if (!workspace || state.screen !== 'map') return;
   event.preventDefault();
+  const rect = workspace.getBoundingClientRect();
   const nextZoom = clampZoom(state.zoom + (event.deltaY < 0 ? 0.08 : -0.08));
+  const localX = event.clientX - rect.left;
+  const localY = event.clientY - rect.top;
+  const worldX = (localX - state.mapPan.x) / state.zoom;
+  const worldY = (localY - state.mapPan.y) / state.zoom;
   state.zoom = nextZoom;
-  updateMapCanvas();
+  state.mapPan = constrainMapPan({
+    x: localX - worldX * nextZoom,
+    y: localY - worldY * nextZoom
+  }, rect);
+  scheduleMapCanvasUpdate();
 }, { passive: false });
 
 function finishMapPointer(event) {
@@ -1549,8 +1586,27 @@ function pointerDistance() {
   return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
 }
 
+function pointerCenter() {
+  const points = [...mapInteraction.pointers.values()];
+  if (!points.length) return { x: 0, y: 0 };
+  const total = points.reduce((sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }), { x: 0, y: 0 });
+  return { x: total.x / points.length, y: total.y / points.length };
+}
+
 function clampZoom(value) {
-  return Math.max(0.65, Math.min(2.4, Number(value.toFixed(2))));
+  return Math.max(0.72, Math.min(2.8, Number(value.toFixed(3))));
+}
+
+function constrainMapPan(pan, rect = document.querySelector('[data-map-workspace]')?.getBoundingClientRect()) {
+  if (!rect) return pan;
+  const overflowX = Math.max(0, rect.width * state.zoom - rect.width);
+  const overflowY = Math.max(0, rect.height * state.zoom - rect.height);
+  const slackX = Math.max(54, rect.width * 0.16);
+  const slackY = Math.max(54, rect.height * 0.14);
+  return {
+    x: Math.max(-overflowX - slackX, Math.min(slackX, pan.x)),
+    y: Math.max(-overflowY - slackY, Math.min(slackY, pan.y))
+  };
 }
 
 function clientToMapPoint(clientX, clientY, workspace) {
@@ -1565,7 +1621,15 @@ function clientToMapPoint(clientX, clientY, workspace) {
 
 function updateMapCanvas() {
   const canvas = document.querySelector('[data-map-canvas]');
-  if (canvas) canvas.style.transform = `translate(${state.mapPan.x}px, ${state.mapPan.y}px) scale(${state.zoom})`;
+  if (canvas) canvas.style.transform = `translate3d(${state.mapPan.x}px, ${state.mapPan.y}px, 0) scale(${state.zoom})`;
+}
+
+function scheduleMapCanvasUpdate() {
+  if (mapInteraction.raf) cancelAnimationFrame(mapInteraction.raf);
+  mapInteraction.raf = requestAnimationFrame(() => {
+    mapInteraction.raf = null;
+    updateMapCanvas();
+  });
 }
 
 function updateDraggedNode(node) {
