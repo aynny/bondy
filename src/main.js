@@ -378,6 +378,19 @@ async function signInWithEmail(email, password) {
   go('map', 'ログインしました');
 }
 
+async function signInWithProvider(provider) {
+  if (!authState.configured || !authState.client) {
+    showToast('Supabase設定を確認してください');
+    return;
+  }
+  const redirectTo = `${window.location.origin}${window.location.pathname}`;
+  const { error } = await authState.client.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo }
+  });
+  if (error) showToast(error.message);
+}
+
 function currentUser() {
   const email = authState.user?.email || loadLastEmail();
   const fallbackHandle = email ? email.split('@')[0] : '';
@@ -542,7 +555,8 @@ function loginScreen() {
 }
 
 function socialButton(kind, mark, label) {
-  return `<button class="social ${kind}" data-action="start-register"><b>${mark}</b><span>${label}</span></button>`;
+  const action = kind === 'google' ? 'google-login' : 'start-register';
+  return `<button class="social ${kind}" data-action="${action}"><b>${mark}</b><span>${label}</span></button>`;
 }
 
 function registerScreen() {
@@ -1179,6 +1193,7 @@ app.addEventListener('click', async (event) => {
     state.authMode = 'signup';
     return go('login');
   }
+  if (action === 'google-login') return signInWithProvider('google');
   if (action === 'back-login') {
     state.authMode = 'signin';
     return go('login');
