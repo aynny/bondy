@@ -549,17 +549,12 @@ function loginScreen() {
       </form>
       ${mode === 'signin' ? `<section class="login-actions compact">
         <div class="divider"><span></span><em>または</em><span></span></div>
-        ${socialButton('google', 'G', 'Googleで続ける')}
+        <button class="social google" data-action="google-login"><b>G</b><span>Googleで続ける</span></button>
       </section>` : ''}
       <p class="terms">ログインすることで、利用規約とプライバシーポリシーに<br>同意したものとみなされます</p>
       <div class="home-indicator"></div>
     </main>
   `;
-}
-
-function socialButton(kind, mark, label) {
-  const action = kind === 'google' ? 'google-login' : 'start-register';
-  return `<button class="social ${kind}" data-action="${action}"><b>${mark}</b><span>${label}</span></button>`;
 }
 
 function registerScreen() {
@@ -1240,10 +1235,6 @@ app.addEventListener('click', async (event) => {
     state.authMode = event.target.closest('[data-auth-mode]')?.dataset.authMode || 'signin';
     render();
     return;
-  }
-  if (action === 'start-register') {
-    state.authMode = 'signup';
-    return go('login');
   }
   if (action === 'google-login') return signInWithProvider('google');
   if (action === 'back-login') {
