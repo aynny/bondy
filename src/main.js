@@ -12,6 +12,7 @@ const authState = {
 
 const state = {
   screen: savedUser ? 'map' : 'login',
+  authMode: 'signin',
   introTab: '申請',
   connectionFilter: 'すべて',
   mapMode: 'マップ',
@@ -183,6 +184,12 @@ async function initAuth() {
     authState.user = data.session?.user || null;
     authState.client.auth.onAuthStateChange((event, session) => {
       authState.user = session?.user || null;
+      if (event === 'PASSWORD_RECOVERY') {
+        state.screen = 'login';
+        state.authMode = 'updatePassword';
+        render();
+        return;
+      }
       if (event === 'SIGNED_IN' && !state.user) {
         go('register', 'メール認証が完了しました');
       }
@@ -211,6 +218,34 @@ async function signUpWithEmail(email, password) {
     return;
   }
   showToast('認証メールを送信しました');
+}
+
+async function sendPasswordReset(email) {
+  if (!authState.configured || !authState.client) {
+    showToast('Supabase設定を入れると再設定メールを送れます');
+    return;
+  }
+  const redirectTo = `${window.location.origin}${window.location.pathname}`;
+  const { error } = await authState.client.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) {
+    showToast(error.message);
+    return;
+  }
+  showToast('再設定メールを送信しました');
+}
+
+async function updatePassword(password) {
+  if (!authState.configured || !authState.client) {
+    showToast('Supabase設定を確認してください');
+    return;
+  }
+  const { error } = await authState.client.auth.updateUser({ password });
+  if (error) {
+    showToast(error.message);
+    return;
+  }
+  state.authMode = 'signin';
+  go(state.user ? 'map' : 'login', 'パスワードを更新しました');
 }
 
 async function signInWithEmail(email, password) {
@@ -314,6 +349,38 @@ function escapeHtml(value) {
 }
 
 function loginScreen() {
+  const mode = state.authMode;
+  const authCopy = {
+    signin: {
+      title: 'おかえりなさい',
+      lead: 'メールアドレスとパスワードでログイン',
+      submit: 'ログイン',
+      intent: 'signin',
+      autocomplete: 'current-password'
+    },
+    signup: {
+      title: '新規登録',
+      lead: 'メール認証でBondyを始める',
+      submit: '認証メールを送る',
+      intent: 'signup',
+      autocomplete: 'new-password'
+    },
+    forgot: {
+      title: 'パスワード再設定',
+      lead: '登録メールに再設定リンクを送ります',
+      submit: '再設定メールを送る',
+      intent: 'reset'
+    },
+    updatePassword: {
+      title: '新しいパスワード',
+      lead: 'これから使うパスワードを設定してください',
+      submit: 'パスワードを更新',
+      intent: 'update-password',
+      autocomplete: 'new-password'
+    }
+  }[mode] || {};
+  const needsPassword = mode !== 'forgot';
+  const needsEmail = mode !== 'updatePassword';
   return `
     <main class="phone login-screen">
       ${statusBar()}
@@ -322,20 +389,26 @@ function loginScreen() {
         <h1>Bondy</h1>
         <p>人との出会いを、資産に。</p>
       </section>
-      <form class="email-auth-form" data-auth-form>
-        <label>メールアドレス<input name="email" type="email" autocomplete="email" required placeholder="you@example.com"></label>
-        <label>パスワード<input name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="8文字以上"></label>
-        <button class="pill primary" name="intent" value="signup" type="submit">${icon('mail', 25)}認証メールを送る</button>
-        <button class="pill secondary" name="intent" value="signin" type="submit">ログイン</button>
+      <form class="email-auth-form auth-card" data-auth-form>
+        <div class="auth-card-title">
+          <h2>${authCopy.title}</h2>
+          <p>${authCopy.lead}</p>
+        </div>
+        ${needsEmail ? '<label>メールアドレス<input name="email" type="email" autocomplete="email" required placeholder="you@example.com"></label>' : ''}
+        ${needsPassword ? `<label>パスワード<input name="password" type="password" autocomplete="${authCopy.autocomplete}" required minlength="8" placeholder="8文字以上"></label>` : ''}
+        ${mode === 'signup' || mode === 'updatePassword' ? '<label>パスワード確認<input name="passwordConfirm" type="password" autocomplete="new-password" required minlength="8" placeholder="もう一度入力"></label>' : ''}
+        <button class="pill primary" name="intent" value="${authCopy.intent}" type="submit">${mode === 'signin' ? '' : icon('mail', 25)}${authCopy.submit}</button>
+        ${mode === 'signin' ? '<button class="auth-text-button" type="button" data-action="auth-mode" data-auth-mode="forgot">パスワードを忘れた方</button>' : ''}
+        ${mode === 'signin' ? '<button class="pill secondary" type="button" data-action="auth-mode" data-auth-mode="signup">新規登録</button>' : '<button class="pill secondary" type="button" data-action="auth-mode" data-auth-mode="signin">ログインに戻る</button>'}
         ${authState.configured ? '' : '<p class="auth-note">メール認証を使うには Supabase の設定が必要です。</p>'}
       </form>
-      <section class="login-actions compact">
+      ${mode === 'signin' ? `<section class="login-actions compact">
         <div class="divider"><span></span><em>または</em><span></span></div>
         ${socialButton('apple', '●', 'Appleで続ける')}
         ${socialButton('google', 'G', 'Googleで続ける')}
         ${socialButton('line', 'LINE', 'LINEで続ける')}
         ${socialButton('twitter', '♞', 'Twitterで続ける')}
-      </section>
+      </section>` : ''}
       <p class="terms">ログインすることで、利用規約とプライバシーポリシーに<br>同意したものとみなされます</p>
       <div class="home-indicator"></div>
     </main>
@@ -966,8 +1039,19 @@ app.addEventListener('click', async (event) => {
     return;
   }
   if (!action) return;
-  if (action === 'start-register') return go('register');
-  if (action === 'back-login') return go('login');
+  if (action === 'auth-mode') {
+    state.authMode = event.target.closest('[data-auth-mode]')?.dataset.authMode || 'signin';
+    render();
+    return;
+  }
+  if (action === 'start-register') {
+    state.authMode = 'signup';
+    return go('login');
+  }
+  if (action === 'back-login') {
+    state.authMode = 'signin';
+    return go('login');
+  }
   if (action === 'settings') return go('settings');
   if (action === 'edit') return go('editProfile');
   if (action === 'restart-registration') {
@@ -983,6 +1067,7 @@ app.addEventListener('click', async (event) => {
   if (action === 'logout') {
     state.overlay = null;
     await authState.client?.auth.signOut();
+    state.authMode = 'signin';
     return go('login', 'ログアウトしました');
   }
   if (['account-security', 'manage-connections', 'suggested-users', 'blocked-users', 'profile-visibility', 'privacy-settings', 'help-support', 'terms', 'privacy-policy', 'version-info'].includes(action)) {
@@ -1086,13 +1171,26 @@ app.addEventListener('submit', async (event) => {
     const formData = new FormData(authForm);
     const email = String(formData.get('email') || '').trim();
     const password = String(formData.get('password') || '');
-    const intent = event.submitter?.value || 'signup';
+    const passwordConfirm = String(formData.get('passwordConfirm') || '');
+    const intent = event.submitter?.value || 'signin';
+    if (intent === 'reset') {
+      await sendPasswordReset(email);
+      return;
+    }
     if (password.length < 8) {
       showToast('パスワードは8文字以上にしてください');
       return;
     }
+    if ((intent === 'signup' || intent === 'update-password') && password !== passwordConfirm) {
+      showToast('確認用パスワードが一致しません');
+      return;
+    }
     if (intent === 'signin') {
       await signInWithEmail(email, password);
+      return;
+    }
+    if (intent === 'update-password') {
+      await updatePassword(password);
       return;
     }
     await signUpWithEmail(email, password);
