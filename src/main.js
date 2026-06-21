@@ -160,8 +160,12 @@ function render() {
 }
 
 function loadUser() {
+  return loadStoredUser(STORAGE_KEY);
+}
+
+function loadStoredUser(key) {
   try {
-    const user = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    const user = JSON.parse(localStorage.getItem(key));
     return user ? normalizeUser(user) : null;
   } catch {
     return null;
@@ -171,6 +175,8 @@ function loadUser() {
 function saveUser(user) {
   state.user = normalizeUser(user);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.user));
+  const key = accountProfileKey();
+  if (key) localStorage.setItem(key, JSON.stringify(state.user));
 }
 
 function loadLastEmail() {
@@ -180,6 +186,34 @@ function loadLastEmail() {
 function saveLastEmail(email) {
   const cleanEmail = String(email || '').trim();
   if (cleanEmail) localStorage.setItem(LAST_EMAIL_KEY, cleanEmail);
+}
+
+function accountProfileKey() {
+  const identity = authState.user?.id || authState.user?.email || '';
+  return identity ? `bondy.profile.account.${encodeURIComponent(identity)}.v1` : '';
+}
+
+function loadAccountUser() {
+  const key = accountProfileKey();
+  return key ? loadStoredUser(key) : null;
+}
+
+function restoreAccountUser() {
+  if (!authState.user) return false;
+  const email = authState.user.email || '';
+  const accountUser = loadAccountUser();
+  if (accountUser) {
+    state.user = normalizeUser({ ...accountUser, email: accountUser.email || email });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.user));
+    return true;
+  }
+  if (state.user && (!state.user.email || state.user.email === email)) {
+    saveUser({ ...state.user, email: state.user.email || email });
+    return true;
+  }
+  state.user = null;
+  localStorage.removeItem(STORAGE_KEY);
+  return false;
 }
 
 async function initAuth() {
@@ -200,6 +234,7 @@ async function initAuth() {
     const { data } = await authState.client.auth.getSession();
     authState.user = data.session?.user || null;
     if (authState.user?.email) saveLastEmail(authState.user.email);
+    if (authState.user) restoreAccountUser();
     if (authState.user && state.screen === 'login' && state.authMode !== 'updatePassword') {
       go('map');
     }
@@ -210,6 +245,7 @@ async function initAuth() {
     authState.client.auth.onAuthStateChange((event, session) => {
       authState.user = session?.user || null;
       if (authState.user?.email) saveLastEmail(authState.user.email);
+      if (authState.user) restoreAccountUser();
       if (event === 'PASSWORD_RECOVERY') {
         state.screen = 'login';
         state.authMode = 'updatePassword';
@@ -1098,7 +1134,9 @@ app.addEventListener('click', async (event) => {
   if (action === 'settings') return go('settings');
   if (action === 'edit') return go('editProfile');
   if (action === 'restart-registration') {
+    const key = accountProfileKey();
     localStorage.removeItem(STORAGE_KEY);
+    if (key) localStorage.removeItem(key);
     state.user = null;
     state.connections = [];
     state.requests = [];
