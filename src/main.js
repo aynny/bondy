@@ -512,11 +512,11 @@ function profileIsComplete(user = state.user) {
   return Boolean(profile.name && profile.handle && profile.school && profile.birthday);
 }
 
-async function finishAuthenticatedEntry(message = '') {
+async function finishAuthenticatedEntry(message = '', options = {}) {
   await loadIncomingRequests({ silent: true });
   await handleIncomingConnect();
   if (state.overlay?.type === 'connect-profile') return;
-  if (profileIsComplete()) {
+  if (!options.requireProfile || profileIsComplete()) {
     go('map', message);
     return;
   }
@@ -542,9 +542,10 @@ async function initAuth() {
     authState.user = data.session?.user || null;
     if (authState.user?.email) saveLastEmail(authState.user.email);
     if (authState.user) await restoreAccountUser();
-    const needsProfile = authState.user && !profileIsComplete();
-    if (authState.user && state.authMode !== 'updatePassword' && (state.screen === 'login' || needsProfile)) {
-      await finishAuthenticatedEntry();
+    const hasPendingSignup = Boolean(localStorage.getItem(SIGNUP_PENDING_KEY));
+    const needsSignupProfile = hasPendingSignup && authState.user && !profileIsComplete();
+    if (authState.user && state.authMode !== 'updatePassword' && (state.screen === 'login' || needsSignupProfile)) {
+      await finishAuthenticatedEntry('', { requireProfile: hasPendingSignup });
     } else if (authState.user) {
       await loadIncomingRequests({ silent: true });
       await handleIncomingConnect();
@@ -564,7 +565,8 @@ async function initAuth() {
         return;
       }
       if (event === 'SIGNED_IN') {
-        await finishAuthenticatedEntry(profileIsComplete() ? 'ログインしました' : '');
+        const hasPendingSignup = Boolean(localStorage.getItem(SIGNUP_PENDING_KEY));
+        await finishAuthenticatedEntry(hasPendingSignup ? '' : 'ログインしました', { requireProfile: hasPendingSignup });
         return;
       }
       if (authState.user) {
@@ -641,15 +643,15 @@ async function signInWithEmail(email, password) {
     return;
   }
   saveLastEmail(email);
+  localStorage.removeItem(SIGNUP_PENDING_KEY);
   const { data, error } = await authState.client.auth.signInWithPassword({ email, password });
   if (error) {
     showToast(error.message);
     return;
   }
   authState.user = data.user || authState.user;
-  localStorage.removeItem(SIGNUP_PENDING_KEY);
   await restoreAccountUser();
-  await finishAuthenticatedEntry(profileIsComplete() ? 'ログインしました' : '');
+  await finishAuthenticatedEntry('ログインしました');
 }
 
 async function signInWithProvider(provider) {
@@ -1752,6 +1754,7 @@ app.addEventListener('submit', async (event) => {
       return;
     }
     await saveUser(user);
+    localStorage.removeItem(SIGNUP_PENDING_KEY);
     go('profile', '登録しました');
     return;
   }
