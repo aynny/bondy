@@ -1580,7 +1580,6 @@ app.addEventListener('click', async (event) => {
     state.overlay = null;
     return go('register', '最初から登録できます');
   }
-  if (action === 'login') return go('map', 'ログインしました');
   if (['search', 'filter', 'add', 'display', 'notifications', 'help-support', 'terms', 'privacy-policy', 'account-security', 'manage-connections', 'profile-visibility', 'privacy-settings', 'version-info'].includes(action)) return openOverlay(action);
   if (action === 'scan-qr') return startQrScanner();
   if (action === 'send-request') {
@@ -1711,6 +1710,14 @@ app.addEventListener('submit', async (event) => {
     const intent = event.submitter?.value || 'signin';
     if (intent === 'reset') {
       await sendPasswordReset(email);
+      return;
+    }
+    if (!email && intent !== 'update-password') {
+      showToast('メールアドレスを入力してください');
+      return;
+    }
+    if (!password) {
+      showToast('パスワードを入力してください');
       return;
     }
     if (password.length < 8) {
