@@ -1053,6 +1053,35 @@ button, a, input {
 .relationship-picker input {
   accent-color: #000;
 }
+.manage-relationship {
+  margin-top: 4px;
+}
+.danger-button {
+  border-color: #f1c8c8 !important;
+  background: #fff5f5 !important;
+  color: #d63b3b !important;
+}
+.notification-list {
+  display: grid;
+  gap: 10px;
+}
+.notification-list article {
+  display: grid;
+  gap: 5px;
+  padding: 13px;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  background: #fafafa;
+}
+.notification-list strong {
+  font-size: 14px;
+  line-height: 1.45;
+}
+.notification-list time {
+  color: #777;
+  font-size: 12px;
+  font-weight: 760;
+}
 .qr-scanner-root .scrim {
   z-index: 70;
 }

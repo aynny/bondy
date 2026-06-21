@@ -64,6 +64,7 @@ alter table public.connection_requests enable row level security;
 drop policy if exists "Users can read related requests" on public.connection_requests;
 drop policy if exists "Users can send requests" on public.connection_requests;
 drop policy if exists "Recipients can update requests" on public.connection_requests;
+drop policy if exists "Users can update related requests" on public.connection_requests;
 
 create policy "Users can read related requests"
 on public.connection_requests
@@ -75,8 +76,8 @@ on public.connection_requests
 for insert
 with check (auth.uid() = requester_id and requester_id <> recipient_id);
 
-create policy "Recipients can update requests"
+create policy "Users can update related requests"
 on public.connection_requests
 for update
-using (auth.uid() = recipient_id)
-with check (auth.uid() = recipient_id);
+using (auth.uid() = requester_id or auth.uid() = recipient_id)
+with check (auth.uid() = requester_id or auth.uid() = recipient_id);

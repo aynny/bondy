@@ -32,7 +32,8 @@ const state = {
   saved: false,
   user: savedUser,
   connections: [],
-  requests: []
+  requests: [],
+  notifications: []
 };
 
 const universityOptions = buildUniversityOptions();
@@ -319,8 +320,22 @@ async function sendConnectionRequest(targetId, message = '') {
     });
   if (error) {
     if (error.code === '23505') {
+      const { error: retryError } = await authState.client
+        .from(CONNECTION_REQUEST_TABLE)
+        .update({
+          status: 'pending',
+          message: relationshipFromValue(message) || '紹介',
+          updated_at: new Date().toISOString()
+        })
+        .eq('requester_id', authState.user.id)
+        .eq('recipient_id', targetId);
+      if (!retryError) {
+        showToast('申請を送信しました');
+        return true;
+      }
+      console.warn('Connection request retry failed', retryError);
       showToast('すでに申請済みです');
-      return true;
+      return false;
     }
     console.warn('Connection request failed', error);
     showToast('申請保存の設定を確認してください');
@@ -369,6 +384,16 @@ function relationshipTypes() {
 function relationshipFromValue(value) {
   const cleanValue = String(value || '').trim();
   return relationshipTypes().includes(cleanValue) ? cleanValue : '';
+}
+
+function removalPayload(userId, relationship) {
+  return `removed:${userId}:${relationshipFromValue(relationship) || '紹介'}`;
+}
+
+function removalFromValue(value) {
+  const match = String(value || '').match(/^removed:([^:]+):(.+)$/);
+  if (!match) return null;
+  return { userId: match[1], relationship: relationshipFromValue(match[2]) || '紹介' };
 }
 
 function relativeTime(value) {
@@ -426,6 +451,8 @@ function connectionPersonFromRow(row, profilesById) {
   return {
     id: otherId,
     requestId: row.id,
+    requesterId: row.requester_id,
+    recipientId: row.recipient_id,
     name,
     tag,
     desc: profile.company || profile.school || (remote?.handle ? `@${remote.handle}` : 'Bondyユーザー'),
@@ -466,6 +493,48 @@ async function loadAcceptedConnections(options = {}) {
   return true;
 }
 
+async function loadRemovalNotifications(options = {}) {
+  if (!authState.client || !authState.user) return false;
+  const { data, error } = await authState.client
+    .from(CONNECTION_REQUEST_TABLE)
+    .select('id,requester_id,recipient_id,status,message,updated_at,created_at')
+    .eq('status', 'rejected')
+    .or(`requester_id.eq.${authState.user.id},recipient_id.eq.${authState.user.id}`)
+    .order('updated_at', { ascending: false })
+    .limit(30);
+  if (error) {
+    console.warn('Removal notifications load failed', error);
+    if (!options.silent) showToast('通知の読み込み設定を確認してください');
+    return false;
+  }
+  const rows = (data || [])
+    .map((row) => ({ row, removal: removalFromValue(row.message) }))
+    .filter(({ removal }) => removal && removal.userId !== authState.user.id);
+  const userIds = [...new Set(rows.map(({ removal }) => removal.userId))];
+  const profilesById = new Map();
+  if (userIds.length) {
+    const { data: profiles } = await authState.client
+      .from(REMOTE_PROFILE_TABLE)
+      .select('id,email,handle,profile')
+      .in('id', userIds);
+    (profiles || []).forEach((row) => profilesById.set(row.id, profileFromRemoteRow(row)));
+  }
+  state.notifications = rows.map(({ row, removal }) => {
+    const remote = profilesById.get(removal.userId);
+    const profile = remote?.profile || {};
+    const name = profile.name || remote?.handle || 'ユーザー';
+    return {
+      id: row.id,
+      name,
+      relationship: removal.relationship,
+      time: relativeTime(row.updated_at || row.created_at),
+      body: `${name}さんが${removal.relationship}のつながりを削除しました`
+    };
+  });
+  render();
+  return true;
+}
+
 async function updateConnectionRequestStatus(requestId, result) {
   if (!authState.client || !authState.user) return false;
   const status = result === '承認' ? 'accepted' : 'rejected';
@@ -480,6 +549,48 @@ async function updateConnectionRequestStatus(requestId, result) {
     return false;
   }
   if (status === 'accepted') await loadAcceptedConnections({ silent: true });
+  return true;
+}
+
+async function updateConnectionRelationship(requestId, relationship) {
+  if (!authState.client || !authState.user) return false;
+  const cleanRelationship = relationshipFromValue(relationship);
+  if (!requestId || !cleanRelationship) return false;
+  const { error } = await authState.client
+    .from(CONNECTION_REQUEST_TABLE)
+    .update({ message: cleanRelationship, updated_at: new Date().toISOString() })
+    .eq('id', requestId)
+    .eq('status', 'accepted');
+  if (error) {
+    console.warn('Connection relationship update failed', error);
+    showToast('関係の変更設定を確認してください');
+    return false;
+  }
+  await loadAcceptedConnections({ silent: true });
+  return true;
+}
+
+async function removeConnection(requestId, relationship) {
+  if (!authState.client || !authState.user) return false;
+  const { error } = await authState.client
+    .from(CONNECTION_REQUEST_TABLE)
+    .update({
+      status: 'rejected',
+      message: removalPayload(authState.user.id, relationship),
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', requestId)
+    .eq('status', 'accepted');
+  if (error) {
+    console.warn('Connection removal failed', error);
+    showToast('つながり削除の設定を確認してください');
+    return false;
+  }
+  state.connections = state.connections.filter((person) => person.requestId !== requestId);
+  if (!state.connections.some((person) => person.id === state.mapCenter)) {
+    state.mapCenter = 'you';
+  }
+  await loadAcceptedConnections({ silent: true });
   return true;
 }
 
@@ -570,6 +681,7 @@ function profileIsComplete(user = state.user) {
 async function finishAuthenticatedEntry(message = '', options = {}) {
   await loadIncomingRequests({ silent: true });
   await loadAcceptedConnections({ silent: true });
+  await loadRemovalNotifications({ silent: true });
   await handleIncomingConnect();
   if (state.overlay?.type === 'connect-profile') return;
   if (!options.requireProfile || profileIsComplete()) {
@@ -605,6 +717,7 @@ async function initAuth() {
     } else if (authState.user) {
       await loadIncomingRequests({ silent: true });
       await loadAcceptedConnections({ silent: true });
+      await loadRemovalNotifications({ silent: true });
       await handleIncomingConnect();
     }
     if (!authState.user && state.screen !== 'login' && state.screen !== 'register') {
@@ -629,6 +742,7 @@ async function initAuth() {
       if (authState.user) {
         await loadIncomingRequests({ silent: true });
         await loadAcceptedConnections({ silent: true });
+        await loadRemovalNotifications({ silent: true });
         await handleIncomingConnect();
       }
     });
@@ -822,7 +936,21 @@ function personModalContent(person) {
       ? avatar(person.avatar, 70)
       : initialsAvatar(name, 70);
   const desc = person?.desc || '登録したプロフィール情報を確認できます。';
-  return `<div class="modal-avatar">${avatarHtml}</div><h2>${escapeHtml(name)}</h2><p>${escapeHtml(desc)}</p><button data-close>閉じる</button>`;
+  const isConnection = Boolean(person?.requestId);
+  return `
+    <div class="modal-avatar">${avatarHtml}</div>
+    <h2>${escapeHtml(name)}</h2>
+    <p>${escapeHtml(desc)}</p>
+    ${isConnection ? `
+      <fieldset class="relationship-picker manage-relationship">
+        <legend>関係を変更</legend>
+        ${relationshipTypes().map((type) => `<label><input type="radio" name="manageRelationshipType" value="${escapeHtml(type)}" ${person.tag === type ? 'checked' : ''}>${type === '恋人' ? icon('heart', 15) : escapeHtml(type)}</label>`).join('')}
+      </fieldset>
+      <button data-action="update-relationship" data-request-id="${escapeHtml(person.requestId)}">関係を保存</button>
+      <button class="danger-button" data-action="remove-connection" data-request-id="${escapeHtml(person.requestId)}" data-relationship="${escapeHtml(person.tag || '')}">つながりを削除</button>
+    ` : ''}
+    <button data-close>閉じる</button>
+  `;
 }
 
 function escapeHtml(value) {
@@ -1102,7 +1230,7 @@ function networkGraph(nodes) {
         </svg>
         <div class="center-node">${mapCenterAvatar(center)}<h3>${escapeHtml(center.name)}</h3><span>${escapeHtml(center.badge)}</span></div>
         ${nodes.map((node) => `<button class="map-node ${node.centerable ? 'centerable' : 'profile-only'}" type="button" style="left:${node.x}%;top:${node.y}%" data-map-node="${escapeHtml(node.id || node.name)}" data-centerable="${node.centerable ? 'true' : 'false'}" data-person-id="${escapeHtml(node.id || '')}" data-person="${escapeHtml(node.name)}">${personAvatar(node, 54)}<b>${escapeHtml(node.name)}</b><em>${node.centerable ? '中心にする' : escapeHtml(node.tag)}</em></button>`).join('')}
-        ${nodes.length ? '<div class="more-node left">+2<span>他2人</span></div><div class="more-node right">+3<span>他3人</span></div><div class="more-node bottom">+4<span>他4人</span></div>' : '<div class="empty-map">まだつながりはありません<br>右上の＋から追加できます</div>'}
+        ${nodes.length ? '' : '<div class="empty-map">まだつながりはありません<br>右上の＋から追加できます</div>'}
       </div>
     </section>
   `;
@@ -1182,7 +1310,7 @@ function connectionsScreen() {
     ? allRows
     : allRows.filter((person) => person.tag === state.connectionFilter);
   return `
-    ${appHeader('', `${buttonIcon('search', 'search')}${buttonIcon('bell', 'notifications')}`)}
+    ${appHeader('', `${buttonIcon('search', 'search')}${buttonIcon('bell', 'notifications', state.notifications.length ? 'dot' : '')}`)}
     <section class="connection-filter-bar">
       <h2>つながり</h2>
       <div class="connection-filter-scroll">
@@ -1222,7 +1350,7 @@ function pendingIntroRequests() {
 
 function introScreen() {
   const pendingCount = pendingIntroRequests().length;
-  const hasIntroNotice = pendingCount > 0;
+  const hasIntroNotice = pendingCount > 0 || state.notifications.length > 0;
   return `
     ${appHeader('', `${buttonIcon('search', 'search')}${buttonIcon('bell', 'notifications', hasIntroNotice ? 'dot' : '')}`)}
     <div class="screen-tabs tabs">
@@ -1428,7 +1556,7 @@ function overlay() {
   if (type === 'filter') return modal(`<h2>絞り込み</h2><div class="modal-grid">${mapFilters().map((f) => `<button class="${state.filter === f ? 'selected' : ''} ${f === '恋人' ? 'heart-filter-button' : ''}" data-filter="${f}" aria-label="${f}">${f === '恋人' ? icon('heart', 18) : f}</button>`).join('')}</div><button data-close>閉じる</button>`);
   if (type === 'display') return modal(`<h2>表示設定</h2><label><input type="checkbox" checked> つながりの強さを表示</label><label><input type="checkbox" checked> 共通点を表示</label><label><input type="checkbox"> 名前だけ表示</label><button data-close>完了</button>`);
   if (type === 'settings') return modal(`<h2>設定</h2><p>登録データはこの端末内に保存されています。</p><button data-action="restart-registration">最初から登録し直す</button><button data-close>閉じる</button>`);
-  if (type === 'notifications') return modal(`<h2>通知</h2><p>通知はまだありません。</p><button data-close>閉じる</button>`);
+  if (type === 'notifications') return modal(notificationsContent(), 'connect-modal');
   if (type === 'account-security') return modal(`<h2>アカウントとセキュリティ</h2><p>ログイン中のメールアドレス：${escapeHtml(authState.user?.email || currentUser().email || '未ログイン')}</p><p>パスワードを変更したい場合は、ログイン画面の「パスワードを忘れた方」から再設定できます。</p><button data-action="logout">ログアウト</button><button data-close>閉じる</button>`);
   if (type === 'manage-connections') return modal(`<h2>つながりの管理</h2><p>現在のつながり数は ${connectionRowsData().length} 人です。承認済みの申請がここに反映されます。</p><button data-action="add">つながりを追加</button><button data-close>閉じる</button>`);
   if (type === 'profile-visibility') return modal(`<h2>プロフィールの公開範囲</h2><p>所在地と誕生日はプロフィール編集から公開・非公開を選べます。SNSリンクは入力したものだけプロフィールに表示されます。</p><button data-action="edit">プロフィールを編集</button><button data-close>閉じる</button>`);
@@ -1447,6 +1575,21 @@ function addConnectionContent() {
     <button data-action="scan-qr">${icon('qr', 20)}QRコードを読み取る</button>
     ${idSearchContent('IDで検索', false)}
     <button data-nav="profile">自分のQRコードを表示</button>
+    <button data-close>閉じる</button>
+  `;
+}
+
+function notificationsContent() {
+  return `
+    <h2>通知</h2>
+    ${state.notifications.length
+      ? `<div class="notification-list">${state.notifications.map((item) => `
+        <article>
+          <strong>${escapeHtml(item.body)}</strong>
+          <time>${escapeHtml(item.time)}</time>
+        </article>
+      `).join('')}</div>`
+      : '<p>通知はまだありません。</p>'}
     <button data-close>閉じる</button>
   `;
 }
@@ -1595,6 +1738,7 @@ app.addEventListener('click', async (event) => {
     go(nav);
     if (nav === 'intro') await loadIncomingRequests({ silent: true });
     if (nav === 'connections' || nav === 'map' || nav === 'profile') await loadAcceptedConnections({ silent: true });
+    if (nav === 'connections' || nav === 'map' || nav === 'profile') await loadRemovalNotifications({ silent: true });
     return;
   }
   if (tab) {
@@ -1654,18 +1798,22 @@ app.addEventListener('click', async (event) => {
       name: node?.name || name,
       avatar: node?.avatar,
       photo: node?.photo || '',
-      desc: node?.tag ? `${node.tag}のつながりです。` : ''
+      desc: node?.tag ? `${node.tag}のつながりです。` : '',
+      tag: node?.tag,
+      requestId: node?.requestId
     };
     render();
     return;
   }
   if (person || personId) {
-    const requestPerson = state.requests.find((item) => item.id === personId);
+    const requestPerson = personByIdOrName(personId || person);
     state.overlay = {
       type: 'person',
       name: requestPerson?.name || person,
       photo: requestPerson?.photo || '',
-      desc: requestPerson?.desc || '登録したプロフィール情報を確認できます。'
+      desc: requestPerson?.desc || '登録したプロフィール情報を確認できます。',
+      tag: requestPerson?.tag,
+      requestId: requestPerson?.requestId
     };
     render();
     return;
@@ -1683,6 +1831,10 @@ app.addEventListener('click', async (event) => {
     return;
   }
   if (action === 'google-login') return signInWithProvider('google');
+  if (action === 'notifications') {
+    await loadRemovalNotifications({ silent: true });
+    return openOverlay(action);
+  }
   if (action === 'back-login') {
     state.authMode = 'signin';
     return go('login');
@@ -1699,7 +1851,7 @@ app.addEventListener('click', async (event) => {
     state.overlay = null;
     return go('register', '最初から登録できます');
   }
-  if (['search', 'filter', 'add', 'display', 'notifications', 'help-support', 'terms', 'privacy-policy', 'account-security', 'manage-connections', 'profile-visibility', 'privacy-settings', 'version-info'].includes(action)) return openOverlay(action);
+  if (['search', 'filter', 'add', 'display', 'help-support', 'terms', 'privacy-policy', 'account-security', 'manage-connections', 'profile-visibility', 'privacy-settings', 'version-info'].includes(action)) return openOverlay(action);
   if (action === 'scan-qr') return startQrScanner();
   if (action === 'send-request') {
     const targetId = event.target.closest('[data-target-id]')?.dataset.targetId;
@@ -1707,6 +1859,29 @@ app.addEventListener('click', async (event) => {
     const sent = await sendConnectionRequest(targetId, relationship);
     if (sent) {
       state.overlay = null;
+      render();
+    }
+    return;
+  }
+  if (action === 'update-relationship') {
+    const requestId = event.target.closest('[data-request-id]')?.dataset.requestId;
+    const relationship = event.target.closest('.modal-sheet')?.querySelector('input[name="manageRelationshipType"]:checked')?.value || '';
+    const updated = await updateConnectionRelationship(requestId, relationship);
+    if (updated) {
+      state.overlay = null;
+      showToast('関係を変更しました');
+      render();
+    }
+    return;
+  }
+  if (action === 'remove-connection') {
+    const button = event.target.closest('[data-request-id]');
+    const requestId = button?.dataset.requestId;
+    const relationship = button?.dataset.relationship || '';
+    const removed = await removeConnection(requestId, relationship);
+    if (removed) {
+      state.overlay = null;
+      showToast('つながりを削除しました');
       render();
     }
     return;
