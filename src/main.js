@@ -1257,6 +1257,7 @@ function mapScreen() {
   const activeTint = relationshipTint(state.filter);
   return `
     <div class="map-filter-row">
+      <div class="map-brand-mark">B</div>
       <div class="map-filter-stack">
         <button class="all-filter ${state.mapFilterOpen ? 'is-open' : ''}" data-action="filter" style="--filter-color:${activeColor};--filter-bg:${activeTint}">
           <span class="filter-label">${mapFilterLabel(state.filter)}</span>
@@ -1291,12 +1292,12 @@ function mapFilters() {
 function relationshipColor(type) {
   return {
     'すべて': '#111111',
-    '大学': '#111111',
-    'ビジネス': '#111111',
-    '地元': '#111111',
-    '家族': '#111111',
-    'イベント': '#111111',
-    '恋人': '#111111',
+    '大学': '#3b82f6',
+    'ビジネス': '#22c55e',
+    '地元': '#f59e0b',
+    '家族': '#ef476f',
+    'イベント': '#8b5cf6',
+    '恋人': '#ec4899',
     '紹介': '#111111'
   }[type] || '#111111';
 }

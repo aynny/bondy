@@ -2034,6 +2034,7 @@ body {
 /* Map reference layout */
 .map-screen {
   background: #fff;
+  padding-bottom: 84px;
 }
 
 .map-header {
@@ -2148,6 +2149,23 @@ body {
   padding: 10px 14px 9px;
 }
 
+.map-brand-mark {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dcdcdc;
+  border-radius: 15px;
+  background: #fff;
+  color: #000;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 5px 13px rgba(0,0,0,.025);
+}
+
 .map-filter-stack {
   position: relative;
   flex: 0 1 172px;
@@ -2194,7 +2212,7 @@ body {
 }
 
 .map-screen .network {
-  height: min(660px, calc(100svh - 205px));
+  height: min(660px, calc(100svh - 186px));
   min-height: 500px;
   margin-top: 0;
   overflow: hidden;
