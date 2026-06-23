@@ -35,6 +35,7 @@ const state = {
   connections: [],
   requests: [],
   notifications: [],
+  mapCenterConnections: {},
   mapNodePositions: loadMapNodePositions(),
   authSubmitting: false
 };
@@ -461,8 +462,8 @@ async function loadIncomingRequests(options = {}) {
   return true;
 }
 
-function connectionPersonFromRow(row, profilesById) {
-  const currentId = authState.user?.id;
+function connectionPersonFromRow(row, profilesById, centerId = authState.user?.id) {
+  const currentId = centerId;
   const otherId = row.requester_id === currentId ? row.recipient_id : row.requester_id;
   const remote = profilesById.get(otherId);
   const profile = remote?.profile || {};
@@ -511,6 +512,41 @@ async function loadAcceptedConnections(options = {}) {
   state.connections = (data || []).map((row) => connectionPersonFromRow(row, profilesById));
   render();
   return true;
+}
+
+async function loadMapCenterConnections(centerId, options = {}) {
+  if (!authState.client || !authState.user || !centerId || centerId === 'you') return [];
+  const { data, error } = await authState.client
+    .from(CONNECTION_REQUEST_TABLE)
+    .select('id,requester_id,recipient_id,status,message,created_at,updated_at')
+    .eq('status', 'accepted')
+    .or(`requester_id.eq.${centerId},recipient_id.eq.${centerId}`)
+    .order('updated_at', { ascending: false });
+  if (error) {
+    if (!options.silent) console.warn('Map center connections load failed', error);
+    state.mapCenterConnections[centerId] = [];
+    return [];
+  }
+  const otherIds = [...new Set((data || [])
+    .map((row) => row.requester_id === centerId ? row.recipient_id : row.requester_id)
+    .filter(Boolean))];
+  const profilesById = new Map();
+  if (otherIds.length) {
+    const { data: profiles, error: profileError } = await authState.client
+      .from(REMOTE_PROFILE_TABLE)
+      .select('id,email,handle,profile')
+      .in('id', otherIds);
+    if (profileError) {
+      if (!options.silent) console.warn('Map center profiles load failed', profileError);
+    } else {
+      (profiles || []).forEach((row) => profilesById.set(row.id, profileFromRemoteRow(row)));
+    }
+  }
+  const rows = (data || [])
+    .map((row) => connectionPersonFromRow(row, profilesById, centerId))
+    .filter((person) => person.id !== authState.user?.id);
+  state.mapCenterConnections[centerId] = rows;
+  return rows;
 }
 
 async function loadRemovalNotifications(options = {}) {
@@ -1020,6 +1056,11 @@ function loginScreen() {
   return `
     <main class="phone login-screen">
       ${statusBar()}
+      <section class="login-brand">
+        ${brand()}
+        <h1>Bondy</h1>
+        <p>人との出会いを、資産に。</p>
+      </section>
       <form class="email-auth-form auth-card" data-auth-form>
         <div class="auth-card-title">
           <h2>${authCopy.title}</h2>
@@ -1161,7 +1202,7 @@ function mapScreen() {
     <div class="map-filter-row"><button class="all-filter" data-action="filter">${state.filter === 'すべて' ? 'すべてのつながり' : state.filter} ${icon('chevronDown', 18)}</button></div>
     <section class="map-interactive-panel">
       ${networkGraph(filtered)}
-      ${state.mapCenter !== 'you' ? `<button class="map-self-button" data-action="locate">${icon('user', 18)}自分に戻す</button>` : ''}
+      <button class="map-self-button ${state.mapCenter === 'you' ? 'is-current' : ''}" data-action="locate">${icon('user', 18)}自分に戻す</button>
     </section>
   `;
 }
@@ -1215,15 +1256,21 @@ function mapNodeData() {
 
 function networkGraph(nodes) {
   const center = mapCenterProfile();
+  const emptyMessage = state.mapCenter === 'you'
+    ? 'まだつながりはありません<br>右上の＋から追加できます'
+    : 'この人のつながりはまだ表示できません';
+  const centerNode = state.mapCenter === 'you'
+    ? `<div class="center-node">${mapCenterAvatar(center)}<h3>${escapeHtml(center.name)}</h3><span>${escapeHtml(center.badge)}</span></div>`
+    : `<button class="center-node center-node-button" type="button" data-center-profile="${escapeHtml(state.mapCenter)}">${mapCenterAvatar(center)}<h3>${escapeHtml(center.name)}</h3><span>${escapeHtml(center.badge)}</span></button>`;
   return `
     <section class="network" data-map-workspace>
       <div class="map-canvas" data-map-canvas style="${mapCanvasStyle()}">
         <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
           ${nodes.map((node) => `<line data-line-node="${escapeHtml(node.id || node.name)}" x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="${node.color}" />`).join('')}
         </svg>
-        <div class="center-node">${mapCenterAvatar(center)}<h3>${escapeHtml(center.name)}</h3><span>${escapeHtml(center.badge)}</span></div>
+        ${centerNode}
         ${nodes.map((node) => `<button class="map-node ${node.centerable ? 'centerable' : 'profile-only'}" type="button" style="left:${node.x}%;top:${node.y}%" data-map-node="${escapeHtml(node.id || node.name)}" data-centerable="${node.centerable ? 'true' : 'false'}" data-person-id="${escapeHtml(node.id || '')}" data-person="${escapeHtml(node.name)}">${personAvatar(node, 54)}<b>${escapeHtml(node.name)}</b><em>${node.centerable ? '中心にする' : escapeHtml(node.tag)}</em></button>`).join('')}
-        ${nodes.length ? '' : '<div class="empty-map">まだつながりはありません<br>右上の＋から追加できます</div>'}
+        ${nodes.length ? '' : `<div class="empty-map">${emptyMessage}</div>`}
       </div>
     </section>
   `;
@@ -1240,25 +1287,33 @@ function mapVisibleNodes() {
       return node;
     });
   }
-  return connectionRowsData()
-    .filter((node) => node.id !== state.mapCenter)
-    .slice(0, 8)
-    .map((node, index) => {
-      const positions = [[50, 22], [72, 34], [76, 62], [50, 78], [28, 62], [28, 34], [86, 50], [14, 50]];
-      const [x, y] = positions[index % positions.length];
-      const saved = state.mapNodePositions[node.id] || {};
-      return {
-        ...node,
-        x: Number.isFinite(saved.x) ? saved.x : x,
-        y: Number.isFinite(saved.y) ? saved.y : y,
-        color: '#d9d9d9',
-        centerable: false
-      };
-    });
+  const colors = {
+    '大学': '#3b82f6',
+    'ビジネス': '#22c55e',
+    '地元': '#f59e0b',
+    '家族': '#ef476f',
+    'イベント': '#8b5cf6',
+    '恋人': '#ec4899',
+    '紹介': '#111'
+  };
+  const positions = [[50, 22], [72, 34], [76, 62], [50, 78], [28, 62], [28, 34], [86, 50], [14, 50]];
+  return (state.mapCenterConnections[state.mapCenter] || []).slice(0, 8).map((person, index) => {
+    const [x, y] = positions[index % positions.length];
+    const saved = state.mapNodePositions[person.id] || {};
+    return {
+      ...person,
+      x: Number.isFinite(saved.x) ? saved.x : x,
+      y: Number.isFinite(saved.y) ? saved.y : y,
+      color: colors[person.tag] || '#d9d9d9',
+      centerable: false
+    };
+  });
 }
 
 function personByIdOrName(value) {
+  const mapCenterRows = Object.values(state.mapCenterConnections || {}).flat();
   return connectionRowsData().find((person) => person.id === value || person.name === value)
+    || mapCenterRows.find((person) => person.id === value || person.name === value)
     || state.requests.find((person) => person.id === value || person.name === value);
 }
 
@@ -1713,6 +1768,7 @@ app.addEventListener('click', async (event) => {
   const mode = event.target.closest('[data-mode]')?.dataset.mode;
   const filter = event.target.closest('[data-filter]')?.dataset.filter;
   const request = event.target.closest('[data-request]');
+  const centerProfileButton = event.target.closest('[data-center-profile]');
   const mapNodeButton = event.target.closest('[data-map-node]');
   const personElement = event.target.closest('[data-person], [data-person-id]');
   const person = personElement?.dataset.person;
@@ -1787,6 +1843,24 @@ app.addEventListener('click', async (event) => {
     render();
     return;
   }
+  if (centerProfileButton) {
+    if (mapInteraction.dragged) {
+      mapInteraction.dragged = false;
+      return;
+    }
+    const node = personByIdOrName(centerProfileButton.dataset.centerProfile);
+    state.overlay = {
+      type: 'person',
+      name: node?.name || 'ユーザー',
+      avatar: node?.avatar,
+      photo: node?.photo || '',
+      desc: node?.tag ? `${node.tag}のつながりです。` : '登録したプロフィール情報を確認できます。',
+      tag: node?.tag,
+      requestId: node?.requestId
+    };
+    render();
+    return;
+  }
   if (mapNodeButton) {
     if (mapInteraction.dragged) {
       mapInteraction.dragged = false;
@@ -1799,6 +1873,7 @@ app.addEventListener('click', async (event) => {
       state.filter = 'すべて';
       state.mapPan = { x: 0, y: 0 };
       state.zoom = 1;
+      await loadMapCenterConnections(name, { silent: true });
       showToast(`${node?.name || mapNodeButton.dataset.person || 'ユーザー'}を中心にしました`);
       render();
       return;

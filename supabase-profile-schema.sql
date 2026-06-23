@@ -62,14 +62,15 @@ on public.connection_requests (requester_id, recipient_id);
 alter table public.connection_requests enable row level security;
 
 drop policy if exists "Users can read related requests" on public.connection_requests;
+drop policy if exists "Authenticated users can read accepted or related requests" on public.connection_requests;
 drop policy if exists "Users can send requests" on public.connection_requests;
 drop policy if exists "Recipients can update requests" on public.connection_requests;
 drop policy if exists "Users can update related requests" on public.connection_requests;
 
-create policy "Users can read related requests"
+create policy "Authenticated users can read accepted or related requests"
 on public.connection_requests
 for select
-using (auth.uid() = requester_id or auth.uid() = recipient_id);
+using (auth.uid() = requester_id or auth.uid() = recipient_id or status = 'accepted');
 
 create policy "Users can send requests"
 on public.connection_requests
