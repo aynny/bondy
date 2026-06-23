@@ -23,6 +23,7 @@ const state = {
   connectionFilter: 'すべて',
   mapMode: 'マップ',
   filter: 'すべて',
+  mapFilterOpen: false,
   mapCenter: 'you',
   zoom: 1,
   mapPan: { x: 0, y: 0 },
@@ -1256,10 +1257,13 @@ function mapScreen() {
   const activeTint = relationshipTint(state.filter);
   return `
     <div class="map-filter-row">
-      <button class="all-filter" data-action="filter" style="--filter-color:${activeColor};--filter-bg:${activeTint}">
-        <span class="filter-label">${mapFilterLabel(state.filter)}</span>
-        ${icon('chevronDown', 18)}
-      </button>
+      <div class="map-filter-stack">
+        <button class="all-filter ${state.mapFilterOpen ? 'is-open' : ''}" data-action="filter" style="--filter-color:${activeColor};--filter-bg:${activeTint}">
+          <span class="filter-label">${mapFilterLabel(state.filter)}</span>
+          ${icon('chevronDown', 18)}
+        </button>
+        ${state.mapFilterOpen ? `<div class="map-filter-menu">${mapFilters().map(mapFilterOption).join('')}</div>` : ''}
+      </div>
       <button class="map-self-button ${state.mapCenter === 'you' ? 'is-current' : ''}" data-action="locate">${icon('user', 18)}自分に戻す</button>
     </div>
     <section class="map-interactive-panel">
@@ -1287,26 +1291,26 @@ function mapFilters() {
 function relationshipColor(type) {
   return {
     'すべて': '#111111',
-    '大学': '#6b8cff',
-    'ビジネス': '#22c7a9',
-    '地元': '#f0a24a',
-    '家族': '#ff6f91',
-    'イベント': '#9b7cff',
-    '恋人': '#ff5fa2',
+    '大学': '#111111',
+    'ビジネス': '#111111',
+    '地元': '#111111',
+    '家族': '#111111',
+    'イベント': '#111111',
+    '恋人': '#111111',
     '紹介': '#111111'
   }[type] || '#111111';
 }
 
 function relationshipTint(type) {
   return {
-    'すべて': '#f6f6f4',
-    '大学': '#f0f4ff',
-    'ビジネス': '#effbf7',
-    '地元': '#fff6eb',
-    '家族': '#fff0f4',
-    'イベント': '#f5f1ff',
-    '恋人': '#fff0f7'
-  }[type] || '#f6f6f4';
+    'すべて': '#ffffff',
+    '大学': '#ffffff',
+    'ビジネス': '#ffffff',
+    '地元': '#ffffff',
+    '家族': '#ffffff',
+    'イベント': '#ffffff',
+    '恋人': '#ffffff'
+  }[type] || '#ffffff';
 }
 
 function mapFilterLabel(filter) {
@@ -1906,6 +1910,7 @@ app.addEventListener('click', async (event) => {
   if (filter) {
     state.filter = filter;
     state.overlay = null;
+    state.mapFilterOpen = false;
     showToast(`${mapFilterLabel(filter)}で絞り込みました`);
     render();
     return;
@@ -1974,6 +1979,12 @@ app.addEventListener('click', async (event) => {
     return;
   }
   if (action === 'google-login') return signInWithProvider('google');
+  if (action === 'filter' && state.screen === 'map') {
+    state.mapFilterOpen = !state.mapFilterOpen;
+    state.overlay = null;
+    render();
+    return;
+  }
   if (action === 'notifications') {
     await loadRemovalNotifications({ silent: true });
     return openOverlay(action);
