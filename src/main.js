@@ -1253,10 +1253,11 @@ function mapScreen() {
     ? visibleNodes
     : visibleNodes.filter((node) => node.tag === state.filter);
   const activeColor = relationshipColor(state.filter);
+  const activeTint = relationshipTint(state.filter);
   return `
     <div class="map-filter-row">
-      <button class="all-filter" data-action="filter" style="--filter-color:${activeColor}">
-        <span class="filter-label"><i></i>${state.filter === 'すべて' ? 'すべてのつながり' : state.filter}</span>
+      <button class="all-filter" data-action="filter" style="--filter-color:${activeColor};--filter-bg:${activeTint}">
+        <span class="filter-label">${state.filter === 'すべて' ? 'すべてのつながり' : state.filter}</span>
         ${icon('chevronDown', 18)}
       </button>
       <button class="map-self-button ${state.mapCenter === 'you' ? 'is-current' : ''}" data-action="locate">${icon('user', 18)}自分に戻す</button>
@@ -1311,7 +1312,7 @@ function relationshipTint(type) {
 function mapFilterOption(filter) {
   const selected = state.filter === filter;
   const label = filter === '恋人' ? icon('heart', 18) : escapeHtml(filter);
-  return `<button class="filter-choice ${selected ? 'selected' : ''} ${filter === '恋人' ? 'heart-filter-button' : ''}" style="--filter-color:${relationshipColor(filter)};--filter-bg:${relationshipTint(filter)}" data-filter="${escapeHtml(filter)}" aria-label="${escapeHtml(filter)}"><i></i>${label}</button>`;
+  return `<button class="filter-choice ${selected ? 'selected' : ''} ${filter === '恋人' ? 'heart-filter-button' : ''}" style="--filter-color:${relationshipColor(filter)};--filter-bg:${relationshipTint(filter)}" data-filter="${escapeHtml(filter)}" aria-label="${escapeHtml(filter)}">${label}</button>`;
 }
 
 function connectionRowsData() {
