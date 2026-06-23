@@ -394,7 +394,14 @@ function requestPersonFromRow(row, profilesById) {
     desc: profile.company || profile.school || (remote?.handle ? `@${remote.handle}` : 'Bondyユーザー'),
     common: `${tag}として申請`,
     time: relativeTime(row.created_at),
-    photo: profile.photo || ''
+    photo: profile.photo || '',
+    school: profile.school || '',
+    company: profile.company || '',
+    location: profile.location || '',
+    birthday: profile.birthday || '',
+    locationPublic: profile.locationPublic ?? true,
+    birthdayPublic: profile.birthdayPublic ?? false,
+    sns: profile.sns || {}
   };
 }
 
@@ -479,7 +486,14 @@ function connectionPersonFromRow(row, profilesById, centerId = authState.user?.i
     desc: profile.company || profile.school || (remote?.handle ? `@${remote.handle}` : 'Bondyユーザー'),
     common: `${tag}のつながり`,
     time: relativeTime(row.updated_at || row.created_at),
-    photo: profile.photo || ''
+    photo: profile.photo || '',
+    school: profile.school || '',
+    company: profile.company || '',
+    location: profile.location || '',
+    birthday: profile.birthday || '',
+    locationPublic: profile.locationPublic ?? true,
+    birthdayPublic: profile.birthdayPublic ?? false,
+    sns: profile.sns || {}
   };
 }
 
@@ -997,6 +1011,7 @@ function personModalContent(person) {
     <div class="modal-avatar">${avatarHtml}</div>
     <h2>${escapeHtml(name)}</h2>
     <p>${escapeHtml(desc)}</p>
+    ${personProfileDetails(person)}
     ${isConnection ? `
       <fieldset class="relationship-picker manage-relationship">
         <legend>関係を変更</legend>
@@ -1007,6 +1022,40 @@ function personModalContent(person) {
     ` : ''}
     <button data-close>閉じる</button>
   `;
+}
+
+function personProfileDetails(person = {}) {
+  const rows = [
+    ['grad', '大学', person.school || '未入力'],
+    ['brief', '会社・所属', person.company || '未入力'],
+    ['mapPin', '所在地', person.locationPublic ? (person.location || '未入力') : '非公開'],
+    ['calendar', '誕生日', person.birthdayPublic ? (person.birthday || '未入力') : '非公開']
+  ];
+  return `
+    <section class="person-detail-list">
+      ${rows.map(([ic, label, value]) => `<div>${icon(ic, 20)}<span>${label}</span><strong>${escapeHtml(value)}</strong></div>`).join('')}
+      <div>${icon('link', 20)}<span>SNS</span><strong class="person-sns">${snsLinks({ sns: person.sns || {} })}</strong></div>
+    </section>
+  `;
+}
+
+function personOverlayFromNode(node, fallbackName = 'ユーザー') {
+  return {
+    type: 'person',
+    name: node?.name || fallbackName,
+    avatar: node?.avatar,
+    photo: node?.photo || '',
+    desc: node?.desc || (node?.tag ? `${node.tag}のつながりです。` : '登録したプロフィール情報を確認できます。'),
+    tag: node?.tag,
+    requestId: node?.requestId,
+    school: node?.school || '',
+    company: node?.company || '',
+    location: node?.location || '',
+    birthday: node?.birthday || '',
+    locationPublic: node?.locationPublic ?? true,
+    birthdayPublic: node?.birthdayPublic ?? false,
+    sns: node?.sns || {}
+  };
 }
 
 function escapeHtml(value) {
@@ -1199,10 +1248,12 @@ function mapScreen() {
     ? visibleNodes
     : visibleNodes.filter((node) => node.tag === state.filter);
   return `
-    <div class="map-filter-row"><button class="all-filter" data-action="filter">${state.filter === 'すべて' ? 'すべてのつながり' : state.filter} ${icon('chevronDown', 18)}</button></div>
+    <div class="map-filter-row">
+      <button class="all-filter" data-action="filter">${state.filter === 'すべて' ? 'すべてのつながり' : state.filter} ${icon('chevronDown', 18)}</button>
+      <button class="map-self-button ${state.mapCenter === 'you' ? 'is-current' : ''}" data-action="locate">${icon('user', 18)}自分に戻す</button>
+    </div>
     <section class="map-interactive-panel">
       ${networkGraph(filtered)}
-      <button class="map-self-button ${state.mapCenter === 'you' ? 'is-current' : ''}" data-action="locate">${icon('user', 18)}自分に戻す</button>
     </section>
   `;
 }
@@ -1849,15 +1900,7 @@ app.addEventListener('click', async (event) => {
       return;
     }
     const node = personByIdOrName(centerProfileButton.dataset.centerProfile);
-    state.overlay = {
-      type: 'person',
-      name: node?.name || 'ユーザー',
-      avatar: node?.avatar,
-      photo: node?.photo || '',
-      desc: node?.tag ? `${node.tag}のつながりです。` : '登録したプロフィール情報を確認できます。',
-      tag: node?.tag,
-      requestId: node?.requestId
-    };
+    state.overlay = personOverlayFromNode(node);
     render();
     return;
   }
@@ -1878,28 +1921,13 @@ app.addEventListener('click', async (event) => {
       render();
       return;
     }
-    state.overlay = {
-      type: 'person',
-      name: node?.name || name,
-      avatar: node?.avatar,
-      photo: node?.photo || '',
-      desc: node?.tag ? `${node.tag}のつながりです。` : '',
-      tag: node?.tag,
-      requestId: node?.requestId
-    };
+    state.overlay = personOverlayFromNode(node, name);
     render();
     return;
   }
   if (person || personId) {
     const requestPerson = personByIdOrName(personId || person);
-    state.overlay = {
-      type: 'person',
-      name: requestPerson?.name || person,
-      photo: requestPerson?.photo || '',
-      desc: requestPerson?.desc || '登録したプロフィール情報を確認できます。',
-      tag: requestPerson?.tag,
-      requestId: requestPerson?.requestId
-    };
+    state.overlay = personOverlayFromNode(requestPerson, person);
     render();
     return;
   }
@@ -2329,15 +2357,15 @@ function pointerCenter() {
 }
 
 function clampZoom(value) {
-  return Math.max(0.72, Math.min(2.8, Number(value.toFixed(3))));
+  return Math.max(0.65, Math.min(3, Number(value.toFixed(3))));
 }
 
 function constrainMapPan(pan, rect = document.querySelector('[data-map-workspace]')?.getBoundingClientRect()) {
   if (!rect) return pan;
   const overflowX = Math.max(0, rect.width * state.zoom - rect.width);
   const overflowY = Math.max(0, rect.height * state.zoom - rect.height);
-  const slackX = Math.max(54, rect.width * 0.16);
-  const slackY = Math.max(54, rect.height * 0.14);
+  const slackX = Math.max(86, rect.width * 0.24);
+  const slackY = Math.max(96, rect.height * 0.2);
   return {
     x: Math.max(-overflowX - slackX, Math.min(slackX, pan.x)),
     y: Math.max(-overflowY - slackY, Math.min(slackY, pan.y))
