@@ -1257,7 +1257,7 @@ function mapScreen() {
   return `
     <div class="map-filter-row">
       <button class="all-filter" data-action="filter" style="--filter-color:${activeColor};--filter-bg:${activeTint}">
-        <span class="filter-label">${state.filter === 'すべて' ? 'すべてのつながり' : state.filter}</span>
+        <span class="filter-label">${mapFilterLabel(state.filter)}</span>
         ${icon('chevronDown', 18)}
       </button>
       <button class="map-self-button ${state.mapCenter === 'you' ? 'is-current' : ''}" data-action="locate">${icon('user', 18)}自分に戻す</button>
@@ -1287,31 +1287,36 @@ function mapFilters() {
 function relationshipColor(type) {
   return {
     'すべて': '#111111',
-    '大学': '#3b82f6',
-    'ビジネス': '#22c55e',
-    '地元': '#f59e0b',
-    '家族': '#ef476f',
-    'イベント': '#8b5cf6',
-    '恋人': '#ec4899',
+    '大学': '#6b8cff',
+    'ビジネス': '#22c7a9',
+    '地元': '#f0a24a',
+    '家族': '#ff6f91',
+    'イベント': '#9b7cff',
+    '恋人': '#ff5fa2',
     '紹介': '#111111'
   }[type] || '#111111';
 }
 
 function relationshipTint(type) {
   return {
-    'すべて': '#f4f4f4',
-    '大学': '#eff6ff',
-    'ビジネス': '#ecfdf5',
-    '地元': '#fffbeb',
-    '家族': '#fff1f5',
-    'イベント': '#f5f3ff',
-    '恋人': '#fdf2f8'
-  }[type] || '#f4f4f4';
+    'すべて': '#f6f6f4',
+    '大学': '#f0f4ff',
+    'ビジネス': '#effbf7',
+    '地元': '#fff6eb',
+    '家族': '#fff0f4',
+    'イベント': '#f5f1ff',
+    '恋人': '#fff0f7'
+  }[type] || '#f6f6f4';
+}
+
+function mapFilterLabel(filter) {
+  if (filter === '恋人') return '♡';
+  return filter === 'すべて' ? 'すべてのつながり' : escapeHtml(filter);
 }
 
 function mapFilterOption(filter) {
   const selected = state.filter === filter;
-  const label = filter === '恋人' ? icon('heart', 18) : escapeHtml(filter);
+  const label = mapFilterLabel(filter);
   return `<button class="filter-choice ${selected ? 'selected' : ''} ${filter === '恋人' ? 'heart-filter-button' : ''}" style="--filter-color:${relationshipColor(filter)};--filter-bg:${relationshipTint(filter)}" data-filter="${escapeHtml(filter)}" aria-label="${escapeHtml(filter)}">${label}</button>`;
 }
 
