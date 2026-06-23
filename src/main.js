@@ -1153,33 +1153,15 @@ function topHeader(title, extra = '') {
 }
 
 function mapScreen() {
-  const rows = connectionRowsData();
   const visibleNodes = mapVisibleNodes();
   const filtered = state.filter === 'すべて'
     ? visibleNodes
     : visibleNodes.filter((node) => node.tag === state.filter);
   return `
-    ${appHeader('', `${buttonIcon('search', 'search')}${buttonIcon('sliders', 'filter')}${buttonIcon('plus', 'add', 'circle')}`)}
-    <div class="map-mode-pill">
-      ${switchButton('マップ', 'map')}
-    </div>
-    <div class="chips">
-      ${mapFilters().map((filter) => `<button class="${state.filter === filter ? 'active' : ''} ${filter === '恋人' ? 'heart-chip' : ''}" data-filter="${filter}" aria-label="${filter}">${chipIcon(filter)}${chipLabel(filter)}</button>`).join('')}
-    </div>
-    <button class="all-filter" data-action="filter">すべてのつながり ${icon('chevronDown', 18)}</button>
+    <div class="map-filter-row"><button class="all-filter" data-action="filter">${state.filter === 'すべて' ? 'すべてのつながり' : state.filter} ${icon('chevronDown', 18)}</button></div>
     <section class="map-interactive-panel">
-      ${state.mapMode === 'マップ' ? networkGraph(filtered) : mapList()}
-      <button class="display-settings" data-action="display">${icon('menu', 19)}表示設定</button>
+      ${networkGraph(filtered)}
       ${state.mapCenter !== 'you' ? `<button class="map-self-button" data-action="locate">${icon('user', 18)}自分に戻す</button>` : ''}
-      <div class="graph-controls">
-        <button data-action="locate">${icon('locate')}</button>
-        <div><button data-action="zoom-in">${icon('plus')}</button><button data-action="zoom-out">${icon('minus')}</button></div>
-      </div>
-    </section>
-    <section class="map-stats">
-      <div>${icon('users')}<span>つながり数</span><b>${rows.length} 人</b><small>承認済み</small></div>
-      <div>${icon('building')}<span>共通の会社・学校</span><b>0 件</b></div>
-      <div>${icon('users')}<span>共通の知人</span><b>0 人</b></div>
     </section>
   `;
 }
