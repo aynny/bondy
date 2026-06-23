@@ -1906,7 +1906,7 @@ app.addEventListener('click', async (event) => {
   if (filter) {
     state.filter = filter;
     state.overlay = null;
-    showToast(`${filter}で絞り込みました`);
+    showToast(`${mapFilterLabel(filter)}で絞り込みました`);
     render();
     return;
   }
