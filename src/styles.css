@@ -2292,48 +2292,17 @@ body {
 }
 
 /* Unified app chrome */
-.app-header {
-  height: 121px;
+.app-actions {
+  min-height: 54px;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding: 0 21px 21px;
-  border-bottom: 1px solid #f1f1f1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 23px;
+  padding: 13px 21px 5px;
   background: #fff;
 }
 
-.app-header > div {
-  min-width: 0;
-  display: flex;
-  align-items: flex-end;
-  gap: 14px;
-}
-
-.app-wordmark {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 48px;
-  line-height: .92;
-  font-weight: 820;
-  letter-spacing: 0;
-}
-
-.app-header span {
-  padding-bottom: 3px;
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 720;
-  white-space: nowrap;
-}
-
-.app-header nav {
-  display: flex;
-  align-items: center;
-  gap: 23px;
-  padding-bottom: 3px;
-}
-
-.app-header nav button {
+.app-actions button {
   position: relative;
   width: 36px;
   height: 36px;
@@ -2342,22 +2311,22 @@ body {
   border-radius: 12px;
 }
 
-.app-header nav button:active {
+.app-actions button:active {
   background: #f5f5f5;
 }
 
-.app-header nav svg {
+.app-actions svg {
   width: 31px;
   height: 31px;
   stroke-width: 2.05;
 }
 
-.app-header .circle {
+.app-actions .circle {
   border: 2px solid #000;
   border-radius: 50%;
 }
 
-.app-header .dot:after {
+.app-actions .dot:after {
   content: "";
   position: absolute;
   top: 1px;
@@ -2474,12 +2443,12 @@ body {
   transform: scale(.98);
 }
 
-.app-header nav button,
+.app-actions button,
 .profile-actions button {
   transition: transform .16s ease, background-color .16s ease;
 }
 
-.app-header nav button:active,
+.app-actions button:active,
 .profile-actions button:active {
   transform: scale(.94);
 }

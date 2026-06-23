@@ -1150,12 +1150,7 @@ function appScreen() {
 }
 
 function appHeader(title = '', extra = '') {
-  return `
-    <header class="app-header">
-      <div><h1 class="app-wordmark">Bondy</h1>${title ? `<span>${title}</span>` : ''}</div>
-      <nav>${extra}</nav>
-    </header>
-  `;
+  return extra ? `<div class="app-actions">${extra}</div>` : '';
 }
 
 function topHeader(title, extra = '') {
