@@ -996,7 +996,7 @@ function loginScreen() {
     },
     signup: {
       title: '新規登録',
-      lead: 'メール認証でBondyを始める',
+      lead: 'メール認証でアプリを始める',
       submit: '認証メールを送る',
       intent: 'signup',
       autocomplete: 'new-password'
@@ -1020,11 +1020,6 @@ function loginScreen() {
   return `
     <main class="phone login-screen">
       ${statusBar()}
-      <section class="login-brand">
-        ${brand()}
-        <h1>Bondy</h1>
-        <p>人との出会いを、資産に。</p>
-      </section>
       <form class="email-auth-form auth-card" data-auth-form>
         <div class="auth-card-title">
           <h2>${authCopy.title}</h2>
@@ -1056,7 +1051,7 @@ function registerScreen() {
         ${brand(true)}
         <div>
           <h1>プロフィール登録</h1>
-          <p>あなたの情報を入力して、Bondyを始めましょう。</p>
+          <p>あなたの情報を入力して、アプリを始めましょう。</p>
         </div>
       </header>
       <form class="register-form" data-register-form>
