@@ -558,7 +558,12 @@ async function loadMapCenterConnections(centerId, options = {}) {
   }
   const rows = (data || [])
     .map((row) => connectionPersonFromRow(row, profilesById, centerId))
-    .filter((person) => person.id !== authState.user?.id);
+    .filter((person) => person.id !== authState.user?.id)
+    .map((person) => ({
+      ...person,
+      requestId: '',
+      readOnly: true
+    }));
   state.mapCenterConnections[centerId] = rows;
   return rows;
 }
@@ -1247,9 +1252,13 @@ function mapScreen() {
   const filtered = state.filter === 'すべて'
     ? visibleNodes
     : visibleNodes.filter((node) => node.tag === state.filter);
+  const activeColor = relationshipColor(state.filter);
   return `
     <div class="map-filter-row">
-      <button class="all-filter" data-action="filter">${state.filter === 'すべて' ? 'すべてのつながり' : state.filter} ${icon('chevronDown', 18)}</button>
+      <button class="all-filter" data-action="filter" style="--filter-color:${activeColor}">
+        <span class="filter-label"><i></i>${state.filter === 'すべて' ? 'すべてのつながり' : state.filter}</span>
+        ${icon('chevronDown', 18)}
+      </button>
       <button class="map-self-button ${state.mapCenter === 'you' ? 'is-current' : ''}" data-action="locate">${icon('user', 18)}自分に戻す</button>
     </div>
     <section class="map-interactive-panel">
@@ -1274,20 +1283,42 @@ function mapFilters() {
   return ['すべて', '大学', 'ビジネス', '地元', '家族', 'イベント', '恋人'];
 }
 
-function connectionRowsData() {
-  return state.connections || [];
-}
-
-function mapNodeData() {
-  const colors = {
+function relationshipColor(type) {
+  return {
+    'すべて': '#111111',
     '大学': '#3b82f6',
     'ビジネス': '#22c55e',
     '地元': '#f59e0b',
     '家族': '#ef476f',
     'イベント': '#8b5cf6',
     '恋人': '#ec4899',
-    '紹介': '#111'
-  };
+    '紹介': '#111111'
+  }[type] || '#111111';
+}
+
+function relationshipTint(type) {
+  return {
+    'すべて': '#f4f4f4',
+    '大学': '#eff6ff',
+    'ビジネス': '#ecfdf5',
+    '地元': '#fffbeb',
+    '家族': '#fff1f5',
+    'イベント': '#f5f3ff',
+    '恋人': '#fdf2f8'
+  }[type] || '#f4f4f4';
+}
+
+function mapFilterOption(filter) {
+  const selected = state.filter === filter;
+  const label = filter === '恋人' ? icon('heart', 18) : escapeHtml(filter);
+  return `<button class="filter-choice ${selected ? 'selected' : ''} ${filter === '恋人' ? 'heart-filter-button' : ''}" style="--filter-color:${relationshipColor(filter)};--filter-bg:${relationshipTint(filter)}" data-filter="${escapeHtml(filter)}" aria-label="${escapeHtml(filter)}"><i></i>${label}</button>`;
+}
+
+function connectionRowsData() {
+  return state.connections || [];
+}
+
+function mapNodeData() {
   const positions = [
     [50, 18], [74, 30], [80, 58], [68, 78], [50, 84], [30, 78],
     [20, 58], [27, 30], [88, 44], [12, 44], [38, 16], [62, 16]
@@ -1299,7 +1330,7 @@ function mapNodeData() {
       ...person,
       x: Number.isFinite(saved.x) ? saved.x : x,
       y: Number.isFinite(saved.y) ? saved.y : y,
-      color: colors[person.tag] || '#111',
+      color: relationshipColor(person.tag),
       centerable: state.mapCenter === 'you'
     };
   });
@@ -1338,15 +1369,6 @@ function mapVisibleNodes() {
       return node;
     });
   }
-  const colors = {
-    '大学': '#3b82f6',
-    'ビジネス': '#22c55e',
-    '地元': '#f59e0b',
-    '家族': '#ef476f',
-    'イベント': '#8b5cf6',
-    '恋人': '#ec4899',
-    '紹介': '#111'
-  };
   const positions = [[50, 22], [72, 34], [76, 62], [50, 78], [28, 62], [28, 34], [86, 50], [14, 50]];
   return (state.mapCenterConnections[state.mapCenter] || []).slice(0, 8).map((person, index) => {
     const [x, y] = positions[index % positions.length];
@@ -1355,7 +1377,7 @@ function mapVisibleNodes() {
       ...person,
       x: Number.isFinite(saved.x) ? saved.x : x,
       y: Number.isFinite(saved.y) ? saved.y : y,
-      color: colors[person.tag] || '#d9d9d9',
+      color: relationshipColor(person.tag),
       centerable: false
     };
   });
@@ -1657,7 +1679,7 @@ function overlay() {
   if (type === 'share-profile') return modal(shareProfileContent(), 'connect-modal profile-share-modal');
   if (type === 'connect-profile') return modal(connectProfileContent(state.overlay.target), 'connect-modal');
   if (type === 'search') return modal(idSearchContent('検索'), 'connect-modal');
-  if (type === 'filter') return modal(`<h2>絞り込み</h2><div class="modal-grid">${mapFilters().map((f) => `<button class="${state.filter === f ? 'selected' : ''} ${f === '恋人' ? 'heart-filter-button' : ''}" data-filter="${f}" aria-label="${f}">${f === '恋人' ? icon('heart', 18) : f}</button>`).join('')}</div><button data-close>閉じる</button>`);
+  if (type === 'filter') return modal(`<h2>絞り込み</h2><div class="modal-grid filter-grid">${mapFilters().map(mapFilterOption).join('')}</div><button data-close>閉じる</button>`);
   if (type === 'display') return modal(`<h2>表示設定</h2><label><input type="checkbox" checked> つながりの強さを表示</label><label><input type="checkbox" checked> 共通点を表示</label><label><input type="checkbox"> 名前だけ表示</label><button data-close>完了</button>`);
   if (type === 'settings') return modal(`<h2>設定</h2><p>登録データはこの端末内に保存されています。</p><button data-action="restart-registration">最初から登録し直す</button><button data-close>閉じる</button>`);
   if (type === 'notifications') return modal(notificationsContent(), 'connect-modal');
@@ -1910,14 +1932,16 @@ app.addEventListener('click', async (event) => {
       return;
     }
     const name = mapNodeButton.dataset.mapNode;
-    const node = personByIdOrName(name);
+    const visibleNode = mapVisibleNodes().find((node) => (node.id || node.name) === name);
+    const node = visibleNode || personByIdOrName(name);
     if (mapNodeButton.dataset.centerable === 'true') {
       state.mapCenter = name;
       state.filter = 'すべて';
       state.mapPan = { x: 0, y: 0 };
       state.zoom = 1;
-      await loadMapCenterConnections(name, { silent: true });
       showToast(`${node?.name || mapNodeButton.dataset.person || 'ユーザー'}を中心にしました`);
+      render();
+      await loadMapCenterConnections(name, { silent: true });
       render();
       return;
     }
