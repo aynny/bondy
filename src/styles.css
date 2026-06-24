@@ -2325,8 +2325,8 @@ body {
   color: #111;
   font-size: 13px;
   font-weight: 820;
-  display: flex;
-  align-items: center;
+  display: grid;
+  place-items: center;
   justify-content: center;
   box-shadow: 0 5px 13px rgba(0,0,0,.025);
 }
@@ -2338,6 +2338,8 @@ body {
 .map-screen .all-filter svg {
   position: absolute;
   right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .map-screen .filter-label {
@@ -2717,14 +2719,12 @@ body {
 
 .map-screen .map-self-button,
 .map-screen .map-fit-button {
-  position: static;
+  position: relative;
   flex: 1 1 0;
   min-width: 0;
   height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+  display: grid;
+  place-items: center;
   padding: 0 8px;
   border: 1px solid #111;
   border-radius: 14px;
@@ -2735,6 +2735,21 @@ body {
   font-weight: 700;
   box-shadow: 0 8px 18px rgba(0,0,0,.12);
   white-space: nowrap;
+  text-align: center;
+}
+
+.map-screen .map-self-button svg,
+.map-screen .map-fit-button svg {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.map-screen .map-self-button span,
+.map-screen .map-fit-button span {
+  width: 100%;
+  display: block;
   text-align: center;
 }
 

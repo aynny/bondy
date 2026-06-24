@@ -1321,8 +1321,8 @@ function mapScreen() {
         </button>
         ${state.mapFilterOpen ? `<div class="map-filter-menu">${mapFilters().map(mapFilterOption).join('')}</div>` : ''}
       </div>
-      <button class="map-self-button ${state.mapCenter === 'you' ? 'is-current' : ''}" data-action="locate">${icon('user', 18)}自分に戻す</button>
-      <button class="map-fit-button" data-action="fit-map">${icon('target', 18)}全体表示</button>
+      <button class="map-self-button ${state.mapCenter === 'you' ? 'is-current' : ''}" data-action="locate">${icon('user', 18)}<span>自分に戻す</span></button>
+      <button class="map-fit-button" data-action="fit-map">${icon('target', 18)}<span>全体表示</span></button>
     </div>
     <section class="map-interactive-panel">
       ${networkGraph(filtered)}
