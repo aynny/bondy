@@ -2372,6 +2372,24 @@ body {
   stroke-width: .44;
   stroke-linecap: round;
   opacity: .9;
+  animation: mapLineBreathe 2.9s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+  filter: drop-shadow(0 0 2px color-mix(in srgb, currentColor 28%, transparent));
+}
+
+.map-screen .lines line:nth-child(2n) { animation-delay: -.7s; }
+.map-screen .lines line:nth-child(3n) { animation-delay: -1.4s; }
+
+@keyframes mapLineBreathe {
+  0%, 100% {
+    stroke-width: .38;
+    opacity: .58;
+  }
+  45% {
+    stroke-width: .78;
+    opacity: 1;
+  }
 }
 
 .line-token {
