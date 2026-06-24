@@ -21,6 +21,7 @@ const state = {
   authMode: 'signin',
   introTab: '申請',
   connectionFilter: 'すべて',
+  connectionQuery: '',
   mapMode: 'マップ',
   filter: 'すべて',
   mapFilterOpen: false,
@@ -1445,19 +1446,32 @@ function emptyPanel(title, body) {
 function connectionsScreen() {
   const filters = ['すべて', '大学', 'ビジネス', '地元', '家族', 'イベント', '恋人'];
   const allRows = connectionRowsData();
-  const rows = state.connectionFilter === 'すべて'
+  const filteredRows = state.connectionFilter === 'すべて'
     ? allRows
     : allRows.filter((person) => person.tag === state.connectionFilter);
+  const query = state.connectionQuery.trim().toLowerCase();
+  const rows = query
+    ? filteredRows.filter((person) => {
+      const haystack = [person.name, person.desc, person.common, person.tag, person.school, person.company, person.location]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(query) || haystack.includes(state.connectionQuery.trim());
+    })
+    : filteredRows;
   return `
-    ${appHeader('', `${buttonIcon('search', 'search')}${buttonIcon('bell', 'notifications', state.notifications.length ? 'dot' : '')}`)}
     <section class="connection-filter-bar">
       <h2>つながり</h2>
       <div class="connection-filter-scroll">
         ${filters.map((filter) => `<button class="${state.connectionFilter === filter ? 'active' : ''} ${filter === '恋人' ? 'heart-chip' : ''}" data-connection-filter="${filter}" aria-label="${filter}">${chipIcon(filter)}${chipLabel(filter)}</button>`).join('')}
       </div>
+      <label class="connection-search">
+        ${icon('search', 18)}
+        <input type="search" value="${escapeHtml(state.connectionQuery)}" placeholder="つながりを検索" data-connection-search autocomplete="off">
+      </label>
     </section>
     <section class="connections-list">
-      ${rows.length ? rows.map(connectionRow).join('') : emptyPanel('該当するつながりはありません', '別の種類を選ぶと一覧を切り替えられます。')}
+      ${rows.length ? rows.map(connectionRow).join('') : emptyPanel('該当するつながりはありません', '種類や検索ワードを変えると一覧を切り替えられます。')}
     </section>
   `;
 }
@@ -1686,7 +1700,7 @@ function overlay() {
   if (!state.overlay) return '';
   const type = state.overlay.type;
   const user = currentUser();
-  if (type === 'person') return modal(personModalContent(state.overlay));
+  if (type === 'person') return modal(personModalContent(state.overlay), 'person-modal');
   if (type === 'share-profile') return modal(shareProfileContent(), 'connect-modal profile-share-modal');
   if (type === 'connect-profile') return modal(connectProfileContent(state.overlay.target), 'connect-modal');
   if (type === 'search') return modal(idSearchContent('検索'), 'connect-modal');
@@ -2079,6 +2093,19 @@ app.addEventListener('click', async (event) => {
     return;
   }
   if (action === 'camera') return showToast('写真変更を開きました');
+});
+
+app.addEventListener('input', (event) => {
+  const connectionSearch = event.target.closest('[data-connection-search]');
+  if (!connectionSearch) return;
+  const cursor = connectionSearch.selectionStart || connectionSearch.value.length;
+  state.connectionQuery = connectionSearch.value;
+  render();
+  requestAnimationFrame(() => {
+    const nextSearch = document.querySelector('[data-connection-search]');
+    nextSearch?.focus();
+    nextSearch?.setSelectionRange?.(cursor, cursor);
+  });
 });
 
 function openOptionPicker(trigger, config) {
