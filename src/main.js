@@ -1413,14 +1413,34 @@ function networkGraph(nodes) {
     <section class="network" data-map-workspace>
       <div class="map-canvas" data-map-canvas style="${mapCanvasStyle()}">
         <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
-          ${nodes.map((node) => `<line data-line-node="${escapeHtml(node.id || node.name)}" x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="${node.color}" />`).join('')}
+          ${nodes.map((node, index) => mapConnectionLine(node, index)).join('')}
         </svg>
-        ${nodes.map((node, index) => `<span class="line-token" style="--dx:${node.x - 50}%;--dy:${node.y - 50}%;--token-color:${node.color};--token-delay:${index * -0.28}s">${mapRelationshipMark(node.tag)}</span>`).join('')}
+        ${nodes.map((node, index) => `<span class="line-token" data-token-node="${escapeHtml(node.id || node.name)}" style="--dx:${node.x - 50}%;--dy:${node.y - 50}%;--token-color:${node.color};--token-delay:${index * -0.28}s">${mapRelationshipMark(node.tag)}</span>`).join('')}
         ${centerNode}
         ${nodes.map((node) => `<button class="map-node ${node.centerable ? 'centerable' : 'profile-only'}" type="button" style="left:${node.x}%;top:${node.y}%" data-map-node="${escapeHtml(node.id || node.name)}" data-centerable="${node.centerable ? 'true' : 'false'}" data-person-id="${escapeHtml(node.id || '')}" data-person="${escapeHtml(node.name)}">${personAvatar(node, 54)}<b>${escapeHtml(node.name)}</b><em>${escapeHtml(relationshipLabel(node.tag))}</em></button>`).join('')}
         ${nodes.length ? '' : `<div class="empty-map">${emptyMessage}</div>`}
       </div>
     </section>
+  `;
+}
+
+function mapConnectionLine(node, index) {
+  const key = escapeHtml(node.id || node.name);
+  const color = escapeHtml(node.color || '#111');
+  const gradientId = `line-flow-${index}`;
+  return `
+    <defs>
+      <linearGradient id="${gradientId}" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="${color}" stop-opacity=".28"/>
+        <stop offset="34%" stop-color="${color}" stop-opacity=".55"/>
+        <stop offset="50%" stop-color="#fff" stop-opacity=".98"/>
+        <stop offset="66%" stop-color="${color}" stop-opacity=".55"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity=".28"/>
+        <animateTransform attributeName="gradientTransform" type="translate" from="-1 0" to="1 0" dur="2.6s" begin="${(index * 0.18).toFixed(2)}s" repeatCount="indefinite"/>
+      </linearGradient>
+    </defs>
+    <line class="line-base" data-line-node="${key}" x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="${color}" />
+    <line class="line-flow" data-flow-node="${key}" x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="url(#${gradientId})" />
   `;
 }
 
@@ -1499,6 +1519,38 @@ function mapCenterAvatar(center = mapCenterProfile()) {
   if (center.photo) return `<div class="avatar profile-avatar" style="--size:82px"><img src="${escapeHtml(center.photo)}" alt=""></div>`;
   if (center.avatar === 'user') return profileAvatar(82);
   return avatar(center.avatar, 82);
+}
+
+async function withButtonPending(button, label, task) {
+  if (!button) return task();
+  if (button.disabled) return false;
+  const originalHtml = button.innerHTML;
+  const originalWidth = button.offsetWidth;
+  button.disabled = true;
+  button.classList.add('is-saving');
+  if (originalWidth) button.style.minWidth = `${originalWidth}px`;
+  button.textContent = label;
+  try {
+    return await task();
+  } finally {
+    button.disabled = false;
+    button.classList.remove('is-saving');
+    button.style.minWidth = '';
+    button.innerHTML = originalHtml;
+  }
+}
+
+function animateNodeToCenter(button) {
+  if (!button) return Promise.resolve();
+  button.classList.add('moving-to-center');
+  button.style.left = '50%';
+  button.style.top = '50%';
+  return new Promise((resolve) => {
+    window.setTimeout(() => {
+      button.classList.remove('moving-to-center');
+      resolve();
+    }, 330);
+  });
 }
 
 function mapList() {
@@ -2022,7 +2074,7 @@ app.addEventListener('click', async (event) => {
   if (request) {
     const requestId = request.dataset.request;
     const result = request.dataset.result;
-    const updated = await updateConnectionRequestStatus(requestId, result);
+    const updated = await withButtonPending(request, result === '承認' ? '承認中...' : '拒否中...', () => updateConnectionRequestStatus(requestId, result));
     if (!updated) return;
     state.handledRequests[requestId] = result;
     state.requests = state.requests.filter((item) => item.id !== requestId);
@@ -2050,6 +2102,7 @@ app.addEventListener('click', async (event) => {
     const visibleNode = mapVisibleNodes().find((node) => (node.id || node.name) === name);
     const node = visibleNode || personByIdOrName(name);
     if (mapNodeButton.dataset.centerable === 'true') {
+      await animateNodeToCenter(mapNodeButton);
       state.mapCenter = name;
       state.filter = 'すべて';
       state.mapPan = { x: 0, y: 0 };
@@ -2112,9 +2165,10 @@ app.addEventListener('click', async (event) => {
   if (['search', 'filter', 'add', 'display', 'share-profile', 'help-support', 'terms', 'privacy-policy', 'account-security', 'manage-connections', 'profile-visibility', 'privacy-settings', 'version-info'].includes(action)) return openOverlay(action);
   if (action === 'scan-qr') return startQrScanner();
   if (action === 'send-request') {
+    const sendButton = event.target.closest('[data-action]');
     const targetId = event.target.closest('[data-target-id]')?.dataset.targetId;
     const relationship = event.target.closest('.modal-sheet')?.querySelector('input[name="relationshipType"]:checked')?.value || '紹介';
-    const sent = await sendConnectionRequest(targetId, relationship);
+    const sent = await withButtonPending(sendButton, '申請中...', () => sendConnectionRequest(targetId, relationship));
     if (sent) {
       state.overlay = null;
       render();
@@ -2122,9 +2176,10 @@ app.addEventListener('click', async (event) => {
     return;
   }
   if (action === 'update-relationship') {
+    const saveButton = event.target.closest('[data-action]');
     const requestId = event.target.closest('[data-request-id]')?.dataset.requestId;
     const relationship = event.target.closest('.modal-sheet')?.querySelector('input[name="manageRelationshipType"]:checked')?.value || '';
-    const updated = await updateConnectionRelationship(requestId, relationship);
+    const updated = await withButtonPending(saveButton, '保存中...', () => updateConnectionRelationship(requestId, relationship));
     if (updated) {
       state.overlay = null;
       showToast('関係を変更しました');
@@ -2136,7 +2191,7 @@ app.addEventListener('click', async (event) => {
     const button = event.target.closest('[data-request-id]');
     const requestId = button?.dataset.requestId;
     const relationship = button?.dataset.relationship || '';
-    const removed = await removeConnection(requestId, relationship);
+    const removed = await withButtonPending(button, '削除中...', () => removeConnection(requestId, relationship));
     if (removed) {
       state.overlay = null;
       showToast('つながりを削除しました');
@@ -2176,8 +2231,12 @@ app.addEventListener('click', async (event) => {
     return showToast('プロフィールリンクをコピーしました');
   }
   if (action === 'save-qr') {
-    state.saved = true;
-    showToast('QRコードを保存しました');
+    await withButtonPending(event.target.closest('[data-action]'), '保存中...', async () => {
+      state.saved = true;
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      showToast('QRコードを保存しました');
+      return true;
+    });
     render();
     return;
   }
@@ -2331,7 +2390,7 @@ app.addEventListener('submit', async (event) => {
       showToast('名前・ID・学校・誕生日を入力してください');
       return;
     }
-    await saveUser(user);
+    await withButtonPending(event.submitter, '保存中...', () => saveUser(user));
     localStorage.removeItem(SIGNUP_PENDING_KEY);
     go('profile', '登録しました');
     return;
@@ -2341,7 +2400,7 @@ app.addEventListener('submit', async (event) => {
     const formData = new FormData(editForm);
     const photo = formData.get('photo');
     const current = currentUser();
-    await saveUser({
+    await withButtonPending(event.submitter, '保存中...', () => saveUser({
       ...current,
       name: String(formData.get('name') || '').trim(),
       handle: String(formData.get('handle') || '').trim().replace(/^@/, ''),
@@ -2355,7 +2414,7 @@ app.addEventListener('submit', async (event) => {
       locationPublic: formData.get('locationPublic') === 'true',
       birthdayPublic: formData.get('birthdayPublic') === 'true',
       sns: snsFromForm(formData)
-    });
+    }));
     state.overlay = null;
     go('profile', 'プロフィールを保存しました');
   }
@@ -2560,9 +2619,15 @@ function updateDraggedNode(node) {
     button.style.top = `${node.y}%`;
   }
   const line = document.querySelector(`.lines line[data-line-node="${cssEscape(nodeKey)}"]`);
-  if (line) {
-    line.setAttribute('x2', node.x);
-    line.setAttribute('y2', node.y);
+  const flowLine = document.querySelector(`.lines line[data-flow-node="${cssEscape(nodeKey)}"]`);
+  [line, flowLine].filter(Boolean).forEach((targetLine) => {
+    targetLine.setAttribute('x2', node.x);
+    targetLine.setAttribute('y2', node.y);
+  });
+  const token = document.querySelector(`.line-token[data-token-node="${cssEscape(nodeKey)}"]`);
+  if (token) {
+    token.style.setProperty('--dx', `${node.x - 50}%`);
+    token.style.setProperty('--dy', `${node.y - 50}%`);
   }
 }
 
