@@ -1320,6 +1320,7 @@ function mapScreen() {
         ${state.mapFilterOpen ? `<div class="map-filter-menu">${mapFilters().map(mapFilterOption).join('')}</div>` : ''}
       </div>
       <button class="map-self-button ${state.mapCenter === 'you' ? 'is-current' : ''}" data-action="locate">${icon('user', 18)}自分に戻す</button>
+      <button class="map-fit-button" data-action="fit-map">${icon('target', 18)}全体表示</button>
     </div>
     <section class="map-interactive-panel">
       ${networkGraph(filtered)}
@@ -2213,6 +2214,12 @@ app.addEventListener('click', async (event) => {
     state.zoom = 1;
     render();
     return showToast('あなたを中心に戻しました');
+  }
+  if (action === 'fit-map') {
+    state.mapPan = { x: 0, y: 0 };
+    state.zoom = 1;
+    render();
+    return showToast('マップ全体を表示しました');
   }
   if (action === 'zoom-in' || action === 'zoom-out') {
     state.zoom = clampZoom(state.zoom + (action === 'zoom-in' ? 0.12 : -0.12));
