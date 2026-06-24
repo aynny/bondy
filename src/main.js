@@ -941,6 +941,8 @@ function normalizeUser(user) {
     location: '',
     birthday: '',
     photo: '',
+    schoolPublic: true,
+    companyPublic: true,
     locationPublic: true,
     birthdayPublic: false,
     sns: emptySns,
@@ -949,6 +951,8 @@ function normalizeUser(user) {
       ...emptySns,
       ...(user?.sns || {})
     },
+    schoolPublic: user?.schoolPublic ?? true,
+    companyPublic: user?.companyPublic ?? true,
     locationPublic: user?.locationPublic ?? true,
     birthdayPublic: user?.birthdayPublic ?? false
   };
@@ -1176,7 +1180,9 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
       <label>名前<input name="name" required value="${escapeHtml(user.name)}" placeholder="あなたの名前"></label>
       <label>ユーザーID<input name="handle" required value="${escapeHtml(user.handle)}" placeholder="好きなID"></label>
       ${universityField('school', user.school)}
+      ${visibilityField('schoolPublic', '大学', user.schoolPublic)}
       <label>会社・所属<input name="company" value="${escapeHtml(user.company)}" placeholder="会社名・役職・所属"></label>
+      ${visibilityField('companyPublic', '会社・所属', user.companyPublic)}
     </section>
     <section class="form-section">
       <h2>公開設定</h2>
@@ -1563,23 +1569,25 @@ function profileScreen() {
   const user = currentUser();
   return `
     <header class="profile-actions">
-      <button data-action="settings">${icon('settings', 32)}</button>
       <span></span>
-      <button data-action="edit">${icon('edit', 31)}</button>
+      <button data-action="settings">${icon('settings', 32)}</button>
     </header>
     <section class="profile-hero">
-      <label class="profile-photo" aria-label="プロフィール写真を変更">${profileAvatar(132)}<input type="file" accept="image/*" data-photo-input><span>${icon('camera', 24)}</span></label>
+      <label class="profile-photo" aria-label="プロフィール写真を変更">${profileAvatar(104)}<input type="file" accept="image/*" data-photo-input><span>${icon('camera', 20)}</span></label>
       <div class="profile-identity">
         <h1>${escapeHtml(user.name || '未設定')} <span>登録済み</span></h1>
         <p>@${escapeHtml(user.handle || 'your.id')}</p>
-        <button class="profile-share-button" data-action="share-profile">${icon('qr', 18)}プロフィールを共有</button>
+        <div class="profile-quick-actions">
+          <button class="profile-share-button" data-action="edit">${icon('edit', 17)}プロフィールを編集</button>
+          <button class="profile-share-button" data-action="share-profile">${icon('qr', 17)}プロフィールを共有</button>
+        </div>
       </div>
     </section>
     <section class="info-rows">
-      ${infoRow('grad', '大学', user.school || '未入力')}
-      ${infoRow('brief', '会社・所属', user.company || '未入力')}
-      ${infoRow('mapPin', '所在地', user.locationPublic ? (user.location || '未入力') : '非公開')}
-      ${infoRow('calendar', '誕生日', user.birthdayPublic ? (user.birthday || '未入力') : '非公開')}
+      ${infoRow('grad', '大学', user.schoolPublic ? (user.school || '未入力') : '非公開', 'schoolPublic', user.schoolPublic)}
+      ${infoRow('brief', '会社・所属', user.companyPublic ? (user.company || '未入力') : '非公開', 'companyPublic', user.companyPublic)}
+      ${infoRow('mapPin', '所在地', user.locationPublic ? (user.location || '未入力') : '非公開', 'locationPublic', user.locationPublic)}
+      ${infoRow('calendar', '誕生日', user.birthdayPublic ? (user.birthday || '未入力') : '非公開', 'birthdayPublic', user.birthdayPublic)}
       <div class="info-row">${icon('link', 25)}<span>SNS</span><strong class="sns">${snsLinks(user)}</strong></div>
     </section>
     <section class="stats-card profile-stats">${[['users', 'つながり', String(connectionRowsData().length)], ['user', '共通の知人', '0'], ['users', '所属グループ', '0']].map(([ic, label, value]) => `<div>${icon(ic, 28)}<span>${label}</span><b>${value}</b></div>`).join('')}</section>
@@ -1685,8 +1693,8 @@ function editProfileScreen() {
   `;
 }
 
-function infoRow(ic, label, value) {
-  return `<div class="info-row">${icon(ic, 25)}<span>${label}</span><strong>${value}</strong></div>`;
+function infoRow(ic, label, value, visibilityKey = '', isPublic = true) {
+  return `<div class="info-row">${icon(ic, 25)}<span>${label}</span><strong>${value}</strong>${visibilityKey ? `<button class="visibility-toggle ${isPublic ? 'is-public' : ''}" data-visibility-toggle="${visibilityKey}">${isPublic ? '公開' : '非公開'}</button>` : ''}</div>`;
 }
 
 function snsLinks(user) {
@@ -1880,6 +1888,7 @@ app.addEventListener('click', async (event) => {
   const connectionFilter = event.target.closest('[data-connection-filter]')?.dataset.connectionFilter;
   const mode = event.target.closest('[data-mode]')?.dataset.mode;
   const filter = event.target.closest('[data-filter]')?.dataset.filter;
+  const visibilityToggle = event.target.closest('[data-visibility-toggle]')?.dataset.visibilityToggle;
   const request = event.target.closest('[data-request]');
   const centerProfileButton = event.target.closest('[data-center-profile]');
   const mapNodeButton = event.target.closest('[data-map-node]');
@@ -1942,6 +1951,16 @@ app.addEventListener('click', async (event) => {
     state.overlay = null;
     state.mapFilterOpen = false;
     showToast(`${mapFilterLabel(filter)}で絞り込みました`);
+    render();
+    return;
+  }
+  if (visibilityToggle) {
+    const current = currentUser();
+    await saveUser({
+      ...current,
+      [visibilityToggle]: !current[visibilityToggle]
+    });
+    showToast(!current[visibilityToggle] ? '公開にしました' : '非公開にしました');
     render();
     return;
   }
@@ -2247,6 +2266,8 @@ app.addEventListener('submit', async (event) => {
       birthday: String(formData.get('birthday') || '').trim(),
       email: authState.user?.email || '',
       photo: photo && photo.size ? await readFileAsDataUrl(photo) : '',
+      schoolPublic: formData.get('schoolPublic') === 'true',
+      companyPublic: formData.get('companyPublic') === 'true',
       locationPublic: formData.get('locationPublic') === 'true',
       birthdayPublic: formData.get('birthdayPublic') === 'true',
       sns: snsFromForm(formData)
@@ -2274,6 +2295,8 @@ app.addEventListener('submit', async (event) => {
       location: String(formData.get('location') || '').trim(),
       birthday: String(formData.get('birthday') || '').trim(),
       photo: photo && photo.size ? await readFileAsDataUrl(photo) : current.photo,
+      schoolPublic: formData.get('schoolPublic') === 'true',
+      companyPublic: formData.get('companyPublic') === 'true',
       locationPublic: formData.get('locationPublic') === 'true',
       birthdayPublic: formData.get('birthdayPublic') === 'true',
       sns: snsFromForm(formData)
