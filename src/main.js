@@ -1005,21 +1005,33 @@ function normalizeUser(user) {
 
 function snsFields() {
   return [
-    { key: 'instagram', label: 'Instagram', icon: icon('insta') },
-    { key: 'x', label: 'X', icon: '<em>𝕏</em>' },
-    { key: 'threads', label: 'Threads', icon: '<em>@</em>' },
-    { key: 'tiktok', label: 'TikTok', icon: '<em class="brand-logo tiktok-logo"><span></span></em>' },
-    { key: 'bereal', label: 'BeReal', icon: '<em class="brand-logo bereal-logo">Be</em>' },
-    { key: 'setlog', label: 'Setlog', icon: '<em class="brand-logo setlog-logo">S</em>' },
-    { key: 'facebook', label: 'Facebook', icon: icon('facebook') },
-    { key: 'youtube', label: 'YouTube', icon: icon('youtube') },
-    { key: 'linkedin', label: 'LinkedIn', icon: icon('linkedin') },
-    { key: 'github', label: 'GitHub', icon: icon('github') },
-    { key: 'discord', label: 'Discord', icon: icon('messageCircle') },
-    { key: 'note', label: 'note', icon: '<em>n</em>' },
-    { key: 'wantedly', label: 'Wantedly', icon: '<em>W</em>' },
-    { key: 'website', label: 'Webサイト', icon: '<em>◎</em>' }
+    { key: 'instagram', label: 'Instagram', icon: snsLogo('instagram', 'Instagram') },
+    { key: 'x', label: 'X', icon: snsLogo('x', 'X') },
+    { key: 'threads', label: 'Threads', icon: snsLogo('threads', 'Threads') },
+    { key: 'tiktok', label: 'TikTok', icon: snsLogo('tiktok', 'TikTok') },
+    { key: 'bereal', label: 'BeReal', icon: snsLogo('bereal', 'BeReal') },
+    { key: 'setlog', label: 'Setlog', icon: snsLogo('setlog', 'Setlog') },
+    { key: 'facebook', label: 'Facebook', icon: snsLogo('facebook', 'Facebook') },
+    { key: 'youtube', label: 'YouTube', icon: snsLogo('youtube', 'YouTube') },
+    { key: 'linkedin', label: 'LinkedIn', icon: snsLogo('linkedin', 'LinkedIn') },
+    { key: 'note', label: 'note', icon: snsLogo('note', 'note') }
   ];
+}
+
+function snsLogo(key, label) {
+  const sources = {
+    instagram: 'instagram.png',
+    x: 'x.svg',
+    threads: 'threads.svg',
+    tiktok: 'tiktok.png',
+    bereal: 'bereal.png',
+    setlog: 'setlog.webp',
+    facebook: 'facebook.png',
+    youtube: 'youtube.png',
+    linkedin: 'linkedin.png',
+    note: 'note.svg'
+  };
+  return `<img class="sns-logo sns-logo-${key}" src="./assets/social/${sources[key]}" alt="${escapeHtml(label)}" loading="lazy">`;
 }
 
 function snsFromForm(formData) {
