@@ -1074,8 +1074,10 @@ function personModalContent(person) {
         <legend>関係を変更</legend>
         ${relationshipTypes().map((type) => `<label><input type="radio" name="manageRelationshipType" value="${escapeHtml(type)}" ${person.tag === type ? 'checked' : ''}>${type === '恋人' ? icon('heart', 15) : escapeHtml(type)}</label>`).join('')}
       </fieldset>
-      <button data-action="update-relationship" data-request-id="${escapeHtml(person.requestId)}">関係を保存</button>
-      <button class="danger-button" data-action="remove-connection" data-request-id="${escapeHtml(person.requestId)}" data-relationship="${escapeHtml(person.tag || '')}">つながりを削除</button>
+      <div class="connection-manage-actions">
+        <button data-action="update-relationship" data-request-id="${escapeHtml(person.requestId)}">関係を保存</button>
+        <button class="danger-button" data-action="remove-connection" data-request-id="${escapeHtml(person.requestId)}" data-relationship="${escapeHtml(person.tag || '')}">つながりを削除</button>
+      </div>
     ` : ''}
     <button data-close>閉じる</button>
   `;
