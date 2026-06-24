@@ -1283,7 +1283,7 @@ function chipIcon(filter) {
 }
 
 function chipLabel(filter) {
-  return filter === '恋人' ? '' : filter === 'イベント' ? '<span>イベント<small>留学・趣味・活動</small></span>' : filter;
+  return filter === '恋人' ? '' : filter === 'イベント' ? '<span>イベント<small>留学<br>趣味・活動</small></span>' : filter;
 }
 
 function mapFilters() {
@@ -1317,7 +1317,7 @@ function relationshipTint(type) {
 
 function mapFilterLabel(filter) {
   if (filter === '恋人') return '♡';
-  return filter === 'すべて' ? 'すべてのつながり' : escapeHtml(filter);
+  return filter === 'すべて' ? 'すべて' : escapeHtml(filter);
 }
 
 function mapFilterOption(filter) {
@@ -1445,20 +1445,7 @@ function emptyPanel(title, body) {
 
 function connectionsScreen() {
   const filters = ['すべて', '大学', 'ビジネス', '地元', '家族', 'イベント', '恋人'];
-  const allRows = connectionRowsData();
-  const filteredRows = state.connectionFilter === 'すべて'
-    ? allRows
-    : allRows.filter((person) => person.tag === state.connectionFilter);
-  const query = state.connectionQuery.trim().toLowerCase();
-  const rows = query
-    ? filteredRows.filter((person) => {
-      const haystack = [person.name, person.desc, person.common, person.tag, person.school, person.company, person.location]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(query) || haystack.includes(state.connectionQuery.trim());
-    })
-    : filteredRows;
+  const rows = filteredConnectionRows();
   return `
     <section class="connection-filter-bar">
       <h2>つながり</h2>
@@ -1470,10 +1457,30 @@ function connectionsScreen() {
         <input type="search" value="${escapeHtml(state.connectionQuery)}" placeholder="つながりを検索" data-connection-search autocomplete="off">
       </label>
     </section>
-    <section class="connections-list">
-      ${rows.length ? rows.map(connectionRow).join('') : emptyPanel('該当するつながりはありません', '種類や検索ワードを変えると一覧を切り替えられます。')}
-    </section>
+    <section class="connections-list">${connectionsListContent(rows)}</section>
   `;
+}
+
+function filteredConnectionRows() {
+  const allRows = connectionRowsData();
+  const filteredRows = state.connectionFilter === 'すべて'
+    ? allRows
+    : allRows.filter((person) => person.tag === state.connectionFilter);
+  const rawQuery = state.connectionQuery.trim();
+  const query = rawQuery.toLowerCase();
+  if (!query) return filteredRows;
+  return filteredRows.filter((person) => {
+    const haystack = [person.name, person.desc, person.common, person.tag, person.school, person.company, person.location]
+      .filter(Boolean)
+      .join(' ');
+    return haystack.toLowerCase().includes(query) || haystack.includes(rawQuery);
+  });
+}
+
+function connectionsListContent(rows = filteredConnectionRows()) {
+  return rows.length
+    ? rows.map(connectionRow).join('')
+    : emptyPanel('該当するつながりはありません', '種類や検索ワードを変えると一覧を切り替えられます。');
 }
 
 function connectionRow(person) {
@@ -1679,7 +1686,7 @@ function snsLinks(user) {
     .map(({ key, icon: label }) => [key, label, user.sns[key]])
     .filter(([, , url]) => url);
   if (!links.length) return '<small>未連携</small>';
-  return links.map(([name, label, url]) => `<a class="sns-link" href="${escapeHtml(url)}" target="_blank" rel="noreferrer" aria-label="${name}" title="${name}">${label}</a>`).join('');
+  return links.map(([name, label, url]) => `<a class="sns-link sns-${escapeHtml(name)}" href="${escapeHtml(url)}" target="_blank" rel="noreferrer" aria-label="${name}" title="${name}">${label}</a>`).join('');
 }
 
 function buttonIcon(ic, action, cls = '') {
@@ -2098,14 +2105,9 @@ app.addEventListener('click', async (event) => {
 app.addEventListener('input', (event) => {
   const connectionSearch = event.target.closest('[data-connection-search]');
   if (!connectionSearch) return;
-  const cursor = connectionSearch.selectionStart || connectionSearch.value.length;
   state.connectionQuery = connectionSearch.value;
-  render();
-  requestAnimationFrame(() => {
-    const nextSearch = document.querySelector('[data-connection-search]');
-    nextSearch?.focus();
-    nextSearch?.setSelectionRange?.(cursor, cursor);
-  });
+  const list = document.querySelector('.connections-list');
+  if (list) list.innerHTML = connectionsListContent();
 });
 
 function openOptionPicker(trigger, config) {

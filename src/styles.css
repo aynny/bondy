@@ -699,7 +699,7 @@ button:disabled {
 }
 
 .connection-filter-scroll button {
-  height: 36px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -711,6 +711,17 @@ button:disabled {
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 720;
+}
+
+.connection-filter-scroll button span {
+  display: grid;
+  line-height: 1.05;
+}
+
+.connection-filter-scroll button small {
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: 600;
 }
 
 .connection-filter-scroll .active {
@@ -1940,15 +1951,32 @@ body {
   flex-wrap: wrap;
 }
 
-.sns a {
+.sns a,
+.person-sns .sns-link {
   width: 42px;
   height: 42px;
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
   border: 1px solid var(--line);
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 5px 14px rgba(0,0,0,.045);
+  text-decoration: none;
 }
+
+.sns-link.sns-instagram { color: #e4408f; border-color: rgba(228,64,143,.2); background: #fff4f9; }
+.sns-link.sns-x { color: #111; }
+.sns-link.sns-threads { color: #111; }
+.sns-link.sns-tiktok { color: #ff2f6d; border-color: rgba(255,47,109,.2); background: #fff5f8; }
+.sns-link.sns-facebook { color: #1877f2; border-color: rgba(24,119,242,.18); background: #f3f8ff; }
+.sns-link.sns-youtube { color: #ff0033; border-color: rgba(255,0,51,.18); background: #fff3f5; }
+.sns-link.sns-linkedin { color: #0a66c2; border-color: rgba(10,102,194,.18); background: #f2f8ff; }
+.sns-link.sns-github { color: #171515; }
+.sns-link.sns-discord { color: #5865f2; border-color: rgba(88,101,242,.18); background: #f5f6ff; }
+.sns-link.sns-note { color: #41c9b4; border-color: rgba(65,201,180,.2); background: #f1fffc; }
+.sns-link.sns-wantedly { color: #21bddb; border-color: rgba(33,189,219,.2); background: #f1fcff; }
+.sns-link.sns-website { color: #444; }
 
 .sns a svg {
   width: 22px;
