@@ -2773,6 +2773,7 @@ body {
 
 .map-screen .center-node {
   top: 50%;
+  transform: translate(-50%, -54px);
 }
 
 .map-screen .center-node .avatar {
@@ -2801,7 +2802,7 @@ body {
 }
 
 .map-screen .center-node-button:active {
-  transform: translate(-50%, -50%) scale(.97);
+  transform: translate(-50%, -54px) scale(.97);
 }
 
 .map-screen .map-node {
@@ -2809,6 +2810,7 @@ body {
   gap: 4px;
   touch-action: none;
   cursor: grab;
+  transform: translate(-50%, -29px);
   transition: transform .18s ease, opacity .18s ease;
 }
 
@@ -2820,7 +2822,7 @@ body {
   z-index: 8;
   pointer-events: none;
   transition: left .32s cubic-bezier(.2, .8, .2, 1), top .32s cubic-bezier(.2, .8, .2, 1), transform .18s ease, opacity .18s ease;
-  transform: translate(-50%, -50%) scale(1.08);
+  transform: translate(-50%, -29px) scale(1.08);
 }
 
 .map-screen .map-node .avatar {
@@ -3134,7 +3136,7 @@ body {
 }
 
 .map-screen .map-node:active {
-  transform: translate(-50%, -50%) scale(.97);
+  transform: translate(-50%, -29px) scale(.97);
 }
 
 .pill,
