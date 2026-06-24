@@ -971,6 +971,7 @@ function currentUser() {
 
 function normalizeUser(user) {
   const emptySns = Object.fromEntries(snsFields().map(({ key }) => [key, '']));
+  const defaultSnsPublic = Object.fromEntries(snsFields().map(({ key }) => [key, true]));
   return {
     name: '',
     handle: '',
@@ -985,10 +986,15 @@ function normalizeUser(user) {
     locationPublic: true,
     birthdayPublic: false,
     sns: emptySns,
+    snsPublic: defaultSnsPublic,
     ...user,
     sns: {
       ...emptySns,
       ...(user?.sns || {})
+    },
+    snsPublic: {
+      ...defaultSnsPublic,
+      ...(user?.snsPublic || {})
     },
     schoolPublic: user?.schoolPublic ?? true,
     companyPublic: user?.companyPublic ?? true,
@@ -1016,6 +1022,10 @@ function snsFields() {
 
 function snsFromForm(formData) {
   return Object.fromEntries(snsFields().map(({ key }) => [key, String(formData.get(key) || '').trim()]));
+}
+
+function snsPublicFromForm(formData) {
+  return Object.fromEntries(snsFields().map(({ key }) => [key, formData.get(`${key}Public`) !== 'false']));
 }
 
 function statusBar() {
@@ -1234,7 +1244,12 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
     </section>
     <fieldset class="form-section sns-fieldset">
       <legend>SNS</legend>
-      ${snsFields().map(({ key, label }) => `<input name="${key}" type="url" value="${escapeHtml(user.sns[key])}" placeholder="${label} URL">`).join('')}
+      ${snsFields().map(({ key, label }) => `
+        <div class="sns-edit-row">
+          <input name="${key}" type="url" value="${escapeHtml(user.sns[key])}" placeholder="${label} URL">
+          ${visibilityField(`${key}Public`, label, user.snsPublic[key])}
+        </div>
+      `).join('')}
     </fieldset>
     <section class="form-section">
       <h2>写真</h2>
@@ -1339,7 +1354,7 @@ function chipIcon(filter) {
 }
 
 function chipLabel(filter) {
-  return filter === '恋人' ? '' : filter === 'イベント' ? '<span>イベント<small>留学<br>趣味・活動</small></span>' : filter;
+  return filter === '恋人' ? '' : filter === 'イベント' ? '<span class="event-chip-label"><b>イベント</b><small>留学 趣味・活動</small></span>' : filter;
 }
 
 function mapFilters() {
@@ -1806,9 +1821,11 @@ function infoRow(ic, label, value, visibilityKey = '', isPublic = true) {
 }
 
 function snsLinks(user) {
+  const sns = user.sns || {};
+  const publicMap = user.snsPublic || {};
   const links = snsFields()
-    .map(({ key, icon: label }) => [key, label, user.sns[key]])
-    .filter(([, , url]) => url);
+    .map(({ key, icon: label }) => [key, label, sns[key]])
+    .filter(([key, , url]) => url && publicMap[key] !== false);
   if (!links.length) return '<small>未連携</small>';
   return links.map(([name, label, url]) => `<a class="sns-link sns-${escapeHtml(name)}" href="${escapeHtml(url)}" target="_blank" rel="noreferrer" aria-label="${name}" title="${name}">${label}</a>`).join('');
 }
@@ -1841,7 +1858,7 @@ function overlay() {
   if (type === 'notifications') return modal(notificationsContent(), 'connect-modal');
   if (type === 'account-security') return modal(`<h2>アカウントとセキュリティ</h2><p>ログイン中のメールアドレス：${escapeHtml(authState.user?.email || currentUser().email || '未ログイン')}</p><p>パスワードを変更したい場合は、ログイン画面の「パスワードを忘れた方」から再設定できます。</p><button data-action="logout">ログアウト</button><button data-close>閉じる</button>`);
   if (type === 'manage-connections') return modal(`<h2>つながりの管理</h2><p>現在のつながり数は ${connectionRowsData().length} 人です。承認済みの申請がここに反映されます。</p><button data-action="add">つながりを追加</button><button data-close>閉じる</button>`);
-  if (type === 'profile-visibility') return modal(`<h2>プロフィールの公開範囲</h2><p>学校、会社・所属、所在地、誕生日はプロフィール編集から公開・非公開を選べます。SNSリンクは入力したものだけプロフィールに表示されます。</p><button data-action="edit">プロフィールを編集</button><button data-close>閉じる</button>`);
+  if (type === 'profile-visibility') return modal(`<h2>プロフィールの公開範囲</h2><p>学校、会社・所属、所在地、誕生日、SNSごとのリンクはプロフィール編集から公開・非公開を選べます。SNSリンクは入力して公開にしたものだけプロフィールに表示されます。</p><button data-action="edit">プロフィールを編集</button><button data-close>閉じる</button>`);
   if (type === 'privacy-settings') return modal(`<h2>プライバシー設定</h2><p>プロフィール情報はログイン中のアカウントに紐づいて保存されます。公開範囲はプロフィール編集から変更できます。</p><button data-action="edit">公開設定を変更</button><button data-close>閉じる</button>`);
   if (type === 'version-info') return modal(`<h2>バージョン情報</h2><p>Bondy Web App<br>Ver. 1.3.0</p><p>プロフィールのクラウド保存、Googleログイン、マップ操作改善に対応しています。</p><button data-close>閉じる</button>`);
   if (type === 'help-support') return modal(helpSupportContent(), 'document-modal');
@@ -2392,7 +2409,8 @@ app.addEventListener('submit', async (event) => {
       companyPublic: formData.get('companyPublic') === 'true',
       locationPublic: formData.get('locationPublic') === 'true',
       birthdayPublic: formData.get('birthdayPublic') === 'true',
-      sns: snsFromForm(formData)
+      sns: snsFromForm(formData),
+      snsPublic: snsPublicFromForm(formData)
     };
     if (!user.name || !user.handle || !user.school || !user.birthday) {
       showToast('名前・ID・学校・誕生日を入力してください');
@@ -2422,7 +2440,8 @@ app.addEventListener('submit', async (event) => {
       companyPublic: formData.get('companyPublic') === 'true',
       locationPublic: formData.get('locationPublic') === 'true',
       birthdayPublic: formData.get('birthdayPublic') === 'true',
-      sns: snsFromForm(formData)
+      sns: snsFromForm(formData),
+      snsPublic: snsPublicFromForm(formData)
     }));
     state.overlay = null;
     go('profile', 'プロフィールを保存しました');

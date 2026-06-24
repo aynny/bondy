@@ -382,6 +382,26 @@ button.is-saving {
   display: grid;
   gap: 9px;
 }
+
+.sns-edit-row {
+  display: grid;
+  gap: 7px;
+}
+
+.sns-edit-row .visibility-field {
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.sns-edit-row .visibility-field legend {
+  font-size: 11px;
+}
+
+.sns-edit-row .visibility-field label {
+  height: 32px;
+  font-size: 12px;
+}
+
 .register-form input[type="file"] {
   height: auto;
   padding: 12px 14px;
@@ -728,6 +748,31 @@ button.is-saving {
   margin-top: 2px;
   font-size: 9px;
   font-weight: 600;
+}
+
+.connection-filter-scroll button[aria-label="イベント"] {
+  grid-column: span 2;
+  justify-content: center;
+}
+
+.event-chip-label {
+  display: inline-flex !important;
+  align-items: baseline;
+  justify-content: center;
+  gap: 5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.event-chip-label b {
+  font-size: 12px;
+}
+
+.event-chip-label small {
+  margin: 0;
+  font-size: 9px;
+  font-weight: 650;
+  opacity: .72;
 }
 
 .connection-filter-scroll .active {
@@ -2358,6 +2403,7 @@ body {
   text-overflow: ellipsis;
   width: 100%;
   text-align: center;
+  transform: translateX(-7px);
 }
 
 .map-screen .network {
