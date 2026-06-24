@@ -443,7 +443,8 @@ function requestPersonFromRow(row, profilesById) {
     birthday: profile.birthday || '',
     locationPublic: profile.locationPublic ?? true,
     birthdayPublic: profile.birthdayPublic ?? false,
-    sns: profile.sns || {}
+    sns: profile.sns || {},
+    snsPublic: profile.snsPublic || {}
   };
 }
 
@@ -536,7 +537,8 @@ function connectionPersonFromRow(row, profilesById, centerId = authState.user?.i
     birthday: profile.birthday || '',
     locationPublic: profile.locationPublic ?? true,
     birthdayPublic: profile.birthdayPublic ?? false,
-    sns: profile.sns || {}
+    sns: profile.sns || {},
+    snsPublic: profile.snsPublic || {}
   };
 }
 
@@ -1103,7 +1105,7 @@ function personProfileDetails(person = {}) {
   return `
     <section class="person-detail-list">
       ${rows.map(([ic, label, value]) => `<div>${icon(ic, 20)}<span>${label}</span><strong>${escapeHtml(value)}</strong></div>`).join('')}
-      <div>${icon('link', 20)}<span>SNS</span><strong class="person-sns">${snsLinks({ sns: person.sns || {} })}</strong></div>
+      <div>${icon('link', 20)}<span>SNS</span><strong class="person-sns">${snsLinks({ sns: person.sns || {}, snsPublic: person.snsPublic || {} }, { respectPrivacy: true })}</strong></div>
     </section>
   `;
 }
@@ -1124,7 +1126,8 @@ function personOverlayFromNode(node, fallbackName = 'ユーザー') {
     birthday: node?.birthday || '',
     locationPublic: node?.locationPublic ?? true,
     birthdayPublic: node?.birthdayPublic ?? false,
-    sns: node?.sns || {}
+    sns: node?.sns || {},
+    snsPublic: node?.snsPublic || {}
   };
 }
 
@@ -1244,10 +1247,14 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
     </section>
     <fieldset class="form-section sns-fieldset">
       <legend>SNS</legend>
-      ${snsFields().map(({ key, label }) => `
+      <p class="sns-fieldset-note">入力したSNSは自分のプロフィールでは確認できます。公開にしたSNSだけ友達に表示されます。</p>
+      ${snsFields().map(({ key, label, icon: snsIcon }) => `
         <div class="sns-edit-row">
+          <div class="sns-edit-head">
+            <span>${snsIcon}<b>${escapeHtml(label)}</b></span>
+            ${visibilityField(`${key}Public`, label, user.snsPublic[key])}
+          </div>
           <input name="${key}" type="url" value="${escapeHtml(user.sns[key])}" placeholder="${label} URL">
-          ${visibilityField(`${key}Public`, label, user.snsPublic[key])}
         </div>
       `).join('')}
     </fieldset>
@@ -1711,7 +1718,7 @@ function profileScreen() {
       ${infoRow('brief', '会社・所属', user.companyPublic ? (user.company || '未入力') : '非公開', 'companyPublic', user.companyPublic)}
       ${infoRow('mapPin', '所在地', user.locationPublic ? (user.location || '未入力') : '非公開', 'locationPublic', user.locationPublic)}
       ${infoRow('calendar', '誕生日', user.birthdayPublic ? (user.birthday || '未入力') : '非公開', 'birthdayPublic', user.birthdayPublic)}
-      <div class="info-row">${icon('link', 25)}<span>SNS</span><strong class="sns">${snsLinks(user)}</strong></div>
+      <div class="info-row">${icon('link', 25)}<span>SNS</span><strong class="sns">${snsLinks(user, { respectPrivacy: false })}</strong></div>
     </section>
     <section class="stats-card profile-stats">${[['users', 'つながり', String(connectionRowsData().length)], ['user', '共通の知人', '0'], ['users', '所属グループ', '0']].map(([ic, label, value]) => `<div>${icon(ic, 28)}<span>${label}</span><b>${value}</b></div>`).join('')}</section>
   `;
@@ -1820,12 +1827,13 @@ function infoRow(ic, label, value, visibilityKey = '', isPublic = true) {
   return `<div class="info-row">${icon(ic, 25)}<span>${label}</span><strong>${value}</strong>${visibilityKey ? `<button class="visibility-toggle ${isPublic ? 'is-public' : ''}" data-visibility-toggle="${visibilityKey}">${isPublic ? '公開' : '非公開'}</button>` : ''}</div>`;
 }
 
-function snsLinks(user) {
+function snsLinks(user, options = {}) {
   const sns = user.sns || {};
   const publicMap = user.snsPublic || {};
+  const respectPrivacy = options.respectPrivacy !== false;
   const links = snsFields()
     .map(({ key, icon: label }) => [key, label, sns[key]])
-    .filter(([key, , url]) => url && publicMap[key] !== false);
+    .filter(([key, , url]) => url && (!respectPrivacy || publicMap[key] !== false));
   if (!links.length) return '<small>未連携</small>';
   return links.map(([name, label, url]) => `<a class="sns-link sns-${escapeHtml(name)}" href="${escapeHtml(url)}" target="_blank" rel="noreferrer" aria-label="${name}" title="${name}">${label}</a>`).join('');
 }
