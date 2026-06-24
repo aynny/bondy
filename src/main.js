@@ -1230,8 +1230,8 @@ function registerScreen() {
         </div>
       </header>
       <form class="register-form" data-register-form>
-        ${profileFormFields()}
-        <button class="pill primary" type="submit">登録して始める</button>
+        ${profileFormFields(currentUser())}
+        <button class="pill primary" type="submit">${icon('userPlus', 22)}登録して始める</button>
       </form>
       <button class="register-reset" data-action="back-login">戻る</button>
       <div class="home-indicator"></div>
@@ -2416,15 +2416,17 @@ app.addEventListener('submit', async (event) => {
   if (registerForm) {
     const formData = new FormData(registerForm);
     const photo = formData.get('photo');
+    const current = currentUser();
     const user = {
+      ...current,
       name: String(formData.get('name') || '').trim(),
       handle: String(formData.get('handle') || '').trim().replace(/^@/, ''),
       school: String(formData.get('school') || '').trim(),
       company: String(formData.get('company') || '').trim(),
       location: String(formData.get('location') || '').trim(),
       birthday: String(formData.get('birthday') || '').trim(),
-      email: authState.user?.email || '',
-      photo: photo && photo.size ? await readFileAsDataUrl(photo) : '',
+      email: authState.user?.email || current.email || '',
+      photo: photo && photo.size ? await readFileAsDataUrl(photo) : current.photo,
       schoolPublic: formData.get('schoolPublic') === 'true',
       companyPublic: formData.get('companyPublic') === 'true',
       locationPublic: formData.get('locationPublic') === 'true',
@@ -2436,7 +2438,7 @@ app.addEventListener('submit', async (event) => {
       showToast('名前・ID・学校・誕生日を入力してください');
       return;
     }
-    await withButtonPending(event.submitter, '保存中...', () => saveUser(user));
+    await withButtonPending(event.submitter, '登録中...', () => saveUser(user));
     localStorage.removeItem(SIGNUP_PENDING_KEY);
     go('profile', '登録しました');
     return;
