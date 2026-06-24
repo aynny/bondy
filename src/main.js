@@ -1427,20 +1427,9 @@ function networkGraph(nodes) {
 function mapConnectionLine(node, index) {
   const key = escapeHtml(node.id || node.name);
   const color = escapeHtml(node.color || '#111');
-  const gradientId = `line-flow-${index}`;
   return `
-    <defs>
-      <linearGradient id="${gradientId}" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stop-color="${color}" stop-opacity=".28"/>
-        <stop offset="34%" stop-color="${color}" stop-opacity=".55"/>
-        <stop offset="50%" stop-color="#fff" stop-opacity=".98"/>
-        <stop offset="66%" stop-color="${color}" stop-opacity=".55"/>
-        <stop offset="100%" stop-color="${color}" stop-opacity=".28"/>
-        <animateTransform attributeName="gradientTransform" type="translate" from="-1 0" to="1 0" dur="2.6s" begin="${(index * 0.18).toFixed(2)}s" repeatCount="indefinite"/>
-      </linearGradient>
-    </defs>
     <line class="line-base" data-line-node="${key}" x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="${color}" />
-    <line class="line-flow" data-flow-node="${key}" x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="url(#${gradientId})" />
+    <line class="line-flow" data-flow-node="${key}" style="--flow-delay:${(index * -0.18).toFixed(2)}s" x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="${color}" />
   `;
 }
 
@@ -2400,6 +2389,7 @@ app.addEventListener('submit', async (event) => {
     const formData = new FormData(editForm);
     const photo = formData.get('photo');
     const current = currentUser();
+    const nextPhoto = photo && photo.size ? await readFileAsDataUrl(photo) : current.photo;
     await withButtonPending(event.submitter, '保存中...', () => saveUser({
       ...current,
       name: String(formData.get('name') || '').trim(),
@@ -2408,7 +2398,7 @@ app.addEventListener('submit', async (event) => {
       company: String(formData.get('company') || '').trim(),
       location: String(formData.get('location') || '').trim(),
       birthday: String(formData.get('birthday') || '').trim(),
-      photo: photo && photo.size ? await readFileAsDataUrl(photo) : current.photo,
+      photo: nextPhoto,
       schoolPublic: formData.get('schoolPublic') === 'true',
       companyPublic: formData.get('companyPublic') === 'true',
       locationPublic: formData.get('locationPublic') === 'true',

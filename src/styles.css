@@ -2391,6 +2391,7 @@ body {
   opacity: .9;
   filter: drop-shadow(0 0 3px rgba(255, 255, 255, .95));
   animation: mapLineLight 2.15s linear infinite;
+  animation-delay: var(--flow-delay, 0s);
 }
 
 .map-screen .lines .line-base:nth-of-type(2n) { animation-delay: -.7s; }
