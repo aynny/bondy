@@ -2123,6 +2123,39 @@ body {
   margin-top: 9px;
 }
 
+.cloud-sync-badge {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 7px;
+  padding: 5px 9px;
+  border: 1px solid #e8e8e8;
+  border-radius: 999px;
+  background: #fafafa;
+  color: #555;
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0;
+}
+
+.cloud-sync-badge.synced {
+  border-color: #d9efe3;
+  background: #f4fbf7;
+  color: #1f7a45;
+}
+
+.cloud-sync-badge.sync {
+  border-color: #dce7ff;
+  background: #f4f7ff;
+  color: #315eac;
+}
+
+.cloud-sync-badge.pending {
+  border-color: #f0e3c2;
+  background: #fffaf0;
+  color: #8a6315;
+}
+
 .profile-share-button {
   flex: 1 1 0;
   justify-content: center;

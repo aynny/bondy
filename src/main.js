@@ -5,6 +5,7 @@ const STORAGE_KEY = 'bondy.profile.v1';
 const LAST_EMAIL_KEY = 'bondy.auth.email.v1';
 const SIGNUP_PENDING_KEY = 'bondy.auth.pendingSignup.v1';
 const MAP_POSITIONS_KEY = 'bondy.map.positions.v1';
+const PENDING_PROFILE_SYNC_KEY = 'bondy.profile.pendingSync.v1';
 const REMOTE_PROFILE_TABLE = 'profiles';
 const CONNECTION_REQUEST_TABLE = 'connection_requests';
 const SUPPORT_EMAIL = 'bondy1.app@gmail.com';
@@ -34,6 +35,7 @@ const state = {
   handledConnectToken: '',
   saved: false,
   user: savedUser,
+  cloudStatus: savedUser ? 'local' : 'none',
   connections: [],
   requests: [],
   notifications: [],
@@ -251,7 +253,16 @@ function saveUserLocal(user) {
 async function saveUser(user, options = {}) {
   const saved = saveUserLocal(user);
   if (options.remote !== false) {
-    await saveRemoteUser(saved, options);
+    if (!authState.client || !authState.user) {
+      state.cloudStatus = 'local';
+      return saved;
+    }
+    const synced = await saveRemoteUser(saved, options);
+    if (synced) {
+      clearProfileSyncPending();
+    } else {
+      markProfileSyncPending(saved);
+    }
   }
   return saved;
 }
@@ -270,6 +281,25 @@ function accountProfileKey() {
   return identity ? `bondy.profile.account.${encodeURIComponent(identity)}.v1` : '';
 }
 
+function pendingProfileSyncKey() {
+  const identity = authState.user?.id || authState.user?.email || loadLastEmail() || 'guest';
+  return `${PENDING_PROFILE_SYNC_KEY}.${encodeURIComponent(identity)}`;
+}
+
+function loadPendingProfileSync() {
+  return loadStoredUser(pendingProfileSyncKey());
+}
+
+function markProfileSyncPending(user) {
+  localStorage.setItem(pendingProfileSyncKey(), JSON.stringify(normalizeUser(user)));
+  state.cloudStatus = 'pending';
+}
+
+function clearProfileSyncPending() {
+  localStorage.removeItem(pendingProfileSyncKey());
+  state.cloudStatus = authState.user ? 'synced' : 'local';
+}
+
 function loadAccountUser() {
   const key = accountProfileKey();
   return key ? loadStoredUser(key) : null;
@@ -284,13 +314,16 @@ async function loadRemoteUser() {
     .maybeSingle();
   if (error) {
     console.warn('Remote profile load failed', error);
+    state.cloudStatus = 'pending';
     return null;
   }
+  if (data?.profile) state.cloudStatus = 'synced';
   return data?.profile ? normalizeUser(data.profile) : null;
 }
 
 async function saveRemoteUser(user, options = {}) {
   if (!authState.client || !authState.user) return false;
+  state.cloudStatus = 'syncing';
   const profile = normalizeUser({
     ...user,
     email: user.email || authState.user.email || ''
@@ -306,10 +339,28 @@ async function saveRemoteUser(user, options = {}) {
     });
   if (error) {
     console.warn('Remote profile save failed', error);
+    state.cloudStatus = 'pending';
     if (!options.silent) showToast('プロフィールのクラウド保存設定を確認してください');
     return false;
   }
+  state.cloudStatus = 'synced';
   return true;
+}
+
+async function syncPendingProfile(options = {}) {
+  if (!authState.client || !authState.user) return false;
+  const pendingUser = loadPendingProfileSync();
+  if (!pendingUser) return true;
+  saveUserLocal({
+    ...pendingUser,
+    email: pendingUser.email || authState.user.email || ''
+  });
+  const synced = await saveRemoteUser(state.user, { ...options, silent: true });
+  if (synced) {
+    clearProfileSyncPending();
+    if (!options.silent) showToast('クラウドに同期しました');
+  }
+  return synced;
 }
 
 function profileFromRemoteRow(row) {
@@ -772,20 +823,31 @@ async function startQrScanner() {
 async function restoreAccountUser() {
   if (!authState.user) return false;
   const email = authState.user.email || '';
+  const pendingUser = loadPendingProfileSync();
+  if (pendingUser) {
+    saveUserLocal({ ...pendingUser, email: pendingUser.email || email });
+    await syncPendingProfile({ silent: true });
+    return true;
+  }
   const remoteUser = await loadRemoteUser();
   if (remoteUser) {
     saveUserLocal({ ...remoteUser, email: remoteUser.email || email });
+    await syncPendingProfile({ silent: true });
     return true;
   }
   const accountUser = loadAccountUser();
   if (accountUser) {
     saveUserLocal({ ...accountUser, email: accountUser.email || email });
-    await saveRemoteUser(state.user, { silent: true });
+    const synced = await saveRemoteUser(state.user, { silent: true });
+    if (synced) clearProfileSyncPending();
+    else markProfileSyncPending(state.user);
     return true;
   }
   if (state.user && (!state.user.email || state.user.email === email)) {
     saveUserLocal({ ...state.user, email: state.user.email || email });
-    await saveRemoteUser(state.user, { silent: true });
+    const synced = await saveRemoteUser(state.user, { silent: true });
+    if (synced) clearProfileSyncPending();
+    else markProfileSyncPending(state.user);
     return true;
   }
   state.user = null;
@@ -1719,6 +1781,7 @@ function profileScreen() {
       <div class="profile-identity">
         <h1>${escapeHtml(user.name || '未設定')} <span>登録済み</span></h1>
         <p>@${escapeHtml(user.handle || 'your.id')}</p>
+        ${cloudSyncBadge()}
         <div class="profile-quick-actions">
           <button class="profile-share-button" data-action="edit">プロフィールを編集</button>
           <button class="profile-share-button" data-action="share-profile">プロフィールを共有</button>
@@ -1734,6 +1797,19 @@ function profileScreen() {
     </section>
     <section class="stats-card profile-stats">${[['users', 'つながり', String(connectionRowsData().length)], ['user', '共通の知人', '0'], ['users', '所属グループ', '0']].map(([ic, label, value]) => `<div>${icon(ic, 28)}<span>${label}</span><b>${value}</b></div>`).join('')}</section>
   `;
+}
+
+function cloudSyncBadge() {
+  const status = authState.user ? state.cloudStatus : 'local';
+  const labels = {
+    synced: ['cloud', 'クラウド保存済み'],
+    syncing: ['sync', '同期中'],
+    pending: ['pending', '同期待ち'],
+    local: ['local', 'この端末に保存'],
+    none: ['local', '未保存']
+  };
+  const [className, label] = labels[status] || labels.local;
+  return `<span class="cloud-sync-badge ${className}">${label}</span>`;
 }
 
 function profileLink(user = currentUser()) {
@@ -1874,7 +1950,7 @@ function overlay() {
   if (type === 'search') return modal(idSearchContent('検索'), 'connect-modal');
   if (type === 'filter') return modal(`<h2>絞り込み</h2><div class="modal-grid filter-grid">${mapFilters().map(mapFilterOption).join('')}</div><button data-close>閉じる</button>`);
   if (type === 'display') return modal(`<h2>表示設定</h2><label><input type="checkbox" checked> つながりの強さを表示</label><label><input type="checkbox" checked> 共通点を表示</label><label><input type="checkbox"> 名前だけ表示</label><button data-close>完了</button>`);
-  if (type === 'settings') return modal(`<h2>設定</h2><p>登録データはこの端末内に保存されています。</p><button data-action="restart-registration">最初から登録し直す</button><button data-close>閉じる</button>`);
+  if (type === 'settings') return modal(`<h2>設定</h2><p>ログイン中のプロフィールはクラウドに保存され、同じアカウントで復元できます。</p><button data-action="restart-registration">最初から登録し直す</button><button data-close>閉じる</button>`);
   if (type === 'notifications') return modal(notificationsContent(), 'connect-modal');
   if (type === 'account-security') return modal(`<h2>アカウントとセキュリティ</h2><p>ログイン中のメールアドレス：${escapeHtml(authState.user?.email || currentUser().email || '未ログイン')}</p><p>パスワードを変更したい場合は、ログイン画面の「パスワードを忘れた方」から再設定できます。</p><button data-action="logout">ログアウト</button><button data-close>閉じる</button>`);
   if (type === 'manage-connections') return modal(`<h2>つながりの管理</h2><p>現在のつながり数は ${connectionRowsData().length} 人です。承認済みの申請がここに反映されます。</p><button data-action="add">つながりを追加</button><button data-close>閉じる</button>`);
