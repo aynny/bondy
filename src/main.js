@@ -82,7 +82,19 @@ function buildUniversityOptions() {
     '日本医科大学', '東京慈恵会医科大学', '聖路加国際大学', '国際基督教大学', '津田塾大学', '東京女子大学', '日本女子大学', '大妻女子大学', '共立女子大学', '実践女子大学',
     '同志社大学', '立命館大学', '関西大学', '関西学院大学', '京都産業大学', '近畿大学', '甲南大学', '龍谷大学', '大阪工業大学', '摂南大学',
     '関西外国語大学', '同志社女子大学', '京都女子大学', '武庫川女子大学', '神戸女学院大学', '南山大学', '名城大学', '中京大学', '愛知大学', '愛知学院大学',
-    '金城学院大学', '椙山女学園大学', '藤田医科大学', '福岡大学', '西南学院大学', '久留米大学', '立命館アジア太平洋大学', '東北学院大学', '北海学園大学', '広島修道大学'
+    '金城学院大学', '椙山女学園大学', '藤田医科大学', '福岡大学', '西南学院大学', '久留米大学', '立命館アジア太平洋大学', '東北学院大学', '北海学園大学', '広島修道大学',
+    '札幌医科大学', '公立はこだて未来大学', '青森公立大学', '岩手県立大学', '宮城大学', '秋田県立大学', '国際教養大学', '山形県立保健医療大学', '会津大学', '福島県立医科大学',
+    '茨城県立医療大学', '群馬県立女子大学', '高崎経済大学', '前橋工科大学', '埼玉県立大学', '東京都立大学', '横浜市立大学', '神奈川県立保健福祉大学', '新潟県立大学', '長岡造形大学',
+    '富山県立大学', '公立小松大学', '石川県立大学', '福井県立大学', '都留文科大学', '山梨県立大学', '長野大学', '長野県立大学', '岐阜県立看護大学', '情報科学芸術大学院大学',
+    '静岡県立大学', '静岡文化芸術大学', '愛知県立大学', '愛知県立芸術大学', '名古屋市立大学', '三重県立看護大学', '滋賀県立大学', '京都府立大学', '京都府立医科大学', '大阪公立大学',
+    '神戸市外国語大学', '兵庫県立大学', '奈良県立大学', '奈良県立医科大学', '和歌山県立医科大学', '公立鳥取環境大学', '島根県立大学', '岡山県立大学', '県立広島大学', '広島市立大学',
+    '尾道市立大学', '山口県立大学', '周南公立大学', '香川県立保健医療大学', '愛媛県立医療技術大学', '高知県立大学', '高知工科大学', '北九州市立大学', '九州歯科大学', '福岡県立大学',
+    '福岡女子大学', '長崎県立大学', '熊本県立大学', '大分県立看護科学大学', '宮崎県立看護大学', '宮崎公立大学', '鹿児島県立短期大学', '沖縄県立看護大学', '沖縄県立芸術大学', '名桜大学',
+    '大東文化大学', '東海大学', '亜細亜大学', '帝京大学', '国士舘大学', '拓殖大学', '玉川大学', '明星大学', '桜美林大学', '東京経済大学',
+    '武蔵野大学', '東京工科大学', '東京造形大学', '多摩美術大学', '武蔵野美術大学', '女子美術大学', '文化学園大学', '駿河台大学', '獨協大学', '文教大学',
+    '神奈川大学', '関東学院大学', 'フェリス女学院大学', '鎌倉女子大学', '金沢工業大学', '常葉大学', '愛知淑徳大学', '名古屋外国語大学', '名古屋学院大学', '皇學館大学',
+    '佛教大学', '京都橘大学', '京都外国語大学', '大阪経済大学', '大阪産業大学', '大阪学院大学', '桃山学院大学', '神戸学院大学', '神戸女子大学', '兵庫医科大学',
+    '岡山理科大学', '安田女子大学', '松山大学', '九州産業大学', '中村学園大学', '熊本学園大学'
   ];
   const areas = [
     '北海道', '札幌', '函館', '旭川', '青森', '弘前', '岩手', '盛岡', '宮城', '仙台', '秋田', '山形', '福島', '郡山', '茨城', '水戸',
@@ -1044,7 +1056,7 @@ function personModalContent(person) {
 
 function personProfileDetails(person = {}) {
   const rows = [
-    ['grad', '大学', person.school || '未入力'],
+    ['grad', '学校', person.school || '未入力'],
     ['brief', '会社・所属', person.company || '未入力'],
     ['mapPin', '所在地', person.locationPublic ? (person.location || '未入力') : '非公開'],
     ['calendar', '誕生日', person.birthdayPublic ? (person.birthday || '未入力') : '非公開']
@@ -1180,7 +1192,7 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
       <label>名前<input name="name" required value="${escapeHtml(user.name)}" placeholder="あなたの名前"></label>
       <label>ユーザーID<input name="handle" required value="${escapeHtml(user.handle)}" placeholder="好きなID"></label>
       ${universityField('school', user.school)}
-      ${visibilityField('schoolPublic', '大学', user.schoolPublic)}
+      ${visibilityField('schoolPublic', '学校', user.schoolPublic)}
       <label>会社・所属<input name="company" value="${escapeHtml(user.company)}" placeholder="会社名・役職・所属"></label>
       ${visibilityField('companyPublic', '会社・所属', user.companyPublic)}
     </section>
@@ -1204,9 +1216,9 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
 }
 
 function universityField(name, value = '') {
-  const label = value || '大学名を検索して選択';
+  const label = value || '学校名を検索して選択';
   return `
-    <label class="university-field">大学
+    <label class="university-field">学校
       <input type="hidden" name="${name}" value="${escapeHtml(value)}" required>
       <button type="button" class="university-select" data-university-open>
         <span>${escapeHtml(label)}</span>
@@ -1374,14 +1386,30 @@ function networkGraph(nodes) {
     <section class="network" data-map-workspace>
       <div class="map-canvas" data-map-canvas style="${mapCanvasStyle()}">
         <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
-          ${nodes.map((node, index) => `<line data-line-node="${escapeHtml(node.id || node.name)}" style="--line-delay:${index * -0.32}s" x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="${node.color}" />`).join('')}
+          ${nodes.map((node) => `<line data-line-node="${escapeHtml(node.id || node.name)}" x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="${node.color}" />`).join('')}
         </svg>
+        ${nodes.map((node, index) => `<span class="line-token" style="--dx:${node.x - 50}%;--dy:${node.y - 50}%;--token-color:${node.color};--token-delay:${index * -0.28}s">${mapRelationshipMark(node.tag)}</span>`).join('')}
         ${centerNode}
-        ${nodes.map((node) => `<button class="map-node ${node.centerable ? 'centerable' : 'profile-only'}" type="button" style="left:${node.x}%;top:${node.y}%" data-map-node="${escapeHtml(node.id || node.name)}" data-centerable="${node.centerable ? 'true' : 'false'}" data-person-id="${escapeHtml(node.id || '')}" data-person="${escapeHtml(node.name)}">${personAvatar(node, 54)}<b>${escapeHtml(node.name)}</b><em>${node.centerable ? '中心にする' : escapeHtml(node.tag)}</em></button>`).join('')}
+        ${nodes.map((node) => `<button class="map-node ${node.centerable ? 'centerable' : 'profile-only'}" type="button" style="left:${node.x}%;top:${node.y}%" data-map-node="${escapeHtml(node.id || node.name)}" data-centerable="${node.centerable ? 'true' : 'false'}" data-person-id="${escapeHtml(node.id || '')}" data-person="${escapeHtml(node.name)}">${personAvatar(node, 54)}<b>${escapeHtml(node.name)}</b><em>${escapeHtml(relationshipLabel(node.tag))}</em></button>`).join('')}
         ${nodes.length ? '' : `<div class="empty-map">${emptyMessage}</div>`}
       </div>
     </section>
   `;
+}
+
+function relationshipLabel(value) {
+  return value === '恋人' ? '♡' : (value || 'つながり');
+}
+
+function mapRelationshipMark(value) {
+  return escapeHtml({
+    '大学': '学',
+    'ビジネス': '仕',
+    '地元': '地',
+    '家族': '家',
+    'イベント': '旗',
+    '恋人': '♡'
+  }[value] || 'B');
 }
 
 function mapCanvasStyle() {
@@ -1583,7 +1611,7 @@ function profileScreen() {
       </div>
     </section>
     <section class="info-rows">
-      ${infoRow('grad', '大学', user.schoolPublic ? (user.school || '未入力') : '非公開', 'schoolPublic', user.schoolPublic)}
+      ${infoRow('grad', '学校', user.schoolPublic ? (user.school || '未入力') : '非公開', 'schoolPublic', user.schoolPublic)}
       ${infoRow('brief', '会社・所属', user.companyPublic ? (user.company || '未入力') : '非公開', 'companyPublic', user.companyPublic)}
       ${infoRow('mapPin', '所在地', user.locationPublic ? (user.location || '未入力') : '非公開', 'locationPublic', user.locationPublic)}
       ${infoRow('calendar', '誕生日', user.birthdayPublic ? (user.birthday || '未入力') : '非公開', 'birthdayPublic', user.birthdayPublic)}
@@ -1732,7 +1760,7 @@ function overlay() {
   if (type === 'notifications') return modal(notificationsContent(), 'connect-modal');
   if (type === 'account-security') return modal(`<h2>アカウントとセキュリティ</h2><p>ログイン中のメールアドレス：${escapeHtml(authState.user?.email || currentUser().email || '未ログイン')}</p><p>パスワードを変更したい場合は、ログイン画面の「パスワードを忘れた方」から再設定できます。</p><button data-action="logout">ログアウト</button><button data-close>閉じる</button>`);
   if (type === 'manage-connections') return modal(`<h2>つながりの管理</h2><p>現在のつながり数は ${connectionRowsData().length} 人です。承認済みの申請がここに反映されます。</p><button data-action="add">つながりを追加</button><button data-close>閉じる</button>`);
-  if (type === 'profile-visibility') return modal(`<h2>プロフィールの公開範囲</h2><p>所在地と誕生日はプロフィール編集から公開・非公開を選べます。SNSリンクは入力したものだけプロフィールに表示されます。</p><button data-action="edit">プロフィールを編集</button><button data-close>閉じる</button>`);
+  if (type === 'profile-visibility') return modal(`<h2>プロフィールの公開範囲</h2><p>学校、会社・所属、所在地、誕生日はプロフィール編集から公開・非公開を選べます。SNSリンクは入力したものだけプロフィールに表示されます。</p><button data-action="edit">プロフィールを編集</button><button data-close>閉じる</button>`);
   if (type === 'privacy-settings') return modal(`<h2>プライバシー設定</h2><p>プロフィール情報はログイン中のアカウントに紐づいて保存されます。公開範囲はプロフィール編集から変更できます。</p><button data-action="edit">公開設定を変更</button><button data-close>閉じる</button>`);
   if (type === 'version-info') return modal(`<h2>バージョン情報</h2><p>Bondy Web App<br>Ver. 1.3.0</p><p>プロフィールのクラウド保存、Googleログイン、マップ操作改善に対応しています。</p><button data-close>閉じる</button>`);
   if (type === 'help-support') return modal(helpSupportContent(), 'document-modal');
@@ -1842,7 +1870,7 @@ function privacyPolicyContent() {
     <header><h2>プライバシーポリシー</h2><button data-close>閉じる</button></header>
     <div class="document-body">
       <p class="document-date">最終更新日：2026年6月21日</p>
-      <section><h3>1. 取得する情報</h3><p>メールアドレス、プロフィール情報、大学、所在地、誕生日、SNSリンク、プロフィール写真、ログインに必要な認証情報を取得する場合があります。</p></section>
+      <section><h3>1. 取得する情報</h3><p>メールアドレス、プロフィール情報、学校、所在地、誕生日、SNSリンク、プロフィール写真、ログインに必要な認証情報を取得する場合があります。</p></section>
       <section><h3>2. 利用目的</h3><p>アカウント管理、プロフィール表示、つながりや紹介機能の提供、問い合わせ対応、品質改善、不正利用防止のために利用します。</p></section>
       <section><h3>3. 保存と復元</h3><p>ログインしたアカウントで同じ情報を復元できるよう、プロフィール情報をSupabaseに保存します。端末内にも表示高速化のため一部情報を保存することがあります。</p></section>
       <section><h3>4. 第三者提供</h3><p>法令に基づく場合を除き、本人の同意なく個人情報を第三者に提供しません。ログインやデータ保存にはSupabaseおよびGoogle等の外部サービスを利用する場合があります。</p></section>
@@ -1899,8 +1927,8 @@ app.addEventListener('click', async (event) => {
   if (universityButton) {
     openOptionPicker(universityButton, {
       fieldSelector: '.university-field',
-      title: '大学を選択',
-      searchPlaceholder: '大学名で検索',
+      title: '学校を選択',
+      searchPlaceholder: '学校名で検索',
       freeInputLabel: '入力した名前を使う',
       options: universityOptions
     });
@@ -2273,7 +2301,7 @@ app.addEventListener('submit', async (event) => {
       sns: snsFromForm(formData)
     };
     if (!user.name || !user.handle || !user.school || !user.birthday) {
-      showToast('名前・ID・大学・誕生日を入力してください');
+      showToast('名前・ID・学校・誕生日を入力してください');
       return;
     }
     await saveUser(user);
