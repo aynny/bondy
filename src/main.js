@@ -798,13 +798,13 @@ function profileIsComplete(user = state.user) {
   return Boolean(profile.name && profile.handle && profile.school && profile.birthday);
 }
 
-async function finishAuthenticatedEntry(message = '', options = {}) {
+async function finishAuthenticatedEntry(message = '') {
   await loadIncomingRequests({ silent: true });
   await loadAcceptedConnections({ silent: true });
   await loadRemovalNotifications({ silent: true });
   await handleIncomingConnect();
   if (state.overlay?.type === 'connect-profile') return;
-  if (!options.requireProfile || profileIsComplete()) {
+  if (profileIsComplete()) {
     go('map', message);
     return;
   }
@@ -830,10 +830,9 @@ async function initAuth() {
     authState.user = data.session?.user || null;
     if (authState.user?.email) saveLastEmail(authState.user.email);
     if (authState.user) await restoreAccountUser();
-    const hasPendingSignup = Boolean(localStorage.getItem(SIGNUP_PENDING_KEY));
-    const needsSignupProfile = hasPendingSignup && authState.user && !profileIsComplete();
-    if (authState.user && state.authMode !== 'updatePassword' && (state.screen === 'login' || needsSignupProfile)) {
-      await finishAuthenticatedEntry('', { requireProfile: hasPendingSignup });
+    const needsProfile = authState.user && !profileIsComplete();
+    if (authState.user && state.authMode !== 'updatePassword' && (state.screen === 'login' || needsProfile)) {
+      await finishAuthenticatedEntry('');
     } else if (authState.user) {
       await loadIncomingRequests({ silent: true });
       await loadAcceptedConnections({ silent: true });
@@ -855,8 +854,7 @@ async function initAuth() {
         return;
       }
       if (event === 'SIGNED_IN') {
-        const hasPendingSignup = Boolean(localStorage.getItem(SIGNUP_PENDING_KEY));
-        await finishAuthenticatedEntry(hasPendingSignup ? '' : 'ログインしました', { requireProfile: hasPendingSignup });
+        await finishAuthenticatedEntry(profileIsComplete() ? 'ログインしました' : '');
         return;
       }
       if (authState.user) {
@@ -1010,7 +1008,9 @@ function snsFields() {
     { key: 'instagram', label: 'Instagram', icon: icon('insta') },
     { key: 'x', label: 'X', icon: '<em>𝕏</em>' },
     { key: 'threads', label: 'Threads', icon: '<em>@</em>' },
-    { key: 'tiktok', label: 'TikTok', icon: icon('music') },
+    { key: 'tiktok', label: 'TikTok', icon: '<em class="brand-logo tiktok-logo"><span></span></em>' },
+    { key: 'bereal', label: 'BeReal', icon: '<em class="brand-logo bereal-logo">Be</em>' },
+    { key: 'setlog', label: 'Setlog', icon: '<em class="brand-logo setlog-logo">S</em>' },
     { key: 'facebook', label: 'Facebook', icon: icon('facebook') },
     { key: 'youtube', label: 'YouTube', icon: icon('youtube') },
     { key: 'linkedin', label: 'LinkedIn', icon: icon('linkedin') },
@@ -1844,7 +1844,7 @@ function buttonIcon(ic, action, cls = '') {
 
 function bottomNav() {
   const items = [['map', 'mapPin', 'マップ'], ['connections', 'users', 'つながり'], ['intro', 'heart', '紹介'], ['profile', 'user', 'プロフィール']];
-  return `<nav class="bottom-nav">${items.map(([screen, ic, label]) => `<button class="${isActiveNav(screen, label) ? 'active' : ''}" data-nav="${screen}">${icon(ic, 31)}<span>${label}</span></button>`).join('')}</nav>`;
+  return `<nav class="bottom-nav">${items.map(([screen, ic, label]) => `<button class="${isActiveNav(screen, label) ? 'active' : ''}" data-nav="${screen}">${icon(ic, 27)}<span>${label}</span></button>`).join('')}</nav>`;
 }
 
 function isActiveNav(screen, label) {
