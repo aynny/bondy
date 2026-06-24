@@ -8,6 +8,7 @@ const MAP_POSITIONS_KEY = 'bondy.map.positions.v1';
 const PENDING_PROFILE_SYNC_KEY = 'bondy.profile.pendingSync.v1';
 const REMOTE_PROFILE_TABLE = 'profiles';
 const CONNECTION_REQUEST_TABLE = 'connection_requests';
+const PROFILE_PHOTO_BUCKET = 'profile-photos';
 const SUPPORT_EMAIL = 'bondy1.app@gmail.com';
 const savedUser = loadUser();
 const authState = {
@@ -361,6 +362,36 @@ async function syncPendingProfile(options = {}) {
     if (!options.silent) showToast('クラウドに同期しました');
   }
   return synced;
+}
+
+function photoFileExtension(file) {
+  const byName = String(file?.name || '').split('.').pop()?.toLowerCase();
+  if (byName && /^[a-z0-9]{2,5}$/.test(byName)) return byName === 'jpeg' ? 'jpg' : byName;
+  const byType = String(file?.type || '').split('/').pop()?.toLowerCase();
+  return byType && /^[a-z0-9]{2,5}$/.test(byType) ? (byType === 'jpeg' ? 'jpg' : byType) : 'jpg';
+}
+
+async function uploadProfilePhoto(file) {
+  if (!file) return '';
+  if (!authState.client || !authState.user) return readFileAsDataUrl(file);
+  const extension = photoFileExtension(file);
+  const path = `${authState.user.id}/avatar.${extension}`;
+  const { error } = await authState.client.storage
+    .from(PROFILE_PHOTO_BUCKET)
+    .upload(path, file, {
+      cacheControl: '3600',
+      contentType: file.type || 'image/jpeg',
+      upsert: true
+    });
+  if (error) {
+    console.warn('Profile photo upload failed', error);
+    showToast('写真Storageの設定を確認してください');
+    return readFileAsDataUrl(file);
+  }
+  const { data } = authState.client.storage
+    .from(PROFILE_PHOTO_BUCKET)
+    .getPublicUrl(path);
+  return data?.publicUrl ? `${data.publicUrl}?v=${Date.now()}` : readFileAsDataUrl(file);
 }
 
 function profileFromRemoteRow(row) {
@@ -2502,7 +2533,7 @@ app.addEventListener('submit', async (event) => {
       location: String(formData.get('location') || '').trim(),
       birthday: String(formData.get('birthday') || '').trim(),
       email: authState.user?.email || current.email || '',
-      photo: photo && photo.size ? await readFileAsDataUrl(photo) : current.photo,
+      photo: photo && photo.size ? await uploadProfilePhoto(photo) : current.photo,
       schoolPublic: formData.get('schoolPublic') === 'true',
       companyPublic: formData.get('companyPublic') === 'true',
       locationPublic: formData.get('locationPublic') === 'true',
@@ -2524,7 +2555,7 @@ app.addEventListener('submit', async (event) => {
     const formData = new FormData(editForm);
     const photo = formData.get('photo');
     const current = currentUser();
-    const nextPhoto = photo && photo.size ? await readFileAsDataUrl(photo) : current.photo;
+    const nextPhoto = photo && photo.size ? await uploadProfilePhoto(photo) : current.photo;
     await withButtonPending(event.submitter, '保存中...', () => saveUser({
       ...current,
       name: String(formData.get('name') || '').trim(),
@@ -2551,11 +2582,12 @@ app.addEventListener('change', async (event) => {
   if (!photoInput) return;
   const file = photoInput.files?.[0];
   if (!file) return;
+  showToast('写真をアップロード中...');
   await saveUser({
     ...currentUser(),
-    photo: await readFileAsDataUrl(file)
+    photo: await uploadProfilePhoto(file)
   });
-  showToast('プロフィール写真を変更しました');
+  showToast(authState.user ? 'プロフィール写真をクラウド保存しました' : 'プロフィール写真を変更しました');
   render();
 });
 
