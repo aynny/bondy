@@ -679,7 +679,7 @@ button:disabled {
 }
 
 .connection-filter-bar {
-  padding: 20px 15px 14px;
+  padding: 10px 15px 14px;
   border-bottom: 1px solid #f1f1f1;
   background: #fff;
 }
@@ -753,7 +753,7 @@ button:disabled {
   border: 0;
   outline: 0;
   background: transparent;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .connection-row {
@@ -1848,16 +1848,25 @@ body {
 }
 
 .profile-actions {
-  height: 54px;
+  height: 32px;
   display: flex;
   justify-content: flex-end;
-  padding: 14px 26px 0;
+  padding: 4px 24px 0;
 }
 
 .profile-actions button {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border: 1px solid transparent;
+}
+
+.profile-more-button {
+  align-items: center;
+  color: #111;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  line-height: 1;
 }
 
 .profile-actions button:active {
@@ -1865,28 +1874,28 @@ body {
 }
 
 .profile-hero {
-  grid-template-columns: 108px 1fr;
-  gap: 16px;
-  padding: 18px 28px 0;
+  grid-template-columns: 86px 1fr;
+  gap: 13px;
+  padding: 6px 26px 0;
 }
 
 .profile-photo {
-  width: 108px;
-  height: 108px;
+  width: 86px;
+  height: 86px;
   border: 1px solid #e9e9e9;
   box-shadow: 0 10px 26px rgba(0,0,0,.07);
 }
 
 .profile-photo .avatar {
-  --size: 102px !important;
+  --size: 82px !important;
 }
 
 .profile-photo span {
   position: absolute;
   right: 0;
   bottom: 9px;
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -1907,13 +1916,13 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin: 0 0 10px;
-  font-size: 25px;
+  margin: 0 0 6px;
+  font-size: 22px;
   line-height: 1.1;
 }
 
 .profile-hero h1 span {
-  padding: 4px 9px;
+  padding: 3px 8px;
   border-radius: 999px;
   font-size: 11px;
   line-height: 1;
@@ -1921,7 +1930,7 @@ body {
 }
 
 .profile-hero p {
-  font-size: 14px;
+  font-size: 13px;
   color: #6b6b6b;
 }
 
@@ -1929,7 +1938,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
-  margin-top: 12px;
+  margin-top: 9px;
 }
 
 .profile-share-button {
@@ -1940,7 +1949,7 @@ body {
 }
 
 .info-rows {
-  margin: 28px 24px 18px;
+  margin: 20px 24px 18px;
   padding: 7px 0;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -2022,6 +2031,11 @@ body {
 .sns-link.sns-note { color: #41c9b4; }
 .sns-link.sns-wantedly { color: #21bddb; }
 .sns-link.sns-website { color: #444; }
+
+.info-row .sns-link svg,
+.person-sns .sns-link svg {
+  color: inherit;
+}
 
 .sns a svg {
   width: 22px;
@@ -2352,6 +2366,15 @@ body {
 
 .map-screen .lines line {
   stroke-width: .42;
+  stroke-dasharray: 2.6 3.8;
+  stroke-linecap: round;
+  animation: mapLineFlow 2.8s linear infinite;
+  animation-delay: var(--line-delay, 0s);
+}
+
+@keyframes mapLineFlow {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -12; }
 }
 
 .map-screen .center-node {

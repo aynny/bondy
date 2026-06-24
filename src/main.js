@@ -151,7 +151,7 @@ const icons = {
   download: '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V6a2 2 0 0 1 2-2h10"/>',
   external: '<path d="M15 3h6v6"/><path d="m10 14 11-11"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
-  qr: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h2v2h-2zM18 14h3v3h-2v4h-5v-2h3v-2h-3z"/>',
+  qr: '<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/>',
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   chevronRight: '<path d="m9 18 6-6-6-6"/>',
   chevronDown: '<path d="m6 9 6 6 6-6"/>',
@@ -1374,7 +1374,7 @@ function networkGraph(nodes) {
     <section class="network" data-map-workspace>
       <div class="map-canvas" data-map-canvas style="${mapCanvasStyle()}">
         <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
-          ${nodes.map((node) => `<line data-line-node="${escapeHtml(node.id || node.name)}" x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="${node.color}" />`).join('')}
+          ${nodes.map((node, index) => `<line data-line-node="${escapeHtml(node.id || node.name)}" style="--line-delay:${index * -0.32}s" x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="${node.color}" />`).join('')}
         </svg>
         ${centerNode}
         ${nodes.map((node) => `<button class="map-node ${node.centerable ? 'centerable' : 'profile-only'}" type="button" style="left:${node.x}%;top:${node.y}%" data-map-node="${escapeHtml(node.id || node.name)}" data-centerable="${node.centerable ? 'true' : 'false'}" data-person-id="${escapeHtml(node.id || '')}" data-person="${escapeHtml(node.name)}">${personAvatar(node, 54)}<b>${escapeHtml(node.name)}</b><em>${node.centerable ? '中心にする' : escapeHtml(node.tag)}</em></button>`).join('')}
@@ -1462,7 +1462,6 @@ function connectionsScreen() {
   const rows = filteredConnectionRows();
   return `
     <section class="connection-filter-bar">
-      <h2>つながり</h2>
       <div class="connection-filter-scroll">
         ${filters.map((filter) => `<button class="${state.connectionFilter === filter ? 'active' : ''} ${filter === '恋人' ? 'heart-chip' : ''}" data-connection-filter="${filter}" aria-label="${filter}">${chipIcon(filter)}${chipLabel(filter)}</button>`).join('')}
       </div>
@@ -1570,7 +1569,7 @@ function profileScreen() {
   return `
     <header class="profile-actions">
       <span></span>
-      <button data-action="settings">${icon('settings', 32)}</button>
+      <button class="profile-more-button" data-action="settings" aria-label="設定">...</button>
     </header>
     <section class="profile-hero">
       <label class="profile-photo" aria-label="プロフィール写真を変更">${profileAvatar(104)}<input type="file" accept="image/*" data-photo-input><span>${icon('camera', 20)}</span></label>
@@ -1956,11 +1955,12 @@ app.addEventListener('click', async (event) => {
   }
   if (visibilityToggle) {
     const current = currentUser();
-    await saveUser({
+    const updatedUser = saveUserLocal({
       ...current,
       [visibilityToggle]: !current[visibilityToggle]
     });
-    showToast(!current[visibilityToggle] ? '公開にしました' : '非公開にしました');
+    saveRemoteUser(updatedUser).catch(() => {});
+    showToast(updatedUser[visibilityToggle] ? '公開にしました' : '非公開にしました');
     render();
     return;
   }
