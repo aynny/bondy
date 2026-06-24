@@ -392,6 +392,7 @@ function requestPersonFromRow(row, profilesById) {
     id: row.id,
     requesterId: row.requester_id,
     name,
+    handle: profile.handle || remote?.handle || '',
     tag,
     desc: profile.company || profile.school || (remote?.handle ? `@${remote.handle}` : 'Bondyユーザー'),
     common: `${tag}として申請`,
@@ -484,6 +485,7 @@ function connectionPersonFromRow(row, profilesById, centerId = authState.user?.i
     requesterId: row.requester_id,
     recipientId: row.recipient_id,
     name,
+    handle: profile.handle || remote?.handle || '',
     tag,
     desc: profile.company || profile.school || (remote?.handle ? `@${remote.handle}` : 'Bondyユーザー'),
     common: `${tag}のつながり`,
@@ -1013,11 +1015,16 @@ function personModalContent(person) {
       ? avatar(person.avatar, 70)
       : initialsAvatar(name, 70);
   const desc = person?.desc || '登録したプロフィール情報を確認できます。';
+  const identity = person?.handle ? `@${person.handle}` : desc;
   const isConnection = Boolean(person?.requestId);
   return `
-    <div class="modal-avatar">${avatarHtml}</div>
-    <h2>${escapeHtml(name)}</h2>
-    <p>${escapeHtml(desc)}</p>
+    <header class="person-modal-header">
+      <div class="modal-avatar">${avatarHtml}</div>
+      <div>
+        <h2>${escapeHtml(name)}</h2>
+        <p>${escapeHtml(identity)}</p>
+      </div>
+    </header>
     ${personProfileDetails(person)}
     ${isConnection ? `
       <fieldset class="relationship-picker manage-relationship">
@@ -1053,6 +1060,7 @@ function personOverlayFromNode(node, fallbackName = 'ユーザー') {
     avatar: node?.avatar,
     photo: node?.photo || '',
     desc: node?.desc || (node?.tag ? `${node.tag}のつながりです。` : '登録したプロフィール情報を確認できます。'),
+    handle: node?.handle || '',
     tag: node?.tag,
     requestId: node?.requestId,
     school: node?.school || '',
