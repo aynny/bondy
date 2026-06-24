@@ -1021,7 +1021,7 @@ function snsFields() {
 function snsLogo(key, label) {
   const sources = {
     instagram: 'instagram.png',
-    x: 'x.svg',
+    x: 'x.png',
     threads: 'threads.svg',
     tiktok: 'tiktok.png',
     bereal: 'bereal.png',
