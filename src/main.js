@@ -1412,6 +1412,16 @@ function networkGraph(nodes) {
   return `
     <section class="network" data-map-workspace>
       <div class="map-canvas" data-map-canvas style="${mapCanvasStyle()}">
+        <div class="orbit-field" aria-hidden="true">
+          <span class="orbit orbit-1"></span>
+          <span class="orbit orbit-2"></span>
+          <span class="orbit orbit-3"></span>
+          <span class="orbit orbit-4"></span>
+          <span class="orbit-spark spark-1"></span>
+          <span class="orbit-spark spark-2"></span>
+          <span class="orbit-spark spark-3"></span>
+          <span class="orbit-spark spark-4"></span>
+        </div>
         <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
           ${nodes.map((node, index) => mapConnectionLine(node, index)).join('')}
         </svg>
