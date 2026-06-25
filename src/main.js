@@ -49,6 +49,7 @@ const state = {
   pendingProfilePhotoPreview: '',
   cropPointers: new Map(),
   cropDragStart: null,
+  cropRaf: null,
   authSubmitting: false
 };
 
@@ -2533,8 +2534,6 @@ function photoCropContent(crop = {}) {
       </div>
       <div class="crop-actions">
         <button type="button" data-action="crop-reset">リセット</button>
-        <button type="button" data-action="crop-zoom-out">−</button>
-        <button type="button" data-action="crop-zoom-in">＋</button>
       </div>
       <button class="pill primary" data-action="save-cropped-photo">この写真にする</button>
     </div>
@@ -2895,10 +2894,12 @@ app.addEventListener('click', async (event) => {
       state.pendingProfilePhotoPreview = await readFileAsDataUrl(croppedFile);
       showToast('写真を設定しました。保存ボタンで反映されます');
     } else {
+      const photoUrl = await uploadProfilePhoto(croppedFile);
       await saveUser({
         ...currentUser(),
-        photo: await uploadProfilePhoto(croppedFile)
+        photo: photoUrl
       });
+      state.user = normalizeUser({ ...currentUser(), photo: photoUrl });
       showToast(authState.user ? 'プロフィール写真をクラウド保存しました' : 'プロフィール写真を変更しました');
     }
     if (state.overlay.src?.startsWith('blob:')) URL.revokeObjectURL(state.overlay.src);
@@ -3373,11 +3374,15 @@ function clamp(value, min, max) {
 }
 
 function updateCropImage() {
-  const image = document.querySelector('.crop-frame img');
-  if (!image || state.overlay?.type !== 'photo-crop') return;
-  image.style.setProperty('--crop-scale', state.overlay.zoom || 1);
-  image.style.setProperty('--crop-x', `${state.overlay.x || 0}px`);
-  image.style.setProperty('--crop-y', `${state.overlay.y || 0}px`);
+  if (state.cropRaf) return;
+  state.cropRaf = requestAnimationFrame(() => {
+    state.cropRaf = null;
+    const image = document.querySelector('.crop-frame img');
+    if (!image || state.overlay?.type !== 'photo-crop') return;
+    image.style.setProperty('--crop-scale', state.overlay.zoom || 1);
+    image.style.setProperty('--crop-x', `${state.overlay.x || 0}px`);
+    image.style.setProperty('--crop-y', `${state.overlay.y || 0}px`);
+  });
 }
 
 function cropPointerDistance() {

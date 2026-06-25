@@ -1313,7 +1313,15 @@ button.is-saving::before {
 }
 
 .photo-crop-modal header button {
-  color: rgba(255,255,255,.72);
+  min-width: 78px;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 18px;
+  background: #050505;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  box-shadow: 0 12px 28px rgba(0,0,0,.32);
 }
 
 .crop-editor {
@@ -1341,6 +1349,12 @@ button.is-saving::before {
   box-shadow: 0 24px 64px rgba(0,0,0,.42), 0 0 0 999px rgba(0,0,0,.14);
   touch-action: none;
   cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.crop-frame:active {
+  cursor: grabbing;
 }
 
 .crop-frame::after {
@@ -1362,6 +1376,7 @@ button.is-saving::before {
   user-select: none;
   touch-action: none;
   will-change: transform;
+  backface-visibility: hidden;
 }
 
 .crop-editor label {
@@ -1378,19 +1393,18 @@ button.is-saving::before {
 
 .crop-actions {
   display: grid;
-  grid-template-columns: 1fr 48px 48px;
-  gap: 10px;
+  grid-template-columns: 1fr;
 }
 
 .crop-actions button {
   height: 44px;
   border: 1px solid rgba(255,255,255,.16);
   border-radius: 999px;
-  background: rgba(255,255,255,.1);
+  background: #050505;
   color: #fff;
   font-size: 14px;
   font-weight: 820;
-  backdrop-filter: blur(14px);
+  box-shadow: 0 14px 32px rgba(0,0,0,.26);
 }
 
 .photo-crop-modal .pill.primary {
