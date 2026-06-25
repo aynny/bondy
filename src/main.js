@@ -6,8 +6,10 @@ const LAST_EMAIL_KEY = 'bondy.auth.email.v1';
 const SIGNUP_PENDING_KEY = 'bondy.auth.pendingSignup.v1';
 const MAP_POSITIONS_KEY = 'bondy.map.positions.v1';
 const PENDING_PROFILE_SYNC_KEY = 'bondy.profile.pendingSync.v1';
+const COMPANY_CACHE_KEY = 'bondy.company.cache.v1';
 const REMOTE_PROFILE_TABLE = 'profiles';
 const CONNECTION_REQUEST_TABLE = 'connection_requests';
+const COMPANY_TABLE = 'companies';
 const PROFILE_PHOTO_BUCKET = 'profile-photos';
 const SUPPORT_EMAIL = 'bondy1.app@gmail.com';
 const universityOptions = buildUniversityOptions();
@@ -164,7 +166,7 @@ function buildCompanyOptions() {
     .split('|')
     .map((entry) => {
       const [name, domain] = entry.split('^');
-      return { name, label: name, domain, logo: companyLogoSlug(name) };
+      return normalizeCompanyOption({ name, label: name, domain });
     });
   const featured = [
     { name: 'Microsoft', label: 'Microsoft', domain: 'microsoft.com', logo: 'microsoft' },
@@ -187,7 +189,7 @@ function buildCompanyOptions() {
     { name: 'note', label: 'note', domain: 'note.com', logo: 'noteCompany' },
     { name: '株式会社Mesh', label: '株式会社Mesh', logo: 'mesh' }
   ];
-  const merged = [...featured, ...starterCompanies];
+  const merged = [...loadSavedCompanies(), ...featured.map(normalizeCompanyOption), ...starterCompanies];
   return merged.filter((company, index, list) => list.findIndex((item) => item.name.toLowerCase() === company.name.toLowerCase()) === index);
 }
 
@@ -954,6 +956,7 @@ function profileIsComplete(user = state.user) {
 }
 
 async function finishAuthenticatedEntry(message = '') {
+  await hydrateCompanyOptions();
   await loadIncomingRequests({ silent: true });
   await loadAcceptedConnections({ silent: true });
   await loadRemovalNotifications({ silent: true });
@@ -1208,6 +1211,7 @@ function normalizeCareers(user = {}) {
     location: String(career?.location || '').trim(),
     logo: String(career?.logo || findCompanyLogo(career?.company || career?.name || '') || '').trim(),
     domain: String(career?.domain || findCompanyDomain(career?.company || career?.name || '') || '').trim(),
+    logoUrl: String(career?.logoUrl || career?.logo_url || companyLogoUrl(career?.company || career?.name || '', career?.domain || '') || '').trim(),
     public: career?.public ?? user.companyPublic ?? true
   })).filter((career) => career.role || career.company || career.period || career.location);
   if (careers.length) return careers;
@@ -1218,6 +1222,7 @@ function normalizeCareers(user = {}) {
     location: String(user.companyLocation || '').trim(),
     logo: findCompanyLogo(user.companyName || user.company || ''),
     domain: findCompanyDomain(user.companyName || user.company || ''),
+    logoUrl: companyLogoUrl(user.companyName || user.company || '', findCompanyDomain(user.companyName || user.company || '')),
     public: user.companyPublic ?? true
   };
   return legacy.role || legacy.company || legacy.period || legacy.location ? [legacy] : [];
@@ -1231,6 +1236,119 @@ function findCompanyLogo(company = '') {
 function findCompanyDomain(company = '') {
   const clean = String(company || '').trim().toLowerCase();
   return companyOptions.find((option) => option.name.toLowerCase() === clean || option.label.toLowerCase() === clean)?.domain || '';
+}
+
+function findCompanyLogoUrl(company = '', domainValue = '') {
+  const clean = String(company || '').trim().toLowerCase();
+  return companyOptions.find((option) => option.name.toLowerCase() === clean || option.label.toLowerCase() === clean)?.logoUrl
+    || companyLogoUrl(company, domainValue || findCompanyDomain(company));
+}
+
+function normalizeCompanyOption(company = {}) {
+  const name = String(company.name || company.label || '').trim();
+  const label = String(company.label || name).trim();
+  const domain = normalizeDomain(company.domain || company.website || '');
+  const logoUrl = String(company.logoUrl || company.logo_url || '').trim() || (domain ? companyLogoUrl(name, domain) : '');
+  return {
+    name,
+    label,
+    domain,
+    logoUrl,
+    logo: company.logo && !String(company.logo).startsWith('http') ? company.logo : companyLogoSlug(name)
+  };
+}
+
+function normalizeDomain(value = '') {
+  return String(value || '')
+    .trim()
+    .replace(/^https?:\/\//i, '')
+    .replace(/^www\./i, '')
+    .split('/')[0]
+    .toLowerCase();
+}
+
+function loadSavedCompanies() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(COMPANY_CACHE_KEY) || '[]');
+    return Array.isArray(raw) ? raw.map(normalizeCompanyOption).filter((company) => company.name) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCompanyCandidate(company = {}) {
+  const normalized = normalizeCompanyOption(company);
+  if (!normalized.name) return;
+  const current = loadSavedCompanies().filter((item) => item.name.toLowerCase() !== normalized.name.toLowerCase());
+  localStorage.setItem(COMPANY_CACHE_KEY, JSON.stringify([normalized, ...current].slice(0, 120)));
+  void saveCompanyCandidateRemote(normalized);
+}
+
+async function saveCompanyCandidateRemote(company = {}) {
+  if (!authState.configured || !authState.client || !authState.user || !company.name) return;
+  try {
+    await authState.client.from(COMPANY_TABLE).upsert({
+      name: company.name,
+      domain: company.domain || null,
+      logo_url: company.logoUrl || null,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'name' });
+  } catch {
+    // The app still works if the optional shared company table has not been created yet.
+  }
+}
+
+async function hydrateCompanyOptions() {
+  if (!authState.configured || !authState.client || !authState.user) return;
+  try {
+    const { data, error } = await authState.client
+      .from(COMPANY_TABLE)
+      .select('name,domain,logo_url')
+      .order('updated_at', { ascending: false })
+      .limit(500);
+    if (error || !Array.isArray(data)) return;
+    const existing = new Set(companyOptions.map((company) => company.name.toLowerCase()));
+    data.map((item) => normalizeCompanyOption({
+      name: item.name,
+      domain: item.domain,
+      logoUrl: item.logo_url
+    })).forEach((company) => {
+      if (!company.name || existing.has(company.name.toLowerCase())) return;
+      companyOptions.unshift(company);
+      existing.add(company.name.toLowerCase());
+    });
+  } catch {
+    // The optional shared company table can be added later without blocking the app.
+  }
+}
+
+async function searchLogoDevBrands(query = '') {
+  const endpoint = AUTH_CONFIG.logoDevBrandSearchUrl || '';
+  const apiKey = AUTH_CONFIG.logoDevApiKey || '';
+  if (!endpoint || !apiKey) return [];
+  try {
+    const url = new URL(endpoint);
+    url.searchParams.set('q', query);
+    url.searchParams.set('query', query);
+    url.searchParams.set('token', apiKey);
+    const response = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'x-api-key': apiKey
+      }
+    });
+    if (!response.ok) return [];
+    const payload = await response.json();
+    const items = Array.isArray(payload) ? payload : payload.results || payload.brands || payload.data || [];
+    return items.map((item) => normalizeCompanyOption({
+      name: item.name || item.title || item.brand,
+      label: item.name || item.title || item.brand,
+      domain: item.domain || item.website || item.url,
+      logoUrl: item.logoUrl || item.logo_url || item.logo
+    })).filter((company) => company.name);
+  } catch {
+    return [];
+  }
 }
 
 function companyLogoSlug(name = '') {
@@ -1319,14 +1437,16 @@ function careerInfo(user = {}) {
     company: career.company || user.companyName || user.company || '',
     period: career.period || user.companyPeriod || '',
     location: career.location || user.companyLocation || '',
-    logo: career.logo || findCompanyLogo(career.company || user.companyName || user.company || '')
+    logo: career.logo || findCompanyLogo(career.company || user.companyName || user.company || ''),
+    domain: career.domain || findCompanyDomain(career.company || user.companyName || user.company || ''),
+    logoUrl: career.logoUrl || findCompanyLogoUrl(career.company || user.companyName || user.company || '', career.domain || '')
   };
 }
 
-function companyLogoMarkup(logo = '', fallback = 'B', domain = '') {
+function companyLogoMarkup(logo = '', fallback = 'B', domain = '', logoUrlValue = '') {
   const cleanLogo = logo || findCompanyLogo(fallback);
   const cleanDomain = domain || findCompanyDomain(fallback);
-  const logoUrl = companyLogoUrl(fallback, cleanDomain);
+  const logoUrl = logoUrlValue || companyLogoUrl(fallback, cleanDomain);
   if (logoUrl) {
     return `<span class="company-logo company-logo-image" style="--logo-hue:${logoHue(cleanLogo || fallback)}"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(fallback)} logo" loading="lazy" onerror="this.closest('.company-logo').classList.add('is-fallback');this.remove()"><b>${escapeHtml(companyInitial(fallback))}</b></span>`;
   }
@@ -1381,15 +1501,18 @@ function profileDataFromForm(formData, current = {}) {
   const careerLocations = formData.getAll('careerLocation[]');
   const careerLogos = formData.getAll('careerLogo[]');
   const careerDomains = formData.getAll('careerDomain[]');
+  const careerLogoUrls = formData.getAll('careerLogoUrl[]');
   const careers = careerRoles.map((role, index) => {
     const company = String(careerCompanies[index] || '').trim();
+    const domain = String(careerDomains[index] || findCompanyDomain(company) || '').trim();
     return {
       role: String(role || '').trim(),
       company,
       period: String(careerPeriods[index] || '').trim(),
       location: String(careerLocations[index] || '').trim(),
       logo: String(careerLogos[index] || findCompanyLogo(company) || '').trim(),
-      domain: String(careerDomains[index] || findCompanyDomain(company) || '').trim(),
+      domain,
+      logoUrl: String(careerLogoUrls[index] || findCompanyLogoUrl(company, domain) || '').trim(),
       public: formData.get(`careerPublic-${index}`) !== 'false'
     };
   }).filter((career) => career.role || career.company || career.period || career.location);
@@ -1694,7 +1817,7 @@ function careerEditCard(career = {}, index = 0) {
         </div>
       </div>
       <input name="careerRole[]" value="${escapeHtml(career.role || '')}" placeholder="職種・役割 例：Solution Engineer">
-      ${companyField(company, logo, career.domain || findCompanyDomain(company))}
+      ${companyField(company, logo, career.domain || findCompanyDomain(company), career.logoUrl || findCompanyLogoUrl(company, career.domain))}
       <input name="careerPeriod[]" value="${escapeHtml(career.period || '')}" placeholder="期間 例：2025年8月 - 2025年9月・2ヶ月">
       <input name="careerLocation[]" value="${escapeHtml(career.location || '')}" placeholder="場所 例：日本 東京都 品川区">
     </div>
@@ -1730,14 +1853,16 @@ function universityField(name, value = '', showLabel = true, required = true) {
   `;
 }
 
-function companyField(value = '', logo = '', domainValue = '') {
+function companyField(value = '', logo = '', domainValue = '', logoUrlValue = '') {
   const label = value || '企業・所属を選択または入力';
   const domain = domainValue || findCompanyDomain(value);
+  const logoUrl = logoUrlValue || findCompanyLogoUrl(value, domain);
   return `
     <label class="company-field">
       <input type="hidden" name="careerCompany[]" value="${escapeHtml(value)}">
       <input type="hidden" name="careerLogo[]" value="${escapeHtml(logo || findCompanyLogo(value))}">
       <input type="hidden" name="careerDomain[]" value="${escapeHtml(domain)}">
+      <input type="hidden" name="careerLogoUrl[]" value="${escapeHtml(logoUrl)}">
       <button type="button" class="university-select company-select" data-company-open>
         <span><b>${escapeHtml(label)}</b></span>
         ${icon('chevronDown', 18)}
@@ -2342,7 +2467,7 @@ function careerDisplay(user = {}, variant = '', options = {}) {
     <div class="${compact ? 'career-list compact-career-list' : 'career-list'}">
       ${careers.map((career, index) => `
         <div class="${compact ? 'career-card compact-career-card' : 'career-card'}">
-          ${companyLogoMarkup(career.logo, career.company || career.role || 'B', career.domain)}
+          ${companyLogoMarkup(career.logo, career.company || career.role || 'B', career.domain, career.logoUrl)}
           <div>
             <h3>${escapeHtml(career.role || '所属')}</h3>
             <p>${escapeHtml(career.company || '会社・所属未入力')}</p>
@@ -2610,7 +2735,8 @@ app.addEventListener('click', async (event) => {
       title: '企業・所属を選択',
       searchPlaceholder: '企業名で検索',
       freeInputLabel: '入力した企業名を使う',
-      options: companyOptions
+      options: companyOptions,
+      remoteSearch: true
     });
     return;
   }
@@ -2880,11 +3006,6 @@ app.addEventListener('click', async (event) => {
     updateCropImage();
     return;
   }
-  if ((action === 'crop-zoom-in' || action === 'crop-zoom-out') && state.overlay?.type === 'photo-crop') {
-    state.overlay.zoom = clamp(Number(state.overlay.zoom || 1) + (action === 'crop-zoom-in' ? 0.12 : -0.12), 1, 2.8);
-    updateCropImage();
-    return;
-  }
   if (action === 'save-cropped-photo') {
     if (!state.overlay?.file || state.overlay.type !== 'photo-crop') return;
     showToast('写真を保存中...');
@@ -2934,6 +3055,7 @@ function openOptionPicker(trigger, config) {
   const hiddenInput = field.querySelector('input[type="hidden"]');
   const logoInput = field.querySelector('input[name="careerLogo[]"]');
   const domainInput = field.querySelector('input[name="careerDomain[]"]');
+  const logoUrlInput = field.querySelector('input[name="careerLogoUrl[]"]');
   const currentValue = hiddenInput.value;
   const root = document.createElement('div');
   root.className = 'university-picker-root';
@@ -2955,34 +3077,57 @@ function openOptionPicker(trigger, config) {
   const list = root.querySelector('.university-list');
   const freeInputButton = root.querySelector('.university-free-input');
 
-  const updateList = () => {
+  let searchRun = 0;
+  const updateList = async () => {
+    const run = ++searchRun;
     const query = search.value.trim().toLowerCase();
     const normalizedQuery = search.value.trim();
-    const matches = config.options
+    let matches = config.options
       .filter((option) => {
         const name = typeof option === 'string' ? option : option.name;
         const label = typeof option === 'string' ? option : option.label;
         return !query || name.toLowerCase().includes(query) || label.toLowerCase().includes(query) || name.includes(normalizedQuery);
       })
       .slice(0, 80);
+    if (config.remoteSearch && normalizedQuery.length >= 2 && matches.length < 8) {
+      list.innerHTML = '<p>Logo.devで候補を探しています...</p>';
+      const remoteMatches = await searchLogoDevBrands(normalizedQuery);
+      if (run !== searchRun) return;
+      const seen = new Set(matches.map((option) => (typeof option === 'string' ? option : option.name).toLowerCase()));
+      matches = [
+        ...matches,
+        ...remoteMatches.filter((option) => {
+          const key = option.name.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+      ].slice(0, 80);
+    }
     list.innerHTML = matches.map((option) => {
       const name = typeof option === 'string' ? option : option.name;
       const label = typeof option === 'string' ? option : option.label;
       const logo = typeof option === 'string' ? '' : option.logo;
       const domain = typeof option === 'string' ? '' : option.domain;
-      return `<button type="button" data-university-value="${escapeHtml(name)}" data-company-logo="${escapeHtml(logo || '')}" data-company-domain="${escapeHtml(domain || '')}">${logo || domain ? companyLogoMarkup(logo, label, domain) : ''}<span>${escapeHtml(label)}</span></button>`;
+      const logoUrl = typeof option === 'string' ? '' : option.logoUrl;
+      return `<button type="button" data-university-value="${escapeHtml(name)}" data-company-logo="${escapeHtml(logo || '')}" data-company-domain="${escapeHtml(domain || '')}" data-company-logo-url="${escapeHtml(logoUrl || '')}">${logo || domain || logoUrl ? companyLogoMarkup(logo, label, domain, logoUrl) : ''}<span>${escapeHtml(label)}</span></button>`;
     }).join('')
       || '<p>候補がありません。入力した名前を使えます。</p>';
   };
 
-  const choose = (value, logo = '', domain = '') => {
+  const choose = (value, logo = '', domain = '', logoUrl = '') => {
     const cleanValue = value.trim();
     if (!cleanValue) return;
     const cleanLogo = logo || findCompanyLogo(cleanValue);
     const cleanDomain = domain || findCompanyDomain(cleanValue);
+    const cleanLogoUrl = logoUrl || findCompanyLogoUrl(cleanValue, cleanDomain);
     hiddenInput.value = cleanValue;
     if (logoInput) logoInput.value = cleanLogo;
     if (domainInput) domainInput.value = cleanDomain;
+    if (logoUrlInput) logoUrlInput.value = cleanLogoUrl;
+    if (logoInput || domainInput || logoUrlInput) {
+      saveCompanyCandidate({ name: cleanValue, label: cleanValue, logo: cleanLogo, domain: cleanDomain, logoUrl: cleanLogoUrl });
+    }
     const triggerLabel = trigger.querySelector('span');
     if (triggerLabel) {
       triggerLabel.innerHTML = logoInput
@@ -2995,7 +3140,7 @@ function openOptionPicker(trigger, config) {
   search.addEventListener('input', updateList);
   list.addEventListener('click', (event) => {
     const option = event.target.closest('[data-university-value]');
-    if (option) choose(option.dataset.universityValue, option.dataset.companyLogo || '', option.dataset.companyDomain || '');
+    if (option) choose(option.dataset.universityValue, option.dataset.companyLogo || '', option.dataset.companyDomain || '', option.dataset.companyLogoUrl || '');
   });
   freeInputButton.addEventListener('click', () => choose(search.value));
   root.addEventListener('click', (event) => {
