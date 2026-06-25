@@ -47,6 +47,8 @@ const state = {
   mapNodePositions: loadMapNodePositions(),
   pendingProfilePhotoFile: null,
   pendingProfilePhotoPreview: '',
+  cropPointers: new Map(),
+  cropDragStart: null,
   authSubmitting: false
 };
 
@@ -2172,7 +2174,7 @@ function profileScreen() {
       <button class="profile-more-button" data-action="settings" aria-label="設定">...</button>
     </header>
     <section class="profile-hero">
-      <label class="profile-photo" aria-label="プロフィール写真を変更">${profileAvatar(104)}<input type="file" accept="image/*" data-photo-input><span>${icon('camera', 20)}</span></label>
+      <label class="profile-photo direct-photo-picker" aria-label="プロフィール写真を変更">${profileAvatar(104)}<input type="file" accept="image/*" data-photo-input><span>${icon('camera', 20)}</span></label>
       <div class="profile-identity">
         <h1>${escapeHtml(user.name || '未設定')} <span>登録済み</span></h1>
         <p>@${escapeHtml(user.handle || 'your.id')}</p>
@@ -2525,18 +2527,15 @@ function photoCropContent(crop = {}) {
   return `
     <header><h2>写真を調整</h2><button data-close>閉じる</button></header>
     <div class="crop-editor">
-      <div class="crop-frame">
-        <img src="${escapeHtml(crop.src || '')}" alt="" style="--crop-scale:${crop.zoom || 1};--crop-x:${crop.x || 0}px;--crop-y:${crop.y || 0}px">
+      <p class="crop-hint">写真を指で動かして、2本指で拡大できます。</p>
+      <div class="crop-frame" data-crop-frame>
+        <img src="${escapeHtml(crop.src || '')}" alt="" draggable="false" style="--crop-scale:${crop.zoom || 1};--crop-x:${crop.x || 0}px;--crop-y:${crop.y || 0}px">
       </div>
-      <label>拡大
-        <input type="range" min="1" max="2.4" step="0.01" value="${crop.zoom || 1}" data-crop-control="zoom">
-      </label>
-      <label>横位置
-        <input type="range" min="-90" max="90" step="1" value="${crop.x || 0}" data-crop-control="x">
-      </label>
-      <label>縦位置
-        <input type="range" min="-90" max="90" step="1" value="${crop.y || 0}" data-crop-control="y">
-      </label>
+      <div class="crop-actions">
+        <button type="button" data-action="crop-reset">リセット</button>
+        <button type="button" data-action="crop-zoom-out">−</button>
+        <button type="button" data-action="crop-zoom-in">＋</button>
+      </div>
       <button class="pill primary" data-action="save-cropped-photo">この写真にする</button>
     </div>
   `;
@@ -2875,6 +2874,18 @@ app.addEventListener('click', async (event) => {
     return;
   }
   if (action === 'camera') return showToast('写真変更を開きました');
+  if (action === 'crop-reset' && state.overlay?.type === 'photo-crop') {
+    state.overlay.x = 0;
+    state.overlay.y = 0;
+    state.overlay.zoom = 1;
+    updateCropImage();
+    return;
+  }
+  if ((action === 'crop-zoom-in' || action === 'crop-zoom-out') && state.overlay?.type === 'photo-crop') {
+    state.overlay.zoom = clamp(Number(state.overlay.zoom || 1) + (action === 'crop-zoom-in' ? 0.12 : -0.12), 1, 2.8);
+    updateCropImage();
+    return;
+  }
   if (action === 'save-cropped-photo') {
     if (!state.overlay?.file || state.overlay.type !== 'photo-crop') return;
     showToast('写真を保存中...');
@@ -3122,6 +3133,40 @@ app.addEventListener('change', async (event) => {
 });
 
 app.addEventListener('pointerdown', (event) => {
+  const cropFrame = event.target.closest('[data-crop-frame]');
+  if (!cropFrame || state.overlay?.type !== 'photo-crop') return;
+  event.preventDefault();
+  cropFrame.setPointerCapture?.(event.pointerId);
+  state.cropPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  state.cropDragStart = {
+    x: state.overlay.x || 0,
+    y: state.overlay.y || 0,
+    zoom: state.overlay.zoom || 1,
+    startX: event.clientX,
+    startY: event.clientY,
+    distance: cropPointerDistance()
+  };
+});
+
+app.addEventListener('pointermove', (event) => {
+  if (state.overlay?.type !== 'photo-crop' || !state.cropPointers.has(event.pointerId)) return;
+  event.preventDefault();
+  state.cropPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  if (state.cropPointers.size >= 2) {
+    const distance = cropPointerDistance();
+    const startDistance = state.cropDragStart?.distance || distance || 1;
+    state.overlay.zoom = clamp((state.cropDragStart?.zoom || 1) * (distance / startDistance), 1, 2.8);
+  } else {
+    state.overlay.x = clamp((state.cropDragStart?.x || 0) + event.clientX - (state.cropDragStart?.startX || event.clientX), -180, 180);
+    state.overlay.y = clamp((state.cropDragStart?.y || 0) + event.clientY - (state.cropDragStart?.startY || event.clientY), -180, 180);
+  }
+  updateCropImage();
+});
+
+app.addEventListener('pointerup', clearCropPointer);
+app.addEventListener('pointercancel', clearCropPointer);
+
+app.addEventListener('pointerdown', (event) => {
   const workspace = event.target.closest('[data-map-workspace]');
   if (!workspace || state.screen !== 'map') return;
   event.preventDefault();
@@ -3321,6 +3366,30 @@ function updateDraggedNode(node) {
 
 function cssEscape(value) {
   return window.CSS?.escape ? CSS.escape(value) : String(value).replace(/"/g, '\\"');
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function updateCropImage() {
+  const image = document.querySelector('.crop-frame img');
+  if (!image || state.overlay?.type !== 'photo-crop') return;
+  image.style.setProperty('--crop-scale', state.overlay.zoom || 1);
+  image.style.setProperty('--crop-x', `${state.overlay.x || 0}px`);
+  image.style.setProperty('--crop-y', `${state.overlay.y || 0}px`);
+}
+
+function cropPointerDistance() {
+  const points = [...state.cropPointers.values()];
+  if (points.length < 2) return 0;
+  return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+}
+
+function clearCropPointer(event) {
+  if (!state.cropPointers.has(event.pointerId)) return;
+  state.cropPointers.delete(event.pointerId);
+  state.cropDragStart = null;
 }
 
 async function createCroppedPhotoFile(crop) {
