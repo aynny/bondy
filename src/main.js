@@ -520,7 +520,14 @@ function requestPersonFromRow(row, profilesById) {
     time: relativeTime(row.created_at),
     photo: profile.photo || '',
     school: profile.school || '',
+    highSchool: profile.highSchool || '',
+    university: profile.university || '',
+    vocationalSchool: profile.vocationalSchool || '',
     company: profile.company || '',
+    companyRole: profile.companyRole || '',
+    companyName: profile.companyName || '',
+    companyPeriod: profile.companyPeriod || '',
+    companyLocation: profile.companyLocation || '',
     location: profile.location || '',
     birthday: profile.birthday || '',
     locationPublic: profile.locationPublic ?? true,
@@ -614,7 +621,14 @@ function connectionPersonFromRow(row, profilesById, centerId = authState.user?.i
     time: relativeTime(row.updated_at || row.created_at),
     photo: profile.photo || '',
     school: profile.school || '',
+    highSchool: profile.highSchool || '',
+    university: profile.university || '',
+    vocationalSchool: profile.vocationalSchool || '',
     company: profile.company || '',
+    companyRole: profile.companyRole || '',
+    companyName: profile.companyName || '',
+    companyPeriod: profile.companyPeriod || '',
+    companyLocation: profile.companyLocation || '',
     location: profile.location || '',
     birthday: profile.birthday || '',
     locationPublic: profile.locationPublic ?? true,
@@ -1066,12 +1080,21 @@ function currentUser() {
 function normalizeUser(user) {
   const emptySns = Object.fromEntries(snsFields().map(({ key }) => [key, '']));
   const defaultSnsPublic = Object.fromEntries(snsFields().map(({ key }) => [key, true]));
+  const legacySchool = user?.school || '';
+  const legacyCompany = user?.company || '';
   return {
     name: '',
     handle: '',
     email: '',
     school: '',
+    highSchool: '',
+    university: '',
+    vocationalSchool: '',
     company: '',
+    companyRole: '',
+    companyName: '',
+    companyPeriod: '',
+    companyLocation: '',
     location: '',
     birthday: '',
     photo: '',
@@ -1082,6 +1105,15 @@ function normalizeUser(user) {
     sns: emptySns,
     snsPublic: defaultSnsPublic,
     ...user,
+    highSchool: user?.highSchool || '',
+    university: user?.university || legacySchool,
+    vocationalSchool: user?.vocationalSchool || '',
+    companyRole: user?.companyRole || '',
+    companyName: user?.companyName || legacyCompany,
+    companyPeriod: user?.companyPeriod || '',
+    companyLocation: user?.companyLocation || '',
+    school: user?.school || user?.university || user?.vocationalSchool || user?.highSchool || '',
+    company: user?.company || [user?.companyRole, user?.companyName].filter(Boolean).join(' / '),
     sns: {
       ...emptySns,
       ...(user?.sns || {})
@@ -1112,6 +1144,32 @@ function snsFields() {
   ];
 }
 
+function educationItems(user = {}) {
+  return [
+    ['高校', user.highSchool],
+    ['大学', user.university || user.school],
+    ['専門学校', user.vocationalSchool]
+  ].filter(([, value]) => String(value || '').trim());
+}
+
+function educationSummary(user = {}) {
+  const items = educationItems(user);
+  return items.length ? items.map(([label, value]) => `${label}：${value}`).join(' / ') : '';
+}
+
+function careerInfo(user = {}) {
+  const title = user.companyRole || '';
+  const company = user.companyName || user.company || '';
+  const period = user.companyPeriod || '';
+  const location = user.companyLocation || '';
+  return { title, company, period, location };
+}
+
+function careerSummary(user = {}) {
+  const career = careerInfo(user);
+  return [career.title, career.company].filter(Boolean).join(' / ') || user.company || '';
+}
+
 function snsLogo(key, label) {
   const sources = {
     instagram: 'instagram.png',
@@ -1134,6 +1192,40 @@ function snsFromForm(formData) {
 
 function snsPublicFromForm(formData) {
   return Object.fromEntries(snsFields().map(({ key }) => [key, formData.get(`${key}Public`) !== 'false']));
+}
+
+function profileDataFromForm(formData, current = {}) {
+  const highSchool = String(formData.get('highSchool') || '').trim();
+  const university = String(formData.get('university') || '').trim();
+  const vocationalSchool = String(formData.get('vocationalSchool') || '').trim();
+  const companyRole = String(formData.get('companyRole') || '').trim();
+  const companyName = String(formData.get('companyName') || '').trim();
+  const companyPeriod = String(formData.get('companyPeriod') || '').trim();
+  const companyLocation = String(formData.get('companyLocation') || '').trim();
+  const school = university || vocationalSchool || highSchool;
+  const company = [companyRole, companyName].filter(Boolean).join(' / ');
+  return {
+    ...current,
+    name: String(formData.get('name') || '').trim(),
+    handle: String(formData.get('handle') || '').trim().replace(/^@/, ''),
+    highSchool,
+    university,
+    vocationalSchool,
+    school,
+    companyRole,
+    companyName,
+    companyPeriod,
+    companyLocation,
+    company,
+    location: String(formData.get('location') || '').trim(),
+    birthday: String(formData.get('birthday') || '').trim(),
+    schoolPublic: formData.get('schoolPublic') === 'true',
+    companyPublic: formData.get('companyPublic') === 'true',
+    locationPublic: formData.get('locationPublic') === 'true',
+    birthdayPublic: formData.get('birthdayPublic') === 'true',
+    sns: snsFromForm(formData),
+    snsPublic: snsPublicFromForm(formData)
+  };
 }
 
 function statusBar() {
@@ -1203,13 +1295,13 @@ function personModalContent(person) {
 
 function personProfileDetails(person = {}) {
   const rows = [
-    ['grad', '学校', person.school || '未入力'],
-    ['brief', '会社・所属', person.company || '未入力'],
     ['mapPin', '所在地', person.locationPublic ? (person.location || '未入力') : '非公開'],
     ['calendar', '誕生日', person.birthdayPublic ? (person.birthday || '未入力') : '非公開']
   ];
   return `
     <section class="person-detail-list">
+      <div>${icon('grad', 20)}<span>学校</span><strong>${escapeHtml(person.schoolPublic === false ? '非公開' : (educationSummary(person) || '未入力'))}</strong></div>
+      ${person.companyPublic === false ? `<div>${icon('brief', 20)}<span>職歴</span><strong>非公開</strong></div>` : careerDisplay(person, 'compact')}
       ${rows.map(([ic, label, value]) => `<div>${icon(ic, 20)}<span>${label}</span><strong>${escapeHtml(value)}</strong></div>`).join('')}
       <div>${icon('link', 20)}<span>SNS</span><strong class="person-sns">${snsLinks({ sns: person.sns || {}, snsPublic: person.snsPublic || {} }, { respectPrivacy: true })}</strong></div>
     </section>
@@ -1227,7 +1319,14 @@ function personOverlayFromNode(node, fallbackName = 'ユーザー') {
     tag: node?.tag,
     requestId: node?.requestId,
     school: node?.school || '',
+    highSchool: node?.highSchool || '',
+    university: node?.university || '',
+    vocationalSchool: node?.vocationalSchool || '',
     company: node?.company || '',
+    companyRole: node?.companyRole || '',
+    companyName: node?.companyName || '',
+    companyPeriod: node?.companyPeriod || '',
+    companyLocation: node?.companyLocation || '',
     location: node?.location || '',
     birthday: node?.birthday || '',
     locationPublic: node?.locationPublic ?? true,
@@ -1339,13 +1438,29 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
       <h2>基本情報</h2>
       <label>名前<input name="name" required value="${escapeHtml(user.name)}" placeholder="あなたの名前"></label>
       <label>ユーザーID<input name="handle" required value="${escapeHtml(user.handle)}" placeholder="好きなID"></label>
-      ${profileEditRow('学校', universityField('school', user.school, false), visibilityField('schoolPublic', '学校', user.schoolPublic))}
-      ${profileEditRow('会社・所属', '<input name="company" value="' + escapeHtml(user.company) + '" placeholder="会社名・役職・所属">', visibilityField('companyPublic', '会社・所属', user.companyPublic))}
-    </section>
-    <section class="form-section">
-      <h2>公開設定</h2>
       ${profileEditRow('所在地', locationField('location', user.location, false), visibilityField('locationPublic', '所在地', user.locationPublic))}
       ${profileEditRow('誕生日', '<input name="birthday" type="date" value="' + escapeHtml(user.birthday) + '" required>', visibilityField('birthdayPublic', '誕生日', user.birthdayPublic))}
+    </section>
+    <section class="form-section profile-input-section">
+      <h2>学歴</h2>
+      <p class="form-section-note">学校を分けて入れると、つながりの共通点が見つけやすくなります。</p>
+      ${profileEditRow('高校', '<input name="highSchool" value="' + escapeHtml(user.highSchool) + '" placeholder="例：東京都立 Bondy 高校">', visibilityField('schoolPublic', '学校', user.schoolPublic))}
+      ${profileEditRow('大学', universityField('university', user.university || user.school, false, false), '')}
+      ${profileEditRow('専門学校', '<input name="vocationalSchool" value="' + escapeHtml(user.vocationalSchool) + '" placeholder="例：Bondy デザイン専門学校">', '')}
+    </section>
+    <section class="form-section profile-input-section">
+      <h2>職歴・所属</h2>
+      <p class="form-section-note">職種・所属・期間を入れると、2枚目のような職歴表示になります。</p>
+      <div class="career-edit-card">
+        <div class="sns-edit-head">
+          <span><b>現在・過去の所属</b></span>
+          ${visibilityField('companyPublic', '会社・所属', user.companyPublic)}
+        </div>
+        <input name="companyRole" value="${escapeHtml(user.companyRole)}" placeholder="職種・役割 例：Solution Engineer">
+        <input name="companyName" value="${escapeHtml(user.companyName || user.company)}" placeholder="会社・所属 例：Microsoft・インターンシップ">
+        <input name="companyPeriod" value="${escapeHtml(user.companyPeriod)}" placeholder="期間 例：2025年8月 - 2025年9月・2ヶ月">
+        <input name="companyLocation" value="${escapeHtml(user.companyLocation)}" placeholder="場所 例：日本 東京都 品川区">
+      </div>
     </section>
     <fieldset class="form-section sns-fieldset">
       <legend>SNS</legend>
@@ -1380,11 +1495,11 @@ function profileEditRow(label, control, visibility) {
   `;
 }
 
-function universityField(name, value = '', showLabel = true) {
+function universityField(name, value = '', showLabel = true, required = true) {
   const label = value || '学校名を検索して選択';
   return `
     <label class="university-field">${showLabel ? '学校' : ''}
-      <input type="hidden" name="${name}" value="${escapeHtml(value)}" required>
+      <input type="hidden" name="${name}" value="${escapeHtml(value)}" ${required ? 'required' : ''}>
       <button type="button" class="university-select" data-university-open>
         <span>${escapeHtml(label)}</span>
         ${icon('chevronDown', 18)}
@@ -1730,7 +1845,7 @@ function filteredConnectionRows() {
   const query = rawQuery.toLowerCase();
   if (!query) return filteredRows;
   return filteredRows.filter((person) => {
-    const haystack = [person.name, person.desc, person.common, person.tag, person.school, person.company, person.location]
+    const haystack = [person.name, person.desc, person.common, person.tag, person.school, person.highSchool, person.university, person.vocationalSchool, person.company, person.companyRole, person.companyName, person.companyLocation, person.location]
       .filter(Boolean)
       .join(' ');
     return haystack.toLowerCase().includes(query) || haystack.includes(rawQuery);
@@ -1830,8 +1945,8 @@ function profileScreen() {
       </div>
     </section>
     <section class="info-rows">
-      ${infoRow('grad', '学校', user.schoolPublic ? (user.school || '未入力') : '非公開', 'schoolPublic', user.schoolPublic)}
-      ${infoRow('brief', '会社・所属', user.companyPublic ? (user.company || '未入力') : '非公開', 'companyPublic', user.companyPublic)}
+      ${infoRow('grad', '学校', user.schoolPublic ? (educationSummary(user) || '未入力') : '非公開', 'schoolPublic', user.schoolPublic)}
+      ${user.companyPublic ? careerDisplay(user) : infoRow('brief', '職歴・所属', '非公開', 'companyPublic', user.companyPublic)}
       ${infoRow('mapPin', '所在地', user.locationPublic ? (user.location || '未入力') : '非公開', 'locationPublic', user.locationPublic)}
       ${infoRow('calendar', '誕生日', user.birthdayPublic ? (user.birthday || '未入力') : '非公開', 'birthdayPublic', user.birthdayPublic)}
       <div class="info-row">${icon('link', 25)}<span>SNS</span><strong class="sns">${snsLinks(user, { respectPrivacy: false })}</strong></div>
@@ -1952,6 +2067,28 @@ function editProfileScreen() {
   `;
 }
 
+function careerDisplay(user = {}, variant = '') {
+  const career = careerInfo(user);
+  if (!career.title && !career.company && !career.period && !career.location) {
+    return variant === 'compact'
+      ? `<div>${icon('brief', 20)}<span>職歴</span><strong>未入力</strong></div>`
+      : infoRow('brief', '職歴・所属', '未入力', 'companyPublic', user.companyPublic);
+  }
+  const compact = variant === 'compact';
+  return `
+    <div class="${compact ? 'career-card compact-career-card' : 'career-card'}">
+      <div class="career-logo">${(career.company || career.title || 'B').slice(0, 1).toUpperCase()}</div>
+      <div>
+        <h3>${escapeHtml(career.title || '所属')}</h3>
+        <p>${escapeHtml(career.company || '会社・所属未入力')}</p>
+        ${career.period ? `<small>${escapeHtml(career.period)}</small>` : ''}
+        ${career.location ? `<small>${escapeHtml(career.location)}</small>` : ''}
+      </div>
+      ${compact ? '' : `<button class="visibility-toggle ${user.companyPublic ? 'is-public' : ''}" data-visibility-toggle="companyPublic">${user.companyPublic ? '公開' : '非公開'}</button>`}
+    </div>
+  `;
+}
+
 function infoRow(ic, label, value, visibilityKey = '', isPublic = true) {
   return `<div class="info-row">${icon(ic, 25)}<span>${label}</span><strong>${value}</strong>${visibilityKey ? `<button class="visibility-toggle ${isPublic ? 'is-public' : ''}" data-visibility-toggle="${visibilityKey}">${isPublic ? '公開' : '非公開'}</button>` : ''}</div>`;
 }
@@ -2057,7 +2194,7 @@ function connectProfileContent(target) {
   if (!target) return `<h2>ユーザーが見つかりません</h2><p>IDを確認してもう一度検索してください。</p><button data-action="add">検索に戻る</button>`;
   const profile = target.profile;
   const title = profile.name || target.handle || 'ユーザー';
-  const subtitle = [profile.school, profile.company].filter(Boolean).join(' / ') || `@${target.handle || 'unknown'}`;
+  const subtitle = [educationSummary(profile), careerSummary(profile)].filter(Boolean).join(' / ') || `@${target.handle || 'unknown'}`;
   return `
     <div class="connect-preview">
       <div class="avatar initial-avatar" style="--size:72px"><b>${escapeHtml((title || 'U').slice(0, 2).toUpperCase())}</b></div>
@@ -2535,21 +2672,9 @@ app.addEventListener('submit', async (event) => {
     const photo = formData.get('photo');
     const current = currentUser();
     const user = {
-      ...current,
-      name: String(formData.get('name') || '').trim(),
-      handle: String(formData.get('handle') || '').trim().replace(/^@/, ''),
-      school: String(formData.get('school') || '').trim(),
-      company: String(formData.get('company') || '').trim(),
-      location: String(formData.get('location') || '').trim(),
-      birthday: String(formData.get('birthday') || '').trim(),
+      ...profileDataFromForm(formData, current),
       email: authState.user?.email || current.email || '',
-      photo: photo && photo.size ? await uploadProfilePhoto(photo) : current.photo,
-      schoolPublic: formData.get('schoolPublic') === 'true',
-      companyPublic: formData.get('companyPublic') === 'true',
-      locationPublic: formData.get('locationPublic') === 'true',
-      birthdayPublic: formData.get('birthdayPublic') === 'true',
-      sns: snsFromForm(formData),
-      snsPublic: snsPublicFromForm(formData)
+      photo: photo && photo.size ? await uploadProfilePhoto(photo) : current.photo
     };
     if (!user.name || !user.handle || !user.school || !user.birthday) {
       showToast('名前・ID・学校・誕生日を入力してください');
@@ -2567,20 +2692,8 @@ app.addEventListener('submit', async (event) => {
     const current = currentUser();
     const nextPhoto = photo && photo.size ? await uploadProfilePhoto(photo) : current.photo;
     await withButtonPending(event.submitter, '保存中...', () => saveUser({
-      ...current,
-      name: String(formData.get('name') || '').trim(),
-      handle: String(formData.get('handle') || '').trim().replace(/^@/, ''),
-      school: String(formData.get('school') || '').trim(),
-      company: String(formData.get('company') || '').trim(),
-      location: String(formData.get('location') || '').trim(),
-      birthday: String(formData.get('birthday') || '').trim(),
+      ...profileDataFromForm(formData, current),
       photo: nextPhoto,
-      schoolPublic: formData.get('schoolPublic') === 'true',
-      companyPublic: formData.get('companyPublic') === 'true',
-      locationPublic: formData.get('locationPublic') === 'true',
-      birthdayPublic: formData.get('birthdayPublic') === 'true',
-      sns: snsFromForm(formData),
-      snsPublic: snsPublicFromForm(formData)
     }));
     state.overlay = null;
     go('profile', 'プロフィールを保存しました');

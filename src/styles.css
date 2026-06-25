@@ -409,6 +409,14 @@ button.is-saving::before {
   line-height: 1.55;
 }
 
+.form-section-note {
+  margin: -4px 0 4px;
+  color: #767676;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.55;
+}
+
 .sns-edit-row,
 .profile-edit-row {
   display: grid;
@@ -511,6 +519,20 @@ button.is-saving::before {
 }
 
 .profile-edit-row .university-select {
+  height: 38px;
+  font-size: 13px;
+}
+
+.career-edit-card {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #ededed;
+  border-radius: 15px;
+  background: #fff;
+}
+
+.career-edit-card input {
   height: 38px;
   font-size: 13px;
 }
@@ -1323,7 +1345,7 @@ button.is-saving::before {
   border-radius: 18px;
   background: #fbfbfb;
 }
-.person-detail-list div {
+.person-detail-list > div {
   min-height: 30px;
   display: grid;
   grid-template-columns: 24px 84px 1fr;
@@ -1331,16 +1353,22 @@ button.is-saving::before {
   gap: 7px;
   font-size: 13px;
 }
-.person-detail-list span {
+.person-detail-list > div > span {
   color: #595959;
   font-weight: 760;
 }
-.person-detail-list strong {
+.person-detail-list > div > strong {
   min-width: 0;
   color: #111;
   font-weight: 650;
   overflow-wrap: anywhere;
 }
+
+.person-detail-list .compact-career-card {
+  grid-template-columns: 36px 1fr;
+  padding: 4px 0;
+}
+
 .person-sns {
   display: flex;
   align-items: center;
@@ -2221,6 +2249,69 @@ body {
   overflow-wrap: anywhere;
 }
 
+.career-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 13px;
+  align-items: center;
+  min-height: 86px;
+  padding: 13px 0;
+  border-bottom: 1px solid #f2f2f2;
+}
+
+.career-logo {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #111;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 850;
+  letter-spacing: -.04em;
+}
+
+.career-card h3 {
+  margin: 0 0 3px;
+  color: #111;
+  font-size: 17px;
+  font-weight: 820;
+  line-height: 1.12;
+}
+
+.career-card p {
+  margin: 0 0 3px;
+  color: #111;
+  font-size: 14px;
+  font-weight: 560;
+  line-height: 1.2;
+}
+
+.career-card small {
+  display: block;
+  color: #777;
+  font-size: 13px;
+  font-weight: 520;
+  line-height: 1.32;
+}
+
+.compact-career-card .career-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  font-size: 15px;
+}
+
+.compact-career-card h3 {
+  font-size: 14px;
+}
+
+.compact-career-card p,
+.compact-career-card small {
+  font-size: 12px;
+}
+
 .visibility-toggle {
   min-height: 28px;
   padding: 0 9px;
@@ -2376,8 +2467,8 @@ body {
 /* Map reference layout */
 .map-screen {
   background:
-    radial-gradient(circle at 50% 46%, rgba(78,101,157,.74) 0 10%, rgba(31,43,82,.86) 28%, rgba(10,16,38,.96) 64%, #030611 100%),
-    radial-gradient(circle at 50% 118px, rgba(61,82,139,.9) 0 0, rgba(24,35,74,.96) 220px, rgba(7,12,30,.98) 520px, #030611 100%);
+    radial-gradient(circle at 50% 43%, rgba(65,104,158,.34) 0 8%, rgba(15,35,64,.72) 27%, rgba(4,18,35,.96) 58%, #020712 100%),
+    radial-gradient(circle at 50% 4%, rgba(31,54,91,.68), rgba(3,13,27,.98) 55%, #01050c 100%);
   padding-bottom: 68px;
 }
 
@@ -2613,10 +2704,10 @@ body {
 
 .map-screen .map-interactive-panel::after {
   background:
-    radial-gradient(circle at 50% 50%, rgba(104,153,255,.34), transparent 30%),
-    radial-gradient(circle at 25% 30%, rgba(138,92,246,.24), transparent 18%),
-    radial-gradient(circle at 76% 64%, rgba(54,211,255,.18), transparent 20%),
-    radial-gradient(circle at 44% 82%, rgba(255,111,191,.12), transparent 18%);
+    radial-gradient(circle at 50% 50%, rgba(112,166,246,.28), transparent 31%),
+    radial-gradient(circle at 24% 31%, rgba(82,132,203,.18), transparent 20%),
+    radial-gradient(circle at 76% 64%, rgba(68,139,218,.16), transparent 22%),
+    radial-gradient(circle at 48% 82%, rgba(145,190,255,.1), transparent 18%);
   animation: mapAmbientGlow 7s ease-in-out infinite;
 }
 
