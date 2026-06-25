@@ -1543,17 +1543,30 @@ function companyLogoMarkup(logo = '', fallback = 'B', domain = '', logoUrlValue 
   const logoUrl = cleanDomain
     ? companyLogoUrl(companyName, cleanDomain)
     : String(logoUrlValue || '').trim() || companyNameLogoUrl(companyName);
+  const backupLogoUrl = companyBackupLogoUrl(companyName, cleanDomain);
 
   console.log('logo debug', companyName, cleanDomain, logoUrl);
 
   const escapedName = escapeHtml(companyName);
   const fallbackHtml = companyFallbackLogoMarkup(companyName);
-  const fallbackForHandler = fallbackHtml.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
   if (!logoUrl) return fallbackHtml;
 
-  return `<img class="company-logo-img" src="${escapeHtml(logoUrl)}" alt="${escapedName} logo" loading="lazy" onerror="console.warn('Logo failed', this.alt, this.src);this.outerHTML='${fallbackForHandler}'">`;
+  return `<img class="company-logo-img is-loading" src="${escapeHtml(logoUrl)}" alt="${escapedName} logo" loading="lazy" data-logo-backup="${escapeHtml(backupLogoUrl)}" data-logo-fallback="${escapeHtml(fallbackHtml)}" onload="this.classList.remove('is-loading')" onerror="handleCompanyLogoError(this)">`;
 }
+
+window.handleCompanyLogoError = function handleCompanyLogoError(image) {
+  const backup = image.dataset.logoBackup || '';
+  const fallback = image.dataset.logoFallback || '';
+  if (backup && image.src !== backup && image.dataset.logoBackupTried !== 'true') {
+    console.warn('Logo.dev failed, trying backup logo', image.alt, image.src, backup);
+    image.dataset.logoBackupTried = 'true';
+    image.src = backup;
+    return;
+  }
+  console.warn('Logo failed', image.alt, image.src);
+  image.outerHTML = fallback || companyFallbackLogoMarkup(image.alt?.replace(/\s+logo$/i, '') || 'B');
+};
 
 function companyFallbackLogoMarkup(companyName = 'B') {
   const clean = String(companyName || '').trim().toLowerCase();
@@ -1573,7 +1586,7 @@ function companyLogoUrl(company = '', domainValue = '') {
     return '';
   }
   if (!domain) return '';
-  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(apiKey)}&size=128&format=png&fallback=404&v=82`;
+  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(apiKey)}&size=128&format=png&fallback=404&v=87`;
 }
 
 function companyNameLogoUrl(company = '') {
@@ -1584,7 +1597,13 @@ function companyNameLogoUrl(company = '') {
     return '';
   }
   if (!name || name === 'B') return '';
-  return `https://img.logo.dev/name/${encodeURIComponent(name)}?token=${encodeURIComponent(apiKey)}&size=128&format=png&fallback=404&v=82`;
+  return `https://img.logo.dev/name/${encodeURIComponent(name)}?token=${encodeURIComponent(apiKey)}&size=128&format=png&fallback=404&v=87`;
+}
+
+function companyBackupLogoUrl(company = '', domainValue = '') {
+  const domain = normalizeDomain(domainValue || findCompanyDomain(company));
+  if (!domain) return '';
+  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128&v=87`;
 }
 
 function snsLogo(key, label) {
