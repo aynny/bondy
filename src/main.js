@@ -155,7 +155,10 @@ function buildLocationOptions() {
 }
 
 function buildCompanyOptions() {
-  return [
+  const starterCompanies = `Sony Group|Nintendo|Panasonic|Hitachi|NEC|Fujitsu|NTT|NTT Docomo|KDDI|SoftBank|Rakuten|LINE Yahoo|Mercari|CyberAgent|DeNA|GREE|DMM|SmartNews|Money Forward|freee|Sansan|Plaid|Visional|Wantedly|Cookpad|Kakaku.com|ZOZO|GMO Internet Group|Mixi|Recruit|Riot Games Japan|Capcom|Square Enix|Bandai Namco|SEGA|Toyota|Honda|Nissan|Mazda|Subaru|Mitsubishi Motors|Suzuki|Yamaha Motor|Denso|Bridgestone|Fast Retailing|Uniqlo|Muji|Shiseido|Kao|Kirin|Asahi Group|Suntory|Itochu|Mitsubishi Corporation|Mitsui & Co.|Marubeni|Sumitomo Corporation|Seven & i Holdings|Aeon|I-ne|MUFG|SMBC|Mizuho|Nomura|Daiwa Securities|Japan Airlines|ANA|Yamato Transport|Sagawa Express|Apple|Microsoft|Google|Alphabet|Amazon|Meta|Facebook|Instagram|Threads|WhatsApp|X|TikTok|ByteDance|YouTube|LinkedIn|OpenAI|Anthropic|Perplexity|NVIDIA|AMD|Intel|IBM|Oracle|Salesforce|Adobe|SAP|ServiceNow|Cisco|Dell|HP|Dropbox|Box|Slack|Zoom|Notion|Figma|Canva|GitHub|GitLab|Atlassian|Shopify|Stripe|PayPal|Square|Airbnb|Uber|Lyft|Netflix|Spotify|Discord|Reddit|Pinterest|Snap|Accenture|Deloitte|PwC|EY|KPMG|McKinsey & Company|Boston Consulting Group|Bain & Company|Goldman Sachs|JPMorgan Chase|Morgan Stanley|Bank of America|Citigroup|Visa|Mastercard|Tesla|BMW|Mercedes-Benz|Volkswagen|Audi|Porsche|Hyundai|Kia|BYD|Ford|General Motors|Rivian|Lucid Motors|LVMH|Dior|Louis Vuitton|Chanel|Hermes|Gucci|Prada|Nike|Adidas|Zara|H&M|Shein|Walmart|Target|Costco|Starbucks|McDonald's|Coca-Cola|PepsiCo|Nestle|Procter & Gamble|Unilever|L'Oreal|Samsung|LG|Hybe|Naver|Kakao|Alibaba|Tencent|Huawei|Xiaomi|Baidu|Meituan|Pinduoduo|Temu`
+    .split('|')
+    .map((name) => ({ name, label: name, logo: companyLogoSlug(name) }));
+  const featured = [
     { name: 'Microsoft', label: 'Microsoft', logo: 'microsoft' },
     { name: 'Tesla', label: 'Tesla', logo: 'tesla' },
     { name: 'Christian Dior Couture', label: 'Christian Dior Couture', logo: 'dior' },
@@ -176,6 +179,8 @@ function buildCompanyOptions() {
     { name: 'note', label: 'note', logo: 'noteCompany' },
     { name: '株式会社Mesh', label: '株式会社Mesh', logo: 'mesh' }
   ];
+  const merged = [...featured, ...starterCompanies];
+  return merged.filter((company, index, list) => list.findIndex((item) => item.name.toLowerCase() === company.name.toLowerCase()) === index);
 }
 
 const icons = {
@@ -1213,6 +1218,41 @@ function findCompanyLogo(company = '') {
   return companyOptions.find((option) => option.name.toLowerCase() === clean || option.label.toLowerCase() === clean)?.logo || '';
 }
 
+function companyLogoSlug(name = '') {
+  const custom = {
+    'LINE Yahoo': 'lineYahoo',
+    'CyberAgent': 'cyberAgent',
+    'Money Forward': 'moneyForward',
+    'Boston Consulting Group': 'bcg',
+    'McKinsey & Company': 'mckinsey',
+    'Mitsubishi Corporation': 'mitsubishiCorp',
+    'Mitsui & Co.': 'mitsui',
+    'Seven & i Holdings': 'sevenI',
+    'Japan Airlines': 'jal',
+    'Yamato Transport': 'yamato',
+    'Sagawa Express': 'sagawa',
+    'GMO Internet Group': 'gmo',
+    'Fast Retailing': 'fastRetailing',
+    'Louis Vuitton': 'louisVuitton',
+    "L'Oreal": 'loreal',
+    "McDonald's": 'mcdonalds'
+  };
+  if (custom[name]) return custom[name];
+  return String(name || 'company')
+    .replace(/&/g, 'and')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase() || 'company';
+}
+
+function companyInitial(name = '') {
+  return String(name || 'B').trim().slice(0, 1).toUpperCase();
+}
+
+function logoHue(value = '') {
+  return [...String(value || 'Bondy')].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 360;
+}
+
 function educationItems(user = {}, options = {}) {
   const respectPrivacy = options.respectPrivacy === true;
   return [
@@ -1270,13 +1310,13 @@ function careerInfo(user = {}) {
 
 function companyLogoMarkup(logo = '', fallback = 'B') {
   const cleanLogo = logo || findCompanyLogo(fallback);
-  const safeFallback = escapeHtml(String(fallback || 'B').slice(0, 1).toUpperCase());
+  const safeFallback = escapeHtml(companyInitial(fallback));
   if (cleanLogo === 'microsoft') {
     return '<span class="company-logo company-logo-microsoft"><i></i><i></i><i></i><i></i></span>';
   }
   if (cleanLogo === 'tesla') return '<span class="company-logo company-logo-tesla">T</span>';
   if (cleanLogo === 'dior') return '<span class="company-logo company-logo-dior">DIOR</span>';
-  if (cleanLogo) return `<span class="company-logo company-logo-${escapeHtml(cleanLogo)}">${safeFallback}</span>`;
+  if (cleanLogo) return `<span class="company-logo company-logo-generic company-logo-${escapeHtml(cleanLogo)}" style="--logo-hue:${logoHue(cleanLogo)}">${safeFallback}</span>`;
   return `<span class="company-logo">${safeFallback}</span>`;
 }
 
