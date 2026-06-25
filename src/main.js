@@ -155,9 +155,12 @@ function buildLocationOptions() {
 }
 
 function buildCompanyOptions() {
-  const starterCompanies = `Sony Group|Nintendo|Panasonic|Hitachi|NEC|Fujitsu|NTT|NTT Docomo|KDDI|SoftBank|Rakuten|LINE Yahoo|Mercari|CyberAgent|DeNA|GREE|DMM|SmartNews|Money Forward|freee|Sansan|Plaid|Visional|Wantedly|Cookpad|Kakaku.com|ZOZO|GMO Internet Group|Mixi|Recruit|Riot Games Japan|Capcom|Square Enix|Bandai Namco|SEGA|Toyota|Honda|Nissan|Mazda|Subaru|Mitsubishi Motors|Suzuki|Yamaha Motor|Denso|Bridgestone|Fast Retailing|Uniqlo|Muji|Shiseido|Kao|Kirin|Asahi Group|Suntory|Itochu|Mitsubishi Corporation|Mitsui & Co.|Marubeni|Sumitomo Corporation|Seven & i Holdings|Aeon|I-ne|MUFG|SMBC|Mizuho|Nomura|Daiwa Securities|Japan Airlines|ANA|Yamato Transport|Sagawa Express|Apple|Microsoft|Google|Alphabet|Amazon|Meta|Facebook|Instagram|Threads|WhatsApp|X|TikTok|ByteDance|YouTube|LinkedIn|OpenAI|Anthropic|Perplexity|NVIDIA|AMD|Intel|IBM|Oracle|Salesforce|Adobe|SAP|ServiceNow|Cisco|Dell|HP|Dropbox|Box|Slack|Zoom|Notion|Figma|Canva|GitHub|GitLab|Atlassian|Shopify|Stripe|PayPal|Square|Airbnb|Uber|Lyft|Netflix|Spotify|Discord|Reddit|Pinterest|Snap|Accenture|Deloitte|PwC|EY|KPMG|McKinsey & Company|Boston Consulting Group|Bain & Company|Goldman Sachs|JPMorgan Chase|Morgan Stanley|Bank of America|Citigroup|Visa|Mastercard|Tesla|BMW|Mercedes-Benz|Volkswagen|Audi|Porsche|Hyundai|Kia|BYD|Ford|General Motors|Rivian|Lucid Motors|LVMH|Dior|Louis Vuitton|Chanel|Hermes|Gucci|Prada|Nike|Adidas|Zara|H&M|Shein|Walmart|Target|Costco|Starbucks|McDonald's|Coca-Cola|PepsiCo|Nestle|Procter & Gamble|Unilever|L'Oreal|Samsung|LG|Hybe|Naver|Kakao|Alibaba|Tencent|Huawei|Xiaomi|Baidu|Meituan|Pinduoduo|Temu`
+  const starterCompanies = `Sony Group^sony.com|Nintendo^nintendo.com|Panasonic^panasonic.com|Hitachi^hitachi.com|NEC^nec.com|Fujitsu^fujitsu.com|NTT^ntt.co.jp|NTT Docomo^docomo.ne.jp|KDDI^kddi.com|SoftBank^softbank.jp|Rakuten^rakuten.com|LINE Yahoo^lycorp.co.jp|Mercari^mercari.com|CyberAgent^cyberagent.co.jp|DeNA^dena.com|GREE^gree.co.jp|DMM^dmm.com|SmartNews^smartnews.com|Money Forward^moneyforward.com|freee^freee.co.jp|Sansan^sansan.com|Plaid^plaid.co.jp|Visional^visional.inc|Wantedly^wantedly.com|Cookpad^cookpad.com|Kakaku.com^kakaku.com|ZOZO^zozo.com|GMO Internet Group^gmo.jp|Mixi^mixi.co.jp|Recruit^recruit.co.jp|Riot Games Japan^riotgames.com|Capcom^capcom.co.jp|Square Enix^square-enix.com|Bandai Namco^bandainamco.co.jp|SEGA^sega.co.jp|Toyota^toyota.com|Honda^honda.com|Nissan^nissan-global.com|Mazda^mazda.com|Subaru^subaru.co.jp|Mitsubishi Motors^mitsubishi-motors.com|Suzuki^suzuki.co.jp|Yamaha Motor^yamaha-motor.com|Denso^denso.com|Bridgestone^bridgestone.com|Fast Retailing^fastretailing.com|Uniqlo^uniqlo.com|Muji^muji.com|Shiseido^shiseido.com|Kao^kao.com|Kirin^kirinholdings.com|Asahi Group^asahigroup-holdings.com|Suntory^suntory.com|Itochu^itochu.co.jp|Mitsubishi Corporation^mitsubishicorp.com|Mitsui & Co.^mitsui.com|Marubeni^marubeni.com|Sumitomo Corporation^sumitomocorp.com|Seven & i Holdings^7andi.com|Aeon^aeon.info|I-ne^i-ne.co.jp|MUFG^mufg.jp|SMBC^smbc.co.jp|Mizuho^mizuho-fg.co.jp|Nomura^nomura.com|Daiwa Securities^daiwa-grp.jp|Japan Airlines^jal.com|ANA^ana.co.jp|Yamato Transport^kuronekoyamato.co.jp|Sagawa Express^sagawa-exp.co.jp|Apple^apple.com|Microsoft^microsoft.com|Google^google.com|Alphabet^abc.xyz|Amazon^amazon.com|Meta^meta.com|Facebook^facebook.com|Instagram^instagram.com|Threads^threads.net|WhatsApp^whatsapp.com|X^x.com|TikTok^tiktok.com|ByteDance^bytedance.com|YouTube^youtube.com|LinkedIn^linkedin.com|OpenAI^openai.com|Anthropic^anthropic.com|Perplexity^perplexity.ai|NVIDIA^nvidia.com|AMD^amd.com|Intel^intel.com|IBM^ibm.com|Oracle^oracle.com|Salesforce^salesforce.com|Adobe^adobe.com|SAP^sap.com|ServiceNow^servicenow.com|Cisco^cisco.com|Dell^dell.com|HP^hp.com|Dropbox^dropbox.com|Box^box.com|Slack^slack.com|Zoom^zoom.us|Notion^notion.so|Figma^figma.com|Canva^canva.com|GitHub^github.com|GitLab^gitlab.com|Atlassian^atlassian.com|Shopify^shopify.com|Stripe^stripe.com|PayPal^paypal.com|Square^squareup.com|Airbnb^airbnb.com|Uber^uber.com|Lyft^lyft.com|Netflix^netflix.com|Spotify^spotify.com|Discord^discord.com|Reddit^reddit.com|Pinterest^pinterest.com|Snap^snap.com|Accenture^accenture.com|Deloitte^deloitte.com|PwC^pwc.com|EY^ey.com|KPMG^kpmg.com|McKinsey & Company^mckinsey.com|Boston Consulting Group^bcg.com|Bain & Company^bain.com|Goldman Sachs^goldmansachs.com|JPMorgan Chase^jpmorganchase.com|Morgan Stanley^morganstanley.com|Bank of America^bankofamerica.com|Citigroup^citigroup.com|Visa^visa.com|Mastercard^mastercard.com|Tesla^tesla.com|BMW^bmw.com|Mercedes-Benz^mercedes-benz.com|Volkswagen^volkswagen.com|Audi^audi.com|Porsche^porsche.com|Hyundai^hyundai.com|Kia^kia.com|BYD^byd.com|Ford^ford.com|General Motors^gm.com|Rivian^rivian.com|Lucid Motors^lucidmotors.com|LVMH^lvmh.com|Dior^dior.com|Louis Vuitton^louisvuitton.com|Chanel^chanel.com|Hermes^hermes.com|Gucci^gucci.com|Prada^prada.com|Nike^nike.com|Adidas^adidas.com|Zara^zara.com|H&M^hm.com|Shein^shein.com|Walmart^walmart.com|Target^target.com|Costco^costco.com|Starbucks^starbucks.com|McDonald's^mcdonalds.com|Coca-Cola^coca-cola.com|PepsiCo^pepsico.com|Nestle^nestle.com|Procter & Gamble^pg.com|Unilever^unilever.com|L'Oreal^loreal.com|Samsung^samsung.com|LG^lg.com|Hybe^hybecorp.com|Naver^naver.com|Kakao^kakaocorp.com|Alibaba^alibaba.com|Tencent^tencent.com|Huawei^huawei.com|Xiaomi^mi.com|Baidu^baidu.com|Meituan^meituan.com|Pinduoduo^pinduoduo.com|Temu^temu.com`
     .split('|')
-    .map((name) => ({ name, label: name, logo: companyLogoSlug(name) }));
+    .map((entry) => {
+      const [name, domain] = entry.split('^');
+      return { name, label: name, domain, logo: companyLogoSlug(name) };
+    });
   const featured = [
     { name: 'Microsoft', label: 'Microsoft', logo: 'microsoft' },
     { name: 'Tesla', label: 'Tesla', logo: 'tesla' },
@@ -1199,6 +1202,7 @@ function normalizeCareers(user = {}) {
     period: String(career?.period || '').trim(),
     location: String(career?.location || '').trim(),
     logo: String(career?.logo || findCompanyLogo(career?.company || career?.name || '') || '').trim(),
+    domain: String(career?.domain || findCompanyDomain(career?.company || career?.name || '') || '').trim(),
     public: career?.public ?? user.companyPublic ?? true
   })).filter((career) => career.role || career.company || career.period || career.location);
   if (careers.length) return careers;
@@ -1208,6 +1212,7 @@ function normalizeCareers(user = {}) {
     period: String(user.companyPeriod || '').trim(),
     location: String(user.companyLocation || '').trim(),
     logo: findCompanyLogo(user.companyName || user.company || ''),
+    domain: findCompanyDomain(user.companyName || user.company || ''),
     public: user.companyPublic ?? true
   };
   return legacy.role || legacy.company || legacy.period || legacy.location ? [legacy] : [];
@@ -1216,6 +1221,11 @@ function normalizeCareers(user = {}) {
 function findCompanyLogo(company = '') {
   const clean = String(company || '').trim().toLowerCase();
   return companyOptions.find((option) => option.name.toLowerCase() === clean || option.label.toLowerCase() === clean)?.logo || '';
+}
+
+function findCompanyDomain(company = '') {
+  const clean = String(company || '').trim().toLowerCase();
+  return companyOptions.find((option) => option.name.toLowerCase() === clean || option.label.toLowerCase() === clean)?.domain || '';
 }
 
 function companyLogoSlug(name = '') {
@@ -1310,6 +1320,10 @@ function careerInfo(user = {}) {
 
 function companyLogoMarkup(logo = '', fallback = 'B') {
   const cleanLogo = logo || findCompanyLogo(fallback);
+  const logoUrl = companyLogoUrl(fallback);
+  if (logoUrl) {
+    return `<span class="company-logo company-logo-image"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(fallback)} logo" loading="lazy" onerror="this.closest('.company-logo').classList.add('is-fallback');this.remove()"><b>${escapeHtml(companyInitial(fallback))}</b></span>`;
+  }
   const safeFallback = escapeHtml(companyInitial(fallback));
   if (cleanLogo === 'microsoft') {
     return '<span class="company-logo company-logo-microsoft"><i></i><i></i><i></i><i></i></span>';
@@ -1318,6 +1332,13 @@ function companyLogoMarkup(logo = '', fallback = 'B') {
   if (cleanLogo === 'dior') return '<span class="company-logo company-logo-dior">DIOR</span>';
   if (cleanLogo) return `<span class="company-logo company-logo-generic company-logo-${escapeHtml(cleanLogo)}" style="--logo-hue:${logoHue(cleanLogo)}">${safeFallback}</span>`;
   return `<span class="company-logo">${safeFallback}</span>`;
+}
+
+function companyLogoUrl(company = '') {
+  const apiKey = AUTH_CONFIG.logoDevApiKey || '';
+  const domain = findCompanyDomain(company);
+  if (!apiKey || !domain) return '';
+  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(apiKey)}&size=128&format=png`;
 }
 
 function snsLogo(key, label) {
@@ -1353,6 +1374,7 @@ function profileDataFromForm(formData, current = {}) {
   const careerPeriods = formData.getAll('careerPeriod[]');
   const careerLocations = formData.getAll('careerLocation[]');
   const careerLogos = formData.getAll('careerLogo[]');
+  const careerDomains = formData.getAll('careerDomain[]');
   const careers = careerRoles.map((role, index) => {
     const company = String(careerCompanies[index] || '').trim();
     return {
@@ -1361,6 +1383,7 @@ function profileDataFromForm(formData, current = {}) {
       period: String(careerPeriods[index] || '').trim(),
       location: String(careerLocations[index] || '').trim(),
       logo: String(careerLogos[index] || findCompanyLogo(company) || '').trim(),
+      domain: String(careerDomains[index] || findCompanyDomain(company) || '').trim(),
       public: formData.get(`careerPublic-${index}`) !== 'false'
     };
   }).filter((career) => career.role || career.company || career.period || career.location);
@@ -1665,7 +1688,7 @@ function careerEditCard(career = {}, index = 0) {
         </div>
       </div>
       <input name="careerRole[]" value="${escapeHtml(career.role || '')}" placeholder="職種・役割 例：Solution Engineer">
-      ${companyField(company, logo)}
+      ${companyField(company, logo, career.domain || findCompanyDomain(company))}
       <input name="careerPeriod[]" value="${escapeHtml(career.period || '')}" placeholder="期間 例：2025年8月 - 2025年9月・2ヶ月">
       <input name="careerLocation[]" value="${escapeHtml(career.location || '')}" placeholder="場所 例：日本 東京都 品川区">
     </div>
@@ -1701,12 +1724,14 @@ function universityField(name, value = '', showLabel = true, required = true) {
   `;
 }
 
-function companyField(value = '', logo = '') {
+function companyField(value = '', logo = '', domainValue = '') {
   const label = value || '企業・所属を選択または入力';
+  const domain = domainValue || findCompanyDomain(value);
   return `
     <label class="company-field">
       <input type="hidden" name="careerCompany[]" value="${escapeHtml(value)}">
       <input type="hidden" name="careerLogo[]" value="${escapeHtml(logo || findCompanyLogo(value))}">
+      <input type="hidden" name="careerDomain[]" value="${escapeHtml(domain)}">
       <button type="button" class="university-select company-select" data-company-open>
         <span>${companyLogoMarkup(logo, value || 'B')}<b>${escapeHtml(label)}</b></span>
         ${icon('chevronDown', 18)}
@@ -2837,6 +2862,7 @@ function openOptionPicker(trigger, config) {
   const field = trigger.closest(config.fieldSelector);
   const hiddenInput = field.querySelector('input[type="hidden"]');
   const logoInput = field.querySelector('input[name="careerLogo[]"]');
+  const domainInput = field.querySelector('input[name="careerDomain[]"]');
   const currentValue = hiddenInput.value;
   const root = document.createElement('div');
   root.className = 'university-picker-root';
@@ -2872,17 +2898,20 @@ function openOptionPicker(trigger, config) {
       const name = typeof option === 'string' ? option : option.name;
       const label = typeof option === 'string' ? option : option.label;
       const logo = typeof option === 'string' ? '' : option.logo;
-      return `<button type="button" data-university-value="${escapeHtml(name)}" data-company-logo="${escapeHtml(logo || '')}">${logo ? companyLogoMarkup(logo, label) : ''}<span>${escapeHtml(label)}</span></button>`;
+      const domain = typeof option === 'string' ? '' : option.domain;
+      return `<button type="button" data-university-value="${escapeHtml(name)}" data-company-logo="${escapeHtml(logo || '')}" data-company-domain="${escapeHtml(domain || '')}">${logo ? companyLogoMarkup(logo, label) : ''}<span>${escapeHtml(label)}</span></button>`;
     }).join('')
       || '<p>候補がありません。入力した名前を使えます。</p>';
   };
 
-  const choose = (value, logo = '') => {
+  const choose = (value, logo = '', domain = '') => {
     const cleanValue = value.trim();
     if (!cleanValue) return;
     const cleanLogo = logo || findCompanyLogo(cleanValue);
+    const cleanDomain = domain || findCompanyDomain(cleanValue);
     hiddenInput.value = cleanValue;
     if (logoInput) logoInput.value = cleanLogo;
+    if (domainInput) domainInput.value = cleanDomain;
     const triggerLabel = trigger.querySelector('span');
     if (triggerLabel) {
       triggerLabel.innerHTML = logoInput
@@ -2895,7 +2924,7 @@ function openOptionPicker(trigger, config) {
   search.addEventListener('input', updateList);
   list.addEventListener('click', (event) => {
     const option = event.target.closest('[data-university-value]');
-    if (option) choose(option.dataset.universityValue, option.dataset.companyLogo || '');
+    if (option) choose(option.dataset.universityValue, option.dataset.companyLogo || '', option.dataset.companyDomain || '');
   });
   freeInputButton.addEventListener('click', () => choose(search.value));
   root.addEventListener('click', (event) => {

@@ -2355,6 +2355,32 @@ body {
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.28);
 }
 
+.company-logo-image {
+  overflow: hidden;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+}
+
+.company-logo-image img {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+}
+
+.company-logo-image b {
+  display: none;
+}
+
+.company-logo-image.is-fallback {
+  background:
+    linear-gradient(135deg, hsl(var(--logo-hue, 214) 74% 46%), hsl(calc(var(--logo-hue, 214) + 34) 64% 30%));
+  color: #fff;
+}
+
+.company-logo-image.is-fallback b {
+  display: block;
+}
+
 .company-logo-microsoft {
   grid-template-columns: 1fr 1fr;
   gap: 3px;
