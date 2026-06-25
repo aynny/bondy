@@ -1240,8 +1240,9 @@ function findCompanyDomain(company = '') {
 
 function findCompanyLogoUrl(company = '', domainValue = '') {
   const clean = String(company || '').trim().toLowerCase();
-  return companyOptions.find((option) => option.name.toLowerCase() === clean || option.label.toLowerCase() === clean)?.logoUrl
-    || companyLogoUrl(company, domainValue || findCompanyDomain(company));
+  const domain = domainValue || findCompanyDomain(company);
+  if (domain) return companyLogoUrl(company, domain);
+  return companyOptions.find((option) => option.name.toLowerCase() === clean || option.label.toLowerCase() === clean)?.logoUrl || '';
 }
 
 function normalizeCompanyOption(company = {}) {
@@ -1446,7 +1447,7 @@ function careerInfo(user = {}) {
 function companyLogoMarkup(logo = '', fallback = 'B', domain = '', logoUrlValue = '') {
   const cleanLogo = logo || findCompanyLogo(fallback);
   const cleanDomain = domain || findCompanyDomain(fallback);
-  const logoUrl = logoUrlValue || companyLogoUrl(fallback, cleanDomain);
+  const logoUrl = cleanDomain ? companyLogoUrl(fallback, cleanDomain) : logoUrlValue;
   if (logoUrl) {
     return `<span class="company-logo company-logo-image" style="--logo-hue:${logoHue(cleanLogo || fallback)}"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(fallback)} logo" loading="lazy" onerror="this.closest('.company-logo').classList.add('is-fallback');this.remove()"><b>${escapeHtml(companyInitial(fallback))}</b></span>`;
   }
