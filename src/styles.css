@@ -2593,7 +2593,7 @@ body {
   text-align: center;
 }
 
-.sns-register-button span {
+.sns-register-button > span:not(.sns-register-icon) {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2601,10 +2601,11 @@ body {
 }
 
 .sns-register-icon {
-  width: 34px;
+  width: 54px;
   height: 34px;
   display: grid;
   place-items: center;
+  overflow: visible;
 }
 
 .sns-register-icon .sns-logo {
@@ -2613,7 +2614,8 @@ body {
 }
 
 .sns-register-icon .sns-logo-youtube {
-  width: 48px;
+  width: 54px;
+  max-width: none;
 }
 
 .sns-status-text {
@@ -2637,12 +2639,37 @@ body {
 
 .sns-register-modal {
   display: grid;
-  gap: 18px;
+  gap: 12px;
 }
 
 .sns-register-form {
   display: grid;
-  gap: 16px;
+  gap: 14px;
+}
+
+.sns-register-modal header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.sns-register-modal header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.modal-close-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #111;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .sns-register-form label {
@@ -2661,29 +2688,6 @@ body {
   background: #fff;
   color: #111;
   font-size: 16px;
-}
-
-.sns-register-preview {
-  min-height: 72px;
-  display: grid;
-  align-content: center;
-  gap: 6px;
-  padding: 14px;
-  border-radius: 16px;
-  background: #f8f8f8;
-  color: #111;
-  text-align: center;
-}
-
-.sns-register-preview p {
-  margin: 0;
-  color: #666;
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.sns-register-preview strong {
-  font-size: 20px;
 }
 
 .sns-register-actions {

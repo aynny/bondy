@@ -2861,16 +2861,13 @@ function snsRegisterContent(data = {}) {
   const value = account?.username ? `@${account.username}` : '';
   const label = data.label || data.platform || 'SNS';
   return `
-    <header><h2>${escapeHtml(label)}アカウントを登録</h2><button data-close>閉じる</button></header>
+    <header><h2>${escapeHtml(label)}アカウントを登録</h2><button class="modal-close-icon" data-close aria-label="閉じる">×</button></header>
     <form class="sns-register-form" data-sns-register-form>
       <input type="hidden" name="platform" value="${escapeHtml(data.platform || '')}">
       <input type="hidden" name="label" value="${escapeHtml(label)}">
       <label>${escapeHtml(label)}のURLまたはユーザー名
         <input name="account" value="${escapeHtml(value)}" placeholder="@username またはプロフィールURL" autocomplete="off">
       </label>
-      <div class="sns-register-preview" data-sns-preview>
-        ${account?.username ? `<p>この${escapeHtml(label)}アカウントを登録しますか？</p><strong>@${escapeHtml(account.username)}</strong>` : '<p>ユーザー名かURLを入力してください。</p>'}
-      </div>
       <div class="sns-register-actions">
         <button type="button" data-action="preview-sns-account">${escapeHtml(label)}で確認</button>
         <button type="submit">登録する</button>
