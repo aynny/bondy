@@ -685,9 +685,10 @@ async function loadMapCenterConnections(centerId, options = {}) {
   }
   const rows = (data || [])
     .map((row) => connectionPersonFromRow(row, profilesById, centerId))
-    .filter((person) => person.id !== authState.user?.id)
     .map((person) => ({
       ...person,
+      name: person.id === authState.user?.id ? 'あなた' : person.name,
+      tag: person.id === authState.user?.id ? 'あなた' : person.tag,
       requestId: '',
       readOnly: true
     }));
@@ -1482,6 +1483,7 @@ function relationshipColor(type) {
     '家族': '#ef476f',
     'イベント': '#8b5cf6',
     '恋人': '#ec4899',
+    'あなた': '#94a3b8',
     '紹介': '#111111'
   }[type] || '#111111';
 }
@@ -1584,7 +1586,8 @@ function mapRelationshipMark(value) {
     '地元': '地',
     '家族': '家',
     'イベント': '旗',
-    '恋人': '♡'
+    '恋人': '♡',
+    'あなた': '自'
   }[value] || 'B');
 }
 
