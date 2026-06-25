@@ -687,6 +687,31 @@ function connectionPersonFromRow(row, profilesById, centerId = authState.user?.i
   };
 }
 
+function privacySafeProfile(profile = {}) {
+  const normalized = normalizeUser(profile);
+  return {
+    school: normalized.schoolPublic === false ? '' : normalized.school,
+    highSchool: normalized.highSchoolPublic === false ? '' : normalized.highSchool,
+    university: normalized.universityPublic === false ? '' : normalized.university,
+    vocationalSchool: normalized.vocationalSchoolPublic === false ? '' : normalized.vocationalSchool,
+    highSchoolPublic: normalized.highSchoolPublic,
+    universityPublic: normalized.universityPublic,
+    vocationalSchoolPublic: normalized.vocationalSchoolPublic,
+    careers: careerItems(normalized, { respectPrivacy: true }),
+    company: normalized.companyPublic === false ? '' : normalized.company,
+    companyRole: normalized.companyPublic === false ? '' : normalized.companyRole,
+    companyName: normalized.companyPublic === false ? '' : normalized.companyName,
+    companyPeriod: normalized.companyPublic === false ? '' : normalized.companyPeriod,
+    companyLocation: normalized.companyPublic === false ? '' : normalized.companyLocation,
+    location: normalized.locationPublic === false ? '' : normalized.location,
+    birthday: normalized.birthdayPublic === false ? '' : normalized.birthday,
+    locationPublic: normalized.locationPublic,
+    birthdayPublic: normalized.birthdayPublic,
+    sns: normalized.sns,
+    snsPublic: normalized.snsPublic
+  };
+}
+
 async function loadAcceptedConnections(options = {}) {
   if (!authState.client || !authState.user) return false;
   const { data, error } = await authState.client
@@ -720,6 +745,9 @@ async function loadAcceptedConnections(options = {}) {
 
 async function loadMapCenterConnections(centerId, options = {}) {
   if (!authState.client || !authState.user || !centerId || centerId === 'you') return [];
+  console.log('centerId', centerId);
+  const rpcRows = await loadMapCenterConnectionsViaRpc(centerId, options);
+  if (rpcRows) return rpcRows;
   const { data, error } = await authState.client
     .from(CONNECTION_REQUEST_TABLE)
     .select('id,requester_id,recipient_id,status,message,created_at,updated_at')
@@ -727,21 +755,24 @@ async function loadMapCenterConnections(centerId, options = {}) {
     .or(`requester_id.eq.${centerId},recipient_id.eq.${centerId}`)
     .order('updated_at', { ascending: false });
   if (error) {
-    if (!options.silent) console.warn('Map center connections load failed', error);
+    console.warn('Map center connections load failed', error);
     state.mapCenterConnections[centerId] = [];
     return [];
   }
+  console.log('map center rows', data);
   const otherIds = [...new Set((data || [])
     .map((row) => row.requester_id === centerId ? row.recipient_id : row.requester_id)
     .filter(Boolean))];
+  console.log('map center otherIds', otherIds);
   const profilesById = new Map();
   if (otherIds.length) {
     const { data: profiles, error: profileError } = await authState.client
       .from(REMOTE_PROFILE_TABLE)
       .select('id,email,handle,profile')
       .in('id', otherIds);
+    console.log('map center profiles', profiles);
     if (profileError) {
-      if (!options.silent) console.warn('Map center profiles load failed', profileError);
+      console.warn('Map center profiles load failed', profileError);
     } else {
       (profiles || []).forEach((row) => profilesById.set(row.id, profileFromRemoteRow(row)));
     }
@@ -759,12 +790,48 @@ async function loadMapCenterConnections(centerId, options = {}) {
   return rows;
 }
 
+async function loadMapCenterConnectionsViaRpc(centerId, options = {}) {
+  try {
+    const { data, error } = await authState.client.rpc('get_map_center_connections', { center_id: centerId });
+    if (error) {
+      console.warn('Map center RPC failed, falling back to direct query', error);
+      return null;
+    }
+    console.log('map center rows', data);
+    const rows = (data || []).map((item) => {
+      const profile = normalizeUser(item.profile || item);
+      return {
+        id: item.id || item.user_id || item.profile_id,
+        requestId: item.request_id || '',
+        requesterId: item.requester_id || '',
+        recipientId: item.recipient_id || '',
+        name: profile.name || item.name || item.handle || 'ユーザー',
+        handle: profile.handle || item.handle || '',
+        tag: relationshipFromValue(item.relationship || item.message || item.tag) || 'つながり',
+        desc: profile.company || profile.school || '',
+        common: '公開つながり',
+        time: relativeTime(item.updated_at || item.created_at),
+        photo: profile.photo || item.photo || '',
+        ...privacySafeProfile(profile),
+        readOnly: true
+      };
+    }).filter((person) => person.id);
+    console.log('map center otherIds', rows.map((person) => person.id));
+    console.log('map center profiles', rows);
+    state.mapCenterConnections[centerId] = rows;
+    return rows;
+  } catch (error) {
+    console.warn('Map center RPC unavailable', error);
+    return null;
+  }
+}
+
 async function loadRemovalNotifications(options = {}) {
   if (!authState.client || !authState.user) return false;
   const { data, error } = await authState.client
     .from(CONNECTION_REQUEST_TABLE)
     .select('id,requester_id,recipient_id,status,message,updated_at,created_at')
-    .eq('status', 'rejected')
+    .eq('status', 'removed')
     .or(`requester_id.eq.${authState.user.id},recipient_id.eq.${authState.user.id}`)
     .order('updated_at', { ascending: false })
     .limit(30);
@@ -841,7 +908,7 @@ async function removeConnection(requestId, relationship) {
   const { error } = await authState.client
     .from(CONNECTION_REQUEST_TABLE)
     .update({
-      status: 'rejected',
+      status: 'removed',
       message: removalPayload(authState.user.id, relationship),
       updated_at: new Date().toISOString()
     })
@@ -861,7 +928,7 @@ async function removeConnection(requestId, relationship) {
 }
 
 async function startQrScanner() {
-  if (!('BarcodeDetector' in window) || !navigator.mediaDevices?.getUserMedia) {
+  if (!navigator.mediaDevices?.getUserMedia) {
     showToast('このブラウザではID検索を使ってください');
     return;
   }
@@ -891,12 +958,24 @@ async function startQrScanner() {
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
     video.srcObject = stream;
     await video.play();
-    const detector = new BarcodeDetector({ formats: ['qr_code'] });
+    const detector = 'BarcodeDetector' in window ? new BarcodeDetector({ formats: ['qr_code'] }) : null;
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!detector) await loadJsQr();
     const scan = async () => {
       if (!scanning) return;
       try {
-        const codes = await detector.detect(video);
-        const value = codes[0]?.rawValue;
+        let value = '';
+        if (detector) {
+          const codes = await detector.detect(video);
+          value = codes[0]?.rawValue || '';
+        } else if (window.jsQR && video.videoWidth && video.videoHeight) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+          value = window.jsQR(imageData.data, imageData.width, imageData.height)?.data || '';
+        }
         if (value) {
           stop();
           await showConnectTarget(value);
@@ -913,6 +992,20 @@ async function startQrScanner() {
     stop();
     showToast('カメラを使えませんでした。ID検索を使ってください');
   }
+}
+
+function loadJsQr() {
+  if (window.jsQR) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+    script.onload = resolve;
+    script.onerror = () => {
+      console.warn('jsQR fallback failed to load');
+      reject(new Error('jsQR fallback failed to load'));
+    };
+    document.head.appendChild(script);
+  });
 }
 
 async function restoreAccountUser() {
@@ -952,7 +1045,7 @@ async function restoreAccountUser() {
 
 function profileIsComplete(user = state.user) {
   const profile = normalizeUser(user || {});
-  return Boolean(profile.name && profile.handle && profile.school && profile.birthday);
+  return Boolean(profile.name && profile.handle && (profile.school || profile.company || normalizeCareers(profile).length));
 }
 
 async function finishAuthenticatedEntry(message = '') {
@@ -1445,14 +1538,21 @@ function careerInfo(user = {}) {
 }
 
 function companyLogoMarkup(logo = '', fallback = 'B', domain = '', logoUrlValue = '') {
-  const cleanDomain = domain || findCompanyDomain(fallback);
-  const logoUrl = cleanDomain ? companyLogoUrl(fallback, cleanDomain) : logoUrlValue;
-  const company = { name: fallback, domain: cleanDomain };
-  console.log('logo debug', company.name, company.domain, logoUrl);
-  if (logoUrl) {
-    return `<span class="company-logo company-logo-image is-loading"><span class="company-logo-placeholder"></span><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(fallback)} logo" loading="lazy" onload="this.closest('.company-logo').classList.remove('is-loading')" onerror="this.closest('.company-logo').classList.remove('is-loading');this.closest('.company-logo').classList.add('is-fallback');this.remove()"><b>${escapeHtml(companyInitial(fallback))}</b></span>`;
-  }
-  return `<span class="company-logo company-logo-initial"><b>${escapeHtml(companyInitial(fallback))}</b></span>`;
+  const companyName = fallback || 'B';
+  const cleanDomain = normalizeDomain(domain || findCompanyDomain(companyName));
+  const logoUrl = cleanDomain
+    ? companyLogoUrl(companyName, cleanDomain)
+    : String(logoUrlValue || '').trim() || companyNameLogoUrl(companyName);
+
+  console.log('logo debug', companyName, cleanDomain, logoUrl);
+
+  const initial = escapeHtml(companyInitial(companyName));
+  const escapedName = escapeHtml(companyName);
+  const fallbackHtml = `<div class="company-logo-fallback" aria-label="${escapedName} logo fallback">${initial}</div>`;
+
+  if (!logoUrl) return fallbackHtml;
+
+  return `<img class="company-logo-img" src="${escapeHtml(logoUrl)}" alt="${escapedName} logo" loading="lazy" onerror="console.warn('Logo failed', this.alt, this.src);this.outerHTML='<div class=&quot;company-logo-fallback&quot;>${initial}</div>'">`;
 }
 
 function companyLogoUrl(company = '', domainValue = '') {
@@ -1463,7 +1563,18 @@ function companyLogoUrl(company = '', domainValue = '') {
     return '';
   }
   if (!domain) return '';
-  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(apiKey)}&size=128&format=png&fallback=404&v=80`;
+  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(apiKey)}&size=128&format=png&fallback=404&v=82`;
+}
+
+function companyNameLogoUrl(company = '') {
+  const apiKey = AUTH_CONFIG.logoDevApiKey || window.LOGO_DEV_TOKEN || '';
+  const name = String(company || '').trim();
+  if (!apiKey) {
+    console.warn('Logo.dev token is empty');
+    return '';
+  }
+  if (!name || name === 'B') return '';
+  return `https://img.logo.dev/name/${encodeURIComponent(name)}?token=${encodeURIComponent(apiKey)}&size=128&format=png&fallback=404&v=82`;
 }
 
 function snsLogo(key, label) {
@@ -1483,11 +1594,68 @@ function snsLogo(key, label) {
 }
 
 function snsFromForm(formData) {
-  return Object.fromEntries(snsFields().map(({ key }) => [key, String(formData.get(key) || '').trim()]));
+  return Object.fromEntries(snsFields().map(({ key }) => [key, normalizeSnsAccount(key, String(formData.get(key) || '').trim())]));
 }
 
 function snsPublicFromForm(formData) {
   return Object.fromEntries(snsFields().map(({ key }) => [key, formData.get(`${key}Public`) !== 'false']));
+}
+
+function normalizeSnsAccount(platform, value = '') {
+  if (value && typeof value === 'object') {
+    const username = String(value.username || '').replace(/^@/, '').trim();
+    const url = String(value.url || '').trim() || snsProfileUrl(platform, username);
+    return username || url ? { platform, username, url } : '';
+  }
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('{')) {
+    try {
+      return normalizeSnsAccount(platform, JSON.parse(raw));
+    } catch {}
+  }
+  let username = raw.replace(/^@/, '').trim();
+  let url = '';
+  try {
+    const parsed = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
+    const pathUser = parsed.pathname.split('/').filter(Boolean)[0] || '';
+    username = decodeURIComponent(pathUser || username).replace(/^@/, '').trim();
+    url = parsed.href;
+  } catch {
+    username = username.replace(/^https?:\/\//, '').split('/').filter(Boolean).pop() || username;
+  }
+  if (!url) url = snsProfileUrl(platform, username);
+  return { platform, username, url };
+}
+
+function snsProfileUrl(platform, username = '') {
+  const clean = String(username || '').replace(/^@/, '').trim();
+  if (!clean) return '';
+  const bases = {
+    instagram: 'https://www.instagram.com/',
+    x: 'https://x.com/',
+    threads: 'https://www.threads.net/@',
+    tiktok: 'https://www.tiktok.com/@',
+    bereal: 'https://bereal.com/',
+    setlog: 'https://setlog.com/',
+    facebook: 'https://www.facebook.com/',
+    youtube: 'https://www.youtube.com/@',
+    linkedin: 'https://www.linkedin.com/in/',
+    note: 'https://note.com/'
+  };
+  return `${bases[platform] || ''}${encodeURIComponent(clean)}${platform === 'instagram' ? '/' : ''}`;
+}
+
+function snsAccountValue(account) {
+  if (!account) return '';
+  if (typeof account === 'string') return account;
+  return JSON.stringify(account);
+}
+
+function snsDisplayName(account) {
+  if (!account) return '未登録';
+  if (typeof account === 'string') return account.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+  return account.username ? `@${account.username}` : account.url || '登録済み';
 }
 
 function profileDataFromForm(formData, current = {}) {
@@ -1763,7 +1931,7 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
       <label>名前<input name="name" required value="${escapeHtml(user.name)}" placeholder="あなたの名前"></label>
       <label>ユーザーID<input name="handle" required value="${escapeHtml(user.handle)}" placeholder="好きなID"></label>
       ${profileEditRow('所在地', locationField('location', user.location, false), visibilityField('locationPublic', '所在地', user.locationPublic))}
-      ${profileEditRow('誕生日', '<input name="birthday" type="date" value="' + escapeHtml(user.birthday) + '" required>', visibilityField('birthdayPublic', '誕生日', user.birthdayPublic))}
+      ${profileEditRow('誕生日', '<input name="birthday" type="date" value="' + escapeHtml(user.birthday) + '">', visibilityField('birthdayPublic', '誕生日', user.birthdayPublic))}
     </section>
     <section class="form-section profile-input-section">
       <h2>学歴</h2>
@@ -1791,7 +1959,11 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
             <span>${snsIcon}<b>${escapeHtml(label)}</b></span>
             ${visibilityField(`${key}Public`, label, user.snsPublic[key])}
           </div>
-          <input name="${key}" type="url" value="${escapeHtml(user.sns[key])}" placeholder="${label} URL">
+          <input name="${key}" type="hidden" value="${escapeHtml(snsAccountValue(user.sns[key]))}">
+          <button type="button" class="sns-register-button" data-sns-register="${escapeHtml(key)}" data-sns-label="${escapeHtml(label)}">
+            <span>${escapeHtml(snsDisplayName(user.sns[key]))}</span>
+            ${icon('chevronRight', 18)}
+          </button>
         </div>
       `).join('')}
     </fieldset>
@@ -2044,7 +2216,7 @@ function networkGraph(nodes) {
         </svg>
         ${nodes.map((node, index) => `<span class="line-token" data-token-node="${escapeHtml(node.id || node.name)}" style="--dx:${node.x - 50}%;--dy:${node.y - 50}%;--token-color:${node.color};--token-delay:${index * -0.28}s">${mapRelationshipMark(node.tag)}</span>`).join('')}
         ${centerNode}
-        ${nodes.map((node) => `<button class="map-node ${node.centerable ? 'centerable' : 'profile-only'}" type="button" style="left:${node.x}%;top:${node.y}%" data-map-node="${escapeHtml(node.id || node.name)}" data-centerable="${node.centerable ? 'true' : 'false'}" data-person-id="${escapeHtml(node.id || '')}" data-person="${escapeHtml(node.name)}">${personAvatar(node, 54)}<b>${escapeHtml(node.name)}</b><em>${escapeHtml(relationshipLabel(node.tag))}</em></button>`).join('')}
+        ${nodes.map((node) => `<button class="map-node ${node.centerable ? 'centerable' : 'profile-only'}" type="button" style="left:${node.x}%;top:${node.y}%" data-map-node="${escapeHtml(node.id || '')}" data-centerable="${node.centerable ? 'true' : 'false'}" data-person-id="${escapeHtml(node.id || '')}" data-person-name="${escapeHtml(node.name)}" data-person="${escapeHtml(node.name)}">${personAvatar(node, 54)}<b>${escapeHtml(node.name)}</b><em>${escapeHtml(relationshipLabel(node.tag))}</em></button>`).join('')}
         ${nodes.length ? '' : `<div class="empty-map">${emptyMessage}</div>`}
       </div>
     </section>
@@ -2489,10 +2661,13 @@ function snsLinks(user, options = {}) {
   const publicMap = user.snsPublic || {};
   const respectPrivacy = options.respectPrivacy !== false;
   const links = snsFields()
-    .map(({ key, icon: label }) => [key, label, sns[key]])
+    .map(({ key, icon: label }) => {
+      const account = normalizeSnsAccount(key, sns[key]);
+      return [key, label, account?.url || '', account?.username || ''];
+    })
     .filter(([key, , url]) => url && (!respectPrivacy || publicMap[key] !== false));
   if (!links.length) return '<small>未連携</small>';
-  return links.map(([name, label, url]) => `<a class="sns-link sns-${escapeHtml(name)}" href="${escapeHtml(url)}" target="_blank" rel="noreferrer" aria-label="${name}" title="${name}">${label}</a>`).join('');
+  return links.map(([name, label, url, username]) => `<a class="sns-link sns-${escapeHtml(name)}" href="${escapeHtml(url)}" target="_blank" rel="noreferrer" aria-label="${name}" title="${escapeHtml(username ? `@${username}` : name)}">${label}</a>`).join('');
 }
 
 function buttonIcon(ic, action, cls = '') {
@@ -2515,6 +2690,7 @@ function overlay() {
   const user = currentUser();
   if (type === 'person') return modal(personModalContent(state.overlay), 'person-modal');
   if (type === 'photo-crop') return modal(photoCropContent(state.overlay), 'photo-crop-modal');
+  if (type === 'sns-register') return modal(snsRegisterContent(state.overlay), 'sns-register-modal');
   if (type === 'share-profile') return modal(shareProfileContent(), 'connect-modal profile-share-modal');
   if (type === 'connect-profile') return modal(connectProfileContent(state.overlay.target), 'connect-modal');
   if (type === 'search') return modal(idSearchContent('検索'), 'connect-modal');
@@ -2664,6 +2840,29 @@ function photoCropContent(crop = {}) {
   `;
 }
 
+function snsRegisterContent(data = {}) {
+  const account = normalizeSnsAccount(data.platform, data.value);
+  const value = account?.username ? `@${account.username}` : '';
+  const label = data.label || data.platform || 'SNS';
+  return `
+    <header><h2>${escapeHtml(label)}アカウントを登録</h2><button data-close>閉じる</button></header>
+    <form class="sns-register-form" data-sns-register-form>
+      <input type="hidden" name="platform" value="${escapeHtml(data.platform || '')}">
+      <input type="hidden" name="label" value="${escapeHtml(label)}">
+      <label>${escapeHtml(label)}のURLまたはユーザー名
+        <input name="account" value="${escapeHtml(value)}" placeholder="@username またはプロフィールURL" autocomplete="off">
+      </label>
+      <div class="sns-register-preview" data-sns-preview>
+        ${account?.username ? `<p>この${escapeHtml(label)}アカウントを登録しますか？</p><strong>@${escapeHtml(account.username)}</strong>` : '<p>ユーザー名かURLを入力してください。</p>'}
+      </div>
+      <div class="sns-register-actions">
+        <button type="button" data-action="preview-sns-account">${escapeHtml(label)}で確認</button>
+        <button type="submit">登録する</button>
+      </div>
+    </form>
+  `;
+}
+
 function go(screen, message = '') {
   state.screen = screen;
   state.overlay = null;
@@ -2690,6 +2889,7 @@ app.addEventListener('click', async (event) => {
   const universityButton = event.target.closest('[data-university-open]');
   const locationButton = event.target.closest('[data-location-open]');
   const companyButton = event.target.closest('[data-company-open]');
+  const snsRegisterButton = event.target.closest('[data-sns-register]');
   const careerAddButton = event.target.closest('[data-career-add]');
   const careerRemoveButton = event.target.closest('[data-career-remove]');
   const action = event.target.closest('[data-action]')?.dataset.action;
@@ -2737,6 +2937,18 @@ app.addEventListener('click', async (event) => {
       options: companyOptions,
       remoteSearch: true
     });
+    return;
+  }
+  if (snsRegisterButton) {
+    const field = snsRegisterButton.closest('.sns-edit-row');
+    const input = field?.querySelector(`input[name="${snsRegisterButton.dataset.snsRegister}"]`);
+    state.overlay = {
+      type: 'sns-register',
+      platform: snsRegisterButton.dataset.snsRegister,
+      label: snsRegisterButton.dataset.snsLabel,
+      value: input?.value || ''
+    };
+    render();
     return;
   }
   if (careerAddButton) {
@@ -2849,22 +3061,22 @@ app.addEventListener('click', async (event) => {
       mapInteraction.dragged = false;
       return;
     }
-    const name = mapNodeButton.dataset.mapNode;
-    const visibleNode = mapVisibleNodes().find((node) => (node.id || node.name) === name);
-    const node = visibleNode || personByIdOrName(name);
+    const centerId = mapNodeButton.dataset.mapNode || mapNodeButton.dataset.personId;
+    const visibleNode = mapVisibleNodes().find((node) => node.id === centerId);
+    const node = visibleNode || personByIdOrName(centerId);
     if (mapNodeButton.dataset.centerable === 'true') {
       await animateNodeToCenter(mapNodeButton);
-      state.mapCenter = name;
+      state.mapCenter = centerId;
       state.filter = 'すべて';
       state.mapPan = { x: 0, y: 0 };
       state.zoom = 1;
-      showToast(`${node?.name || mapNodeButton.dataset.person || 'ユーザー'}を中心にしました`);
+      showToast(`${node?.name || mapNodeButton.dataset.personName || 'ユーザー'}を中心にしました`);
       render();
-      await loadMapCenterConnections(name, { silent: true });
+      await loadMapCenterConnections(centerId, { silent: true });
       render();
       return;
     }
-    state.overlay = personOverlayFromNode(node, name);
+    state.overlay = personOverlayFromNode(node, mapNodeButton.dataset.personName || 'ユーザー');
     render();
     return;
   }
@@ -2995,6 +3207,14 @@ app.addEventListener('click', async (event) => {
       return true;
     });
     render();
+    return;
+  }
+  if (action === 'preview-sns-account') {
+    const form = event.target.closest('[data-sns-register-form]');
+    const formData = new FormData(form);
+    const account = normalizeSnsAccount(String(formData.get('platform') || ''), String(formData.get('account') || ''));
+    if (!account?.url) return showToast('ユーザー名かURLを入力してください');
+    window.open(account.url, '_blank', 'noopener,noreferrer');
     return;
   }
   if (action === 'camera') return showToast('写真変更を開きました');
@@ -3168,8 +3388,30 @@ app.addEventListener('submit', async (event) => {
   const registerForm = event.target.closest('[data-register-form]');
   const editForm = event.target.closest('[data-edit-form]');
   const idSearchForm = event.target.closest('[data-id-search-form]');
-  if (!authForm && !registerForm && !editForm && !idSearchForm) return;
+  const snsRegisterForm = event.target.closest('[data-sns-register-form]');
+  if (!authForm && !registerForm && !editForm && !idSearchForm && !snsRegisterForm) return;
   event.preventDefault();
+
+  if (snsRegisterForm) {
+    const formData = new FormData(snsRegisterForm);
+    const platform = String(formData.get('platform') || '');
+    const account = normalizeSnsAccount(platform, String(formData.get('account') || ''));
+    if (!account) {
+      showToast('ユーザー名かURLを入力してください');
+      return;
+    }
+    const input = document.querySelector(`.edit-profile-form input[name="${cssEscape(platform)}"], .register-form input[name="${cssEscape(platform)}"]`);
+    if (input) {
+      input.value = snsAccountValue(account);
+      const row = input.closest('.sns-edit-row');
+      const label = row?.querySelector('.sns-register-button span');
+      if (label) label.textContent = snsDisplayName(account);
+    }
+    state.overlay = null;
+    document.querySelector('.scrim')?.remove();
+    document.querySelector('.sns-register-modal')?.remove();
+    return;
+  }
 
   if (idSearchForm) {
     const formData = new FormData(idSearchForm);
@@ -3232,8 +3474,8 @@ app.addEventListener('submit', async (event) => {
       email: authState.user?.email || current.email || '',
       photo: state.pendingProfilePhotoFile ? await uploadProfilePhoto(state.pendingProfilePhotoFile) : photo && photo.size ? await uploadProfilePhoto(photo) : current.photo
     };
-    if (!user.name || !user.handle || !user.school || !user.birthday) {
-      showToast('名前・ID・学校・誕生日を入力してください');
+    if (!user.name || !user.handle || !(user.school || user.company || normalizeCareers(user).length)) {
+      showToast('名前・ID・学校または会社を入力してください');
       return;
     }
     await withButtonPending(event.submitter, '登録中...', () => saveUser(user));
