@@ -1318,9 +1318,9 @@ function careerInfo(user = {}) {
   };
 }
 
-function companyLogoMarkup(logo = '', fallback = 'B') {
+function companyLogoMarkup(logo = '', fallback = 'B', domain = '') {
   const cleanLogo = logo || findCompanyLogo(fallback);
-  const logoUrl = companyLogoUrl(fallback);
+  const logoUrl = companyLogoUrl(fallback, domain);
   if (logoUrl) {
     return `<span class="company-logo company-logo-image"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(fallback)} logo" loading="lazy" onerror="this.closest('.company-logo').classList.add('is-fallback');this.remove()"><b>${escapeHtml(companyInitial(fallback))}</b></span>`;
   }
@@ -1334,9 +1334,9 @@ function companyLogoMarkup(logo = '', fallback = 'B') {
   return `<span class="company-logo">${safeFallback}</span>`;
 }
 
-function companyLogoUrl(company = '') {
+function companyLogoUrl(company = '', domainValue = '') {
   const apiKey = AUTH_CONFIG.logoDevApiKey || '';
-  const domain = findCompanyDomain(company);
+  const domain = domainValue || findCompanyDomain(company);
   if (!apiKey || !domain) return '';
   return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(apiKey)}&size=128&format=png`;
 }
@@ -1681,7 +1681,7 @@ function careerEditCard(career = {}, index = 0) {
   return `
     <div class="career-edit-card">
       <div class="sns-edit-head">
-        <span>${companyLogoMarkup(logo, company || 'B')}<b>職歴 ${index + 1}</b></span>
+        <span><b>職歴 ${index + 1}</b></span>
         <div class="career-edit-actions">
           ${careerVisibilityField(index, career.public ?? true)}
           <button type="button" class="career-remove-button" data-career-remove aria-label="職歴を削除">${icon('x', 17)}</button>
@@ -1733,7 +1733,7 @@ function companyField(value = '', logo = '', domainValue = '') {
       <input type="hidden" name="careerLogo[]" value="${escapeHtml(logo || findCompanyLogo(value))}">
       <input type="hidden" name="careerDomain[]" value="${escapeHtml(domain)}">
       <button type="button" class="university-select company-select" data-company-open>
-        <span>${companyLogoMarkup(logo, value || 'B')}<b>${escapeHtml(label)}</b></span>
+        <span><b>${escapeHtml(label)}</b></span>
         ${icon('chevronDown', 18)}
       </button>
     </label>
@@ -1957,9 +1957,12 @@ function mapVisibleNodes() {
       return node;
     });
   }
-  const positions = [[50, 22], [72, 34], [76, 62], [50, 78], [28, 62], [28, 34], [86, 50], [14, 50]];
-  return (state.mapCenterConnections[state.mapCenter] || []).slice(0, 8).map((person, index) => {
-    const [x, y] = positions[index % positions.length];
+  const rows = state.mapCenterConnections[state.mapCenter] || [];
+  return rows.map((person, index) => {
+    const angle = (-90 + (360 / Math.max(rows.length, 1)) * index) * Math.PI / 180;
+    const radius = rows.length > 8 ? 35 : 31;
+    const x = 50 + Math.cos(angle) * radius;
+    const y = 50 + Math.sin(angle) * radius;
     const saved = state.mapNodePositions[person.id] || {};
     return {
       ...person,
@@ -2333,7 +2336,7 @@ function careerDisplay(user = {}, variant = '', options = {}) {
     <div class="${compact ? 'career-list compact-career-list' : 'career-list'}">
       ${careers.map((career, index) => `
         <div class="${compact ? 'career-card compact-career-card' : 'career-card'}">
-          ${companyLogoMarkup(career.logo, career.company || career.role || 'B')}
+          ${companyLogoMarkup(career.logo, career.company || career.role || 'B', career.domain)}
           <div>
             <h3>${escapeHtml(career.role || '所属')}</h3>
             <p>${escapeHtml(career.company || '会社・所属未入力')}</p>
@@ -2381,6 +2384,7 @@ function overlay() {
   const type = state.overlay.type;
   const user = currentUser();
   if (type === 'person') return modal(personModalContent(state.overlay), 'person-modal');
+  if (type === 'photo-crop') return modal(photoCropContent(state.overlay), 'photo-crop-modal');
   if (type === 'share-profile') return modal(shareProfileContent(), 'connect-modal profile-share-modal');
   if (type === 'connect-profile') return modal(connectProfileContent(state.overlay.target), 'connect-modal');
   if (type === 'search') return modal(idSearchContent('検索'), 'connect-modal');
@@ -2512,6 +2516,27 @@ function privacyPolicyContent() {
 
 function modal(content, cls = '') {
   return `<div class="scrim" data-close></div><section class="modal-sheet ${cls}">${content}</section>`;
+}
+
+function photoCropContent(crop = {}) {
+  return `
+    <header><h2>写真を調整</h2><button data-close>閉じる</button></header>
+    <div class="crop-editor">
+      <div class="crop-frame">
+        <img src="${escapeHtml(crop.src || '')}" alt="" style="--crop-scale:${crop.zoom || 1};--crop-x:${crop.x || 0}px;--crop-y:${crop.y || 0}px">
+      </div>
+      <label>拡大
+        <input type="range" min="1" max="2.4" step="0.01" value="${crop.zoom || 1}" data-crop-control="zoom">
+      </label>
+      <label>横位置
+        <input type="range" min="-90" max="90" step="1" value="${crop.x || 0}" data-crop-control="x">
+      </label>
+      <label>縦位置
+        <input type="range" min="-90" max="90" step="1" value="${crop.y || 0}" data-crop-control="y">
+      </label>
+      <button class="pill primary" data-action="save-cropped-photo">この写真にする</button>
+    </div>
+  `;
 }
 
 function go(screen, message = '') {
@@ -2847,9 +2872,34 @@ app.addEventListener('click', async (event) => {
     return;
   }
   if (action === 'camera') return showToast('写真変更を開きました');
+  if (action === 'save-cropped-photo') {
+    if (!state.overlay?.file || state.overlay.type !== 'photo-crop') return;
+    showToast('写真を保存中...');
+    const croppedFile = await createCroppedPhotoFile(state.overlay);
+    await saveUser({
+      ...currentUser(),
+      photo: await uploadProfilePhoto(croppedFile)
+    });
+    if (state.overlay.src?.startsWith('blob:')) URL.revokeObjectURL(state.overlay.src);
+    state.overlay = null;
+    showToast(authState.user ? 'プロフィール写真をクラウド保存しました' : 'プロフィール写真を変更しました');
+    render();
+    return;
+  }
 });
 
 app.addEventListener('input', (event) => {
+  const cropControl = event.target.closest('[data-crop-control]');
+  if (cropControl && state.overlay?.type === 'photo-crop') {
+    state.overlay[cropControl.dataset.cropControl] = Number(cropControl.value);
+    const image = document.querySelector('.crop-frame img');
+    if (image) {
+      image.style.setProperty('--crop-scale', state.overlay.zoom || 1);
+      image.style.setProperty('--crop-x', `${state.overlay.x || 0}px`);
+      image.style.setProperty('--crop-y', `${state.overlay.y || 0}px`);
+    }
+    return;
+  }
   const connectionSearch = event.target.closest('[data-connection-search]');
   if (!connectionSearch) return;
   state.connectionQuery = connectionSearch.value;
@@ -2899,7 +2949,7 @@ function openOptionPicker(trigger, config) {
       const label = typeof option === 'string' ? option : option.label;
       const logo = typeof option === 'string' ? '' : option.logo;
       const domain = typeof option === 'string' ? '' : option.domain;
-      return `<button type="button" data-university-value="${escapeHtml(name)}" data-company-logo="${escapeHtml(logo || '')}" data-company-domain="${escapeHtml(domain || '')}">${logo ? companyLogoMarkup(logo, label) : ''}<span>${escapeHtml(label)}</span></button>`;
+      return `<button type="button" data-university-value="${escapeHtml(name)}" data-company-logo="${escapeHtml(logo || '')}" data-company-domain="${escapeHtml(domain || '')}">${logo || domain ? companyLogoMarkup(logo, label, domain) : ''}<span>${escapeHtml(label)}</span></button>`;
     }).join('')
       || '<p>候補がありません。入力した名前を使えます。</p>';
   };
@@ -2915,7 +2965,7 @@ function openOptionPicker(trigger, config) {
     const triggerLabel = trigger.querySelector('span');
     if (triggerLabel) {
       triggerLabel.innerHTML = logoInput
-        ? `${companyLogoMarkup(cleanLogo, cleanValue)}<b>${escapeHtml(cleanValue)}</b>`
+        ? `<b>${escapeHtml(cleanValue)}</b>`
         : escapeHtml(cleanValue);
     }
     root.remove();
@@ -3046,12 +3096,14 @@ app.addEventListener('change', async (event) => {
   if (!photoInput) return;
   const file = photoInput.files?.[0];
   if (!file) return;
-  showToast('写真をアップロード中...');
-  await saveUser({
-    ...currentUser(),
-    photo: await uploadProfilePhoto(file)
-  });
-  showToast(authState.user ? 'プロフィール写真をクラウド保存しました' : 'プロフィール写真を変更しました');
+  state.overlay = {
+    type: 'photo-crop',
+    file,
+    src: URL.createObjectURL(file),
+    zoom: 1,
+    x: 0,
+    y: 0
+  };
   render();
 });
 
@@ -3255,6 +3307,35 @@ function updateDraggedNode(node) {
 
 function cssEscape(value) {
   return window.CSS?.escape ? CSS.escape(value) : String(value).replace(/"/g, '\\"');
+}
+
+async function createCroppedPhotoFile(crop) {
+  const image = await loadImage(crop.src);
+  const canvas = document.createElement('canvas');
+  const size = 720;
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#f3f3f3';
+  ctx.fillRect(0, 0, size, size);
+  const baseScale = Math.max(size / image.naturalWidth, size / image.naturalHeight);
+  const scale = baseScale * (crop.zoom || 1);
+  const width = image.naturalWidth * scale;
+  const height = image.naturalHeight * scale;
+  const x = (size - width) / 2 + (crop.x || 0) * 3;
+  const y = (size - height) / 2 + (crop.y || 0) * 3;
+  ctx.drawImage(image, x, y, width, height);
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+  return new File([blob], 'profile-photo.jpg', { type: 'image/jpeg' });
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = src;
+  });
 }
 
 function readFileAsDataUrl(file) {

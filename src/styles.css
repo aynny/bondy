@@ -1282,6 +1282,57 @@ button.is-saving::before {
   box-shadow: 0 -14px 44px rgba(0,0,0,.16);
   transform: translateX(-50%);
 }
+
+.photo-crop-modal {
+  display: grid;
+  gap: 16px;
+}
+
+.crop-editor {
+  display: grid;
+  gap: 13px;
+}
+
+.crop-frame {
+  width: 238px;
+  height: 238px;
+  justify-self: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #e5e5e5;
+  border-radius: 50%;
+  background: #f4f4f4;
+  box-shadow: 0 12px 36px rgba(0,0,0,.12);
+}
+
+.crop-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 5px solid rgba(255,255,255,.9);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.crop-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: translate(var(--crop-x, 0), var(--crop-y, 0)) scale(var(--crop-scale, 1));
+  transform-origin: center;
+}
+
+.crop-editor label {
+  display: grid;
+  gap: 6px;
+  color: #555;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.crop-editor input[type="range"] {
+  width: 100%;
+}
 .person-modal {
   top: max(34px, env(safe-area-inset-top));
   bottom: max(24px, env(safe-area-inset-bottom));
@@ -2892,12 +2943,7 @@ body {
 }
 
 .map-screen .map-interactive-panel::after {
-  background:
-    radial-gradient(circle at 50% 50%, rgba(112,166,246,.28), transparent 31%),
-    radial-gradient(circle at 24% 31%, rgba(82,132,203,.18), transparent 20%),
-    radial-gradient(circle at 76% 64%, rgba(68,139,218,.16), transparent 22%),
-    radial-gradient(circle at 48% 82%, rgba(145,190,255,.1), transparent 18%);
-  animation: mapAmbientGlow 7s ease-in-out infinite;
+  display: none;
 }
 
 .map-screen .map-canvas {
