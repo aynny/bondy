@@ -2423,13 +2423,12 @@ body {
 }
 
 .company-logo-image.is-fallback {
-  background:
-    linear-gradient(135deg, hsl(var(--logo-hue, 214) 74% 46%), hsl(calc(var(--logo-hue, 214) + 34) 64% 30%));
-  color: #fff;
+  background: #f4f4f4;
+  color: transparent;
 }
 
 .company-logo-image.is-fallback b {
-  display: block;
+  display: none;
 }
 
 .company-logo-microsoft {
@@ -3009,22 +3008,15 @@ body {
 .map-screen .lines .line-base {
   stroke-width: .48;
   stroke-linecap: round;
-  opacity: .68;
-  animation: mapLineBreathe 2.9s ease-in-out infinite;
+  opacity: .34;
+  animation: none;
   transform-box: fill-box;
   transform-origin: center;
-  filter: drop-shadow(0 0 3px rgba(255,255,255,.88)) drop-shadow(0 0 10px currentColor);
+  filter: none;
 }
 
 .map-screen .lines .line-flow {
-  stroke-width: .72;
-  stroke-linecap: round;
-  stroke-dasharray: 1 46;
-  stroke-dashoffset: 0;
-  opacity: .64;
-  filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 12px rgba(255,255,255,.95));
-  animation: mapLineLight 2.9s linear infinite;
-  animation-delay: var(--flow-delay, 0s);
+  display: none;
 }
 
 .map-screen .lines .line-base:nth-of-type(2n) { animation-delay: -.7s; }
@@ -3049,29 +3041,7 @@ body {
 }
 
 .line-token {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 2;
-  width: 14px;
-  height: 14px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 999px;
-  background: radial-gradient(circle, #fff 0 22%, var(--token-color) 38%, rgba(255,255,255,.18) 72%, transparent 74%);
-  color: transparent;
-  box-shadow:
-    0 0 0 3px rgba(255,255,255,.16),
-    0 0 14px var(--token-color),
-    0 0 28px rgba(255,255,255,.72);
-  font-size: 0;
-  font-weight: 900;
-  line-height: 1;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-  animation: lineTokenTravel 3.2s cubic-bezier(.45, 0, .2, 1) infinite;
-  animation-delay: var(--token-delay, 0s);
+  display: none;
 }
 
 @keyframes lineTokenTravel {

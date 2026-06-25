@@ -45,6 +45,8 @@ const state = {
   notifications: [],
   mapCenterConnections: {},
   mapNodePositions: loadMapNodePositions(),
+  pendingProfilePhotoFile: null,
+  pendingProfilePhotoPreview: '',
   authSubmitting: false
 };
 
@@ -162,24 +164,24 @@ function buildCompanyOptions() {
       return { name, label: name, domain, logo: companyLogoSlug(name) };
     });
   const featured = [
-    { name: 'Microsoft', label: 'Microsoft', logo: 'microsoft' },
-    { name: 'Tesla', label: 'Tesla', logo: 'tesla' },
-    { name: 'Christian Dior Couture', label: 'Christian Dior Couture', logo: 'dior' },
-    { name: 'Google', label: 'Google', logo: 'google' },
-    { name: 'Apple', label: 'Apple', logo: 'apple' },
-    { name: 'Amazon', label: 'Amazon', logo: 'amazon' },
-    { name: 'Meta', label: 'Meta', logo: 'meta' },
-    { name: 'LINEヤフー', label: 'LINEヤフー', logo: 'lineYahoo' },
-    { name: 'サイバーエージェント', label: 'サイバーエージェント', logo: 'cyberAgent' },
-    { name: '楽天グループ', label: '楽天グループ', logo: 'rakuten' },
-    { name: 'メルカリ', label: 'メルカリ', logo: 'mercari' },
-    { name: 'リクルート', label: 'リクルート', logo: 'recruit' },
-    { name: 'DeNA', label: 'DeNA', logo: 'dena' },
-    { name: 'SmartHR', label: 'SmartHR', logo: 'smarthr' },
-    { name: 'LayerX', label: 'LayerX', logo: 'layerx' },
-    { name: 'Sansan', label: 'Sansan', logo: 'sansan' },
-    { name: 'freee', label: 'freee', logo: 'freee' },
-    { name: 'note', label: 'note', logo: 'noteCompany' },
+    { name: 'Microsoft', label: 'Microsoft', domain: 'microsoft.com', logo: 'microsoft' },
+    { name: 'Tesla', label: 'Tesla', domain: 'tesla.com', logo: 'tesla' },
+    { name: 'Christian Dior Couture', label: 'Christian Dior Couture', domain: 'dior.com', logo: 'dior' },
+    { name: 'Google', label: 'Google', domain: 'google.com', logo: 'google' },
+    { name: 'Apple', label: 'Apple', domain: 'apple.com', logo: 'apple' },
+    { name: 'Amazon', label: 'Amazon', domain: 'amazon.com', logo: 'amazon' },
+    { name: 'Meta', label: 'Meta', domain: 'meta.com', logo: 'meta' },
+    { name: 'LINEヤフー', label: 'LINEヤフー', domain: 'lycorp.co.jp', logo: 'lineYahoo' },
+    { name: 'サイバーエージェント', label: 'サイバーエージェント', domain: 'cyberagent.co.jp', logo: 'cyberAgent' },
+    { name: '楽天グループ', label: '楽天グループ', domain: 'rakuten.com', logo: 'rakuten' },
+    { name: 'メルカリ', label: 'メルカリ', domain: 'mercari.com', logo: 'mercari' },
+    { name: 'リクルート', label: 'リクルート', domain: 'recruit.co.jp', logo: 'recruit' },
+    { name: 'DeNA', label: 'DeNA', domain: 'dena.com', logo: 'dena' },
+    { name: 'SmartHR', label: 'SmartHR', domain: 'smarthr.co.jp', logo: 'smarthr' },
+    { name: 'LayerX', label: 'LayerX', domain: 'layerx.co.jp', logo: 'layerx' },
+    { name: 'Sansan', label: 'Sansan', domain: 'sansan.com', logo: 'sansan' },
+    { name: 'freee', label: 'freee', domain: 'freee.co.jp', logo: 'freee' },
+    { name: 'note', label: 'note', domain: 'note.com', logo: 'noteCompany' },
     { name: '株式会社Mesh', label: '株式会社Mesh', logo: 'mesh' }
   ];
   const merged = [...featured, ...starterCompanies];
@@ -1320,9 +1322,10 @@ function careerInfo(user = {}) {
 
 function companyLogoMarkup(logo = '', fallback = 'B', domain = '') {
   const cleanLogo = logo || findCompanyLogo(fallback);
-  const logoUrl = companyLogoUrl(fallback, domain);
+  const cleanDomain = domain || findCompanyDomain(fallback);
+  const logoUrl = companyLogoUrl(fallback, cleanDomain);
   if (logoUrl) {
-    return `<span class="company-logo company-logo-image"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(fallback)} logo" loading="lazy" onerror="this.closest('.company-logo').classList.add('is-fallback');this.remove()"><b>${escapeHtml(companyInitial(fallback))}</b></span>`;
+    return `<span class="company-logo company-logo-image" style="--logo-hue:${logoHue(cleanLogo || fallback)}"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(fallback)} logo" loading="lazy" onerror="this.closest('.company-logo').classList.add('is-fallback');this.remove()"><b>${escapeHtml(companyInitial(fallback))}</b></span>`;
   }
   const safeFallback = escapeHtml(companyInitial(fallback));
   if (cleanLogo === 'microsoft') {
@@ -2876,13 +2879,19 @@ app.addEventListener('click', async (event) => {
     if (!state.overlay?.file || state.overlay.type !== 'photo-crop') return;
     showToast('写真を保存中...');
     const croppedFile = await createCroppedPhotoFile(state.overlay);
-    await saveUser({
-      ...currentUser(),
-      photo: await uploadProfilePhoto(croppedFile)
-    });
+    if (state.overlay.mode === 'form') {
+      state.pendingProfilePhotoFile = croppedFile;
+      state.pendingProfilePhotoPreview = await readFileAsDataUrl(croppedFile);
+      showToast('写真を設定しました。保存ボタンで反映されます');
+    } else {
+      await saveUser({
+        ...currentUser(),
+        photo: await uploadProfilePhoto(croppedFile)
+      });
+      showToast(authState.user ? 'プロフィール写真をクラウド保存しました' : 'プロフィール写真を変更しました');
+    }
     if (state.overlay.src?.startsWith('blob:')) URL.revokeObjectURL(state.overlay.src);
     state.overlay = null;
-    showToast(authState.user ? 'プロフィール写真をクラウド保存しました' : 'プロフィール写真を変更しました');
     render();
     return;
   }
@@ -3065,13 +3074,15 @@ app.addEventListener('submit', async (event) => {
     const user = {
       ...profileDataFromForm(formData, current),
       email: authState.user?.email || current.email || '',
-      photo: photo && photo.size ? await uploadProfilePhoto(photo) : current.photo
+      photo: state.pendingProfilePhotoFile ? await uploadProfilePhoto(state.pendingProfilePhotoFile) : photo && photo.size ? await uploadProfilePhoto(photo) : current.photo
     };
     if (!user.name || !user.handle || !user.school || !user.birthday) {
       showToast('名前・ID・学校・誕生日を入力してください');
       return;
     }
     await withButtonPending(event.submitter, '登録中...', () => saveUser(user));
+    state.pendingProfilePhotoFile = null;
+    state.pendingProfilePhotoPreview = '';
     localStorage.removeItem(SIGNUP_PENDING_KEY);
     go('profile', '登録しました');
     return;
@@ -3081,23 +3092,26 @@ app.addEventListener('submit', async (event) => {
     const formData = new FormData(editForm);
     const photo = formData.get('photo');
     const current = currentUser();
-    const nextPhoto = photo && photo.size ? await uploadProfilePhoto(photo) : current.photo;
+    const nextPhoto = state.pendingProfilePhotoFile ? await uploadProfilePhoto(state.pendingProfilePhotoFile) : photo && photo.size ? await uploadProfilePhoto(photo) : current.photo;
     await withButtonPending(event.submitter, '保存中...', () => saveUser({
       ...profileDataFromForm(formData, current),
       photo: nextPhoto,
     }));
+    state.pendingProfilePhotoFile = null;
+    state.pendingProfilePhotoPreview = '';
     state.overlay = null;
     go('profile', 'プロフィールを保存しました');
   }
 });
 
 app.addEventListener('change', async (event) => {
-  const photoInput = event.target.closest('[data-photo-input]');
+  const photoInput = event.target.closest('[data-photo-input], input[name="photo"][type="file"]');
   if (!photoInput) return;
   const file = photoInput.files?.[0];
   if (!file) return;
   state.overlay = {
     type: 'photo-crop',
+    mode: photoInput.matches('[data-photo-input]') ? 'immediate' : 'form',
     file,
     src: URL.createObjectURL(file),
     zoom: 1,
