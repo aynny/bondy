@@ -1672,6 +1672,11 @@ function snsStatusLabel(account) {
   return account ? '登録済み' : '未登録';
 }
 
+function snsStatusMarkup(account) {
+  if (!account) return '<span class="sns-status-text">未登録</span>';
+  return '<span class="sns-status-check" aria-label="登録済み">✓</span>';
+}
+
 function profileDataFromForm(formData, current = {}) {
   const highSchool = String(formData.get('highSchool') || '').trim();
   const university = String(formData.get('university') || '').trim();
@@ -1969,15 +1974,12 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
       <p class="sns-fieldset-note">入力したSNSは自分のプロフィールでは確認できます。公開にしたSNSだけ友達に表示されます。</p>
       ${snsFields().map(({ key, label, icon: snsIcon }) => `
         <div class="sns-edit-row">
-          <div class="sns-edit-head">
-            <span>${snsIcon}<b>${escapeHtml(label)}</b></span>
-            ${visibilityField(`${key}Public`, label, user.snsPublic[key])}
-          </div>
           <input name="${key}" type="hidden" value="${escapeHtml(snsAccountValue(user.sns[key]))}">
           <button type="button" class="sns-register-button" data-sns-register="${escapeHtml(key)}" data-sns-label="${escapeHtml(label)}">
             <span class="sns-register-icon">${snsIcon}</span>
-            <span>${escapeHtml(snsStatusLabel(user.sns[key]))}</span>
+            ${snsStatusMarkup(user.sns[key])}
           </button>
+          ${visibilityField(`${key}Public`, label, user.snsPublic[key])}
         </div>
       `).join('')}
     </fieldset>
@@ -3418,8 +3420,9 @@ app.addEventListener('submit', async (event) => {
     if (input) {
       input.value = snsAccountValue(account);
       const row = input.closest('.sns-edit-row');
-      const label = row?.querySelector('.sns-register-button span:not(.sns-register-icon)');
-      if (label) label.textContent = snsStatusLabel(account);
+      const button = row?.querySelector('.sns-register-button');
+      const status = button?.querySelector('.sns-status-text, .sns-status-check');
+      if (status) status.outerHTML = snsStatusMarkup(account);
     }
     state.overlay = null;
     document.querySelector('.scrim')?.remove();
