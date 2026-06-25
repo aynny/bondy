@@ -10,6 +10,9 @@ const REMOTE_PROFILE_TABLE = 'profiles';
 const CONNECTION_REQUEST_TABLE = 'connection_requests';
 const PROFILE_PHOTO_BUCKET = 'profile-photos';
 const SUPPORT_EMAIL = 'bondy1.app@gmail.com';
+const universityOptions = buildUniversityOptions();
+const locationOptions = buildLocationOptions();
+const companyOptions = buildCompanyOptions();
 const savedUser = loadUser();
 const authState = {
   client: null,
@@ -45,8 +48,6 @@ const state = {
   authSubmitting: false
 };
 
-const universityOptions = buildUniversityOptions();
-const locationOptions = buildLocationOptions();
 const mapInteraction = {
   active: false,
   mode: '',
@@ -153,6 +154,30 @@ function buildLocationOptions() {
   return [...prefectures, ...cities];
 }
 
+function buildCompanyOptions() {
+  return [
+    { name: 'Microsoft', label: 'Microsoft', logo: 'microsoft' },
+    { name: 'Tesla', label: 'Tesla', logo: 'tesla' },
+    { name: 'Christian Dior Couture', label: 'Christian Dior Couture', logo: 'dior' },
+    { name: 'Google', label: 'Google', logo: 'google' },
+    { name: 'Apple', label: 'Apple', logo: 'apple' },
+    { name: 'Amazon', label: 'Amazon', logo: 'amazon' },
+    { name: 'Meta', label: 'Meta', logo: 'meta' },
+    { name: 'LINEヤフー', label: 'LINEヤフー', logo: 'lineYahoo' },
+    { name: 'サイバーエージェント', label: 'サイバーエージェント', logo: 'cyberAgent' },
+    { name: '楽天グループ', label: '楽天グループ', logo: 'rakuten' },
+    { name: 'メルカリ', label: 'メルカリ', logo: 'mercari' },
+    { name: 'リクルート', label: 'リクルート', logo: 'recruit' },
+    { name: 'DeNA', label: 'DeNA', logo: 'dena' },
+    { name: 'SmartHR', label: 'SmartHR', logo: 'smarthr' },
+    { name: 'LayerX', label: 'LayerX', logo: 'layerx' },
+    { name: 'Sansan', label: 'Sansan', logo: 'sansan' },
+    { name: 'freee', label: 'freee', logo: 'freee' },
+    { name: 'note', label: 'note', logo: 'noteCompany' },
+    { name: '株式会社Mesh', label: '株式会社Mesh', logo: 'mesh' }
+  ];
+}
+
 const icons = {
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4.5-4.5"/>',
   bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
@@ -174,6 +199,7 @@ const icons = {
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/>',
   sliders: '<path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h7M15 18h5"/><circle cx="16" cy="6" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="13" cy="18" r="2"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
   minus: '<path d="M5 12h14"/>',
   home: '<path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/>',
   flag: '<path d="M5 22V4h12l-1 5 1 5H5"/>',
@@ -523,6 +549,10 @@ function requestPersonFromRow(row, profilesById) {
     highSchool: profile.highSchool || '',
     university: profile.university || '',
     vocationalSchool: profile.vocationalSchool || '',
+    highSchoolPublic: profile.highSchoolPublic ?? profile.schoolPublic ?? true,
+    universityPublic: profile.universityPublic ?? profile.schoolPublic ?? true,
+    vocationalSchoolPublic: profile.vocationalSchoolPublic ?? profile.schoolPublic ?? true,
+    careers: normalizeCareers(profile),
     company: profile.company || '',
     companyRole: profile.companyRole || '',
     companyName: profile.companyName || '',
@@ -624,6 +654,10 @@ function connectionPersonFromRow(row, profilesById, centerId = authState.user?.i
     highSchool: profile.highSchool || '',
     university: profile.university || '',
     vocationalSchool: profile.vocationalSchool || '',
+    highSchoolPublic: profile.highSchoolPublic ?? profile.schoolPublic ?? true,
+    universityPublic: profile.universityPublic ?? profile.schoolPublic ?? true,
+    vocationalSchoolPublic: profile.vocationalSchoolPublic ?? profile.schoolPublic ?? true,
+    careers: normalizeCareers(profile),
     company: profile.company || '',
     companyRole: profile.companyRole || '',
     companyName: profile.companyName || '',
@@ -1095,10 +1129,14 @@ function normalizeUser(user) {
     companyName: '',
     companyPeriod: '',
     companyLocation: '',
+    careers: [],
     location: '',
     birthday: '',
     photo: '',
     schoolPublic: true,
+    highSchoolPublic: true,
+    universityPublic: true,
+    vocationalSchoolPublic: true,
     companyPublic: true,
     locationPublic: true,
     birthdayPublic: false,
@@ -1112,6 +1150,7 @@ function normalizeUser(user) {
     companyName: user?.companyName || legacyCompany,
     companyPeriod: user?.companyPeriod || '',
     companyLocation: user?.companyLocation || '',
+    careers: normalizeCareers(user),
     school: user?.school || user?.university || user?.vocationalSchool || user?.highSchool || '',
     company: user?.company || [user?.companyRole, user?.companyName].filter(Boolean).join(' / '),
     sns: {
@@ -1123,6 +1162,9 @@ function normalizeUser(user) {
       ...(user?.snsPublic || {})
     },
     schoolPublic: user?.schoolPublic ?? true,
+    highSchoolPublic: user?.highSchoolPublic ?? user?.schoolPublic ?? true,
+    universityPublic: user?.universityPublic ?? user?.schoolPublic ?? true,
+    vocationalSchoolPublic: user?.vocationalSchoolPublic ?? user?.schoolPublic ?? true,
     companyPublic: user?.companyPublic ?? true,
     locationPublic: user?.locationPublic ?? true,
     birthdayPublic: user?.birthdayPublic ?? false
@@ -1144,30 +1186,98 @@ function snsFields() {
   ];
 }
 
-function educationItems(user = {}) {
-  return [
-    ['高校', user.highSchool],
-    ['大学', user.university || user.school],
-    ['専門学校', user.vocationalSchool]
-  ].filter(([, value]) => String(value || '').trim());
+function normalizeCareers(user = {}) {
+  const source = Array.isArray(user.careers) ? user.careers : [];
+  const careers = source.map((career) => ({
+    role: String(career?.role || career?.title || '').trim(),
+    company: String(career?.company || career?.name || '').trim(),
+    period: String(career?.period || '').trim(),
+    location: String(career?.location || '').trim(),
+    logo: String(career?.logo || findCompanyLogo(career?.company || career?.name || '') || '').trim(),
+    public: career?.public ?? user.companyPublic ?? true
+  })).filter((career) => career.role || career.company || career.period || career.location);
+  if (careers.length) return careers;
+  const legacy = {
+    role: String(user.companyRole || '').trim(),
+    company: String(user.companyName || user.company || '').trim(),
+    period: String(user.companyPeriod || '').trim(),
+    location: String(user.companyLocation || '').trim(),
+    logo: findCompanyLogo(user.companyName || user.company || ''),
+    public: user.companyPublic ?? true
+  };
+  return legacy.role || legacy.company || legacy.period || legacy.location ? [legacy] : [];
 }
 
-function educationSummary(user = {}) {
-  const items = educationItems(user);
-  return items.length ? items.map(([label, value]) => `${label}：${value}`).join(' / ') : '';
+function findCompanyLogo(company = '') {
+  const clean = String(company || '').trim().toLowerCase();
+  return companyOptions.find((option) => option.name.toLowerCase() === clean || option.label.toLowerCase() === clean)?.logo || '';
+}
+
+function educationItems(user = {}, options = {}) {
+  const respectPrivacy = options.respectPrivacy === true;
+  return [
+    ['高校', user.highSchool, user.highSchoolPublic],
+    ['大学', user.university || user.school, user.universityPublic],
+    ['専門学校', user.vocationalSchool, user.vocationalSchoolPublic]
+  ].filter(([, value, isPublic]) => String(value || '').trim() && (!respectPrivacy || isPublic !== false));
+}
+
+function hiddenEducationItems(user = {}) {
+  return [
+    ['高校', user.highSchool, user.highSchoolPublic],
+    ['大学', user.university || user.school, user.universityPublic],
+    ['専門学校', user.vocationalSchool, user.vocationalSchoolPublic]
+  ].filter(([, value, isPublic]) => String(value || '').trim() && isPublic === false);
+}
+
+function educationSummary(user = {}, options = {}) {
+  const items = educationItems(user, options);
+  if (items.length) return items.map(([label, value]) => `${label}：${value}`).join(' / ');
+  if (options.respectPrivacy && hiddenEducationItems(user).length) return '非公開';
+  return '';
+}
+
+function careerItems(user = {}, options = {}) {
+  const respectPrivacy = options.respectPrivacy === true;
+  return normalizeCareers(user).filter((career) => !respectPrivacy || career.public !== false);
+}
+
+function hiddenCareerItems(user = {}) {
+  return normalizeCareers(user).filter((career) => career.public === false);
+}
+
+function primaryCareer(user = {}, options = {}) {
+  return careerItems(user, options)[0] || null;
+}
+
+function careerSummary(user = {}, options = {}) {
+  const career = primaryCareer(user, options);
+  if (career) return [career.role, career.company].filter(Boolean).join(' / ') || user.company || '';
+  if (options.respectPrivacy && hiddenCareerItems(user).length) return '非公開';
+  return user.company || '';
 }
 
 function careerInfo(user = {}) {
-  const title = user.companyRole || '';
-  const company = user.companyName || user.company || '';
-  const period = user.companyPeriod || '';
-  const location = user.companyLocation || '';
-  return { title, company, period, location };
+  const career = primaryCareer(user) || {};
+  return {
+    title: career.role || user.companyRole || '',
+    company: career.company || user.companyName || user.company || '',
+    period: career.period || user.companyPeriod || '',
+    location: career.location || user.companyLocation || '',
+    logo: career.logo || findCompanyLogo(career.company || user.companyName || user.company || '')
+  };
 }
 
-function careerSummary(user = {}) {
-  const career = careerInfo(user);
-  return [career.title, career.company].filter(Boolean).join(' / ') || user.company || '';
+function companyLogoMarkup(logo = '', fallback = 'B') {
+  const cleanLogo = logo || findCompanyLogo(fallback);
+  const safeFallback = escapeHtml(String(fallback || 'B').slice(0, 1).toUpperCase());
+  if (cleanLogo === 'microsoft') {
+    return '<span class="company-logo company-logo-microsoft"><i></i><i></i><i></i><i></i></span>';
+  }
+  if (cleanLogo === 'tesla') return '<span class="company-logo company-logo-tesla">T</span>';
+  if (cleanLogo === 'dior') return '<span class="company-logo company-logo-dior">DIOR</span>';
+  if (cleanLogo) return `<span class="company-logo company-logo-${escapeHtml(cleanLogo)}">${safeFallback}</span>`;
+  return `<span class="company-logo">${safeFallback}</span>`;
 }
 
 function snsLogo(key, label) {
@@ -1198,12 +1308,25 @@ function profileDataFromForm(formData, current = {}) {
   const highSchool = String(formData.get('highSchool') || '').trim();
   const university = String(formData.get('university') || '').trim();
   const vocationalSchool = String(formData.get('vocationalSchool') || '').trim();
-  const companyRole = String(formData.get('companyRole') || '').trim();
-  const companyName = String(formData.get('companyName') || '').trim();
-  const companyPeriod = String(formData.get('companyPeriod') || '').trim();
-  const companyLocation = String(formData.get('companyLocation') || '').trim();
+  const careerRoles = formData.getAll('careerRole[]');
+  const careerCompanies = formData.getAll('careerCompany[]');
+  const careerPeriods = formData.getAll('careerPeriod[]');
+  const careerLocations = formData.getAll('careerLocation[]');
+  const careerLogos = formData.getAll('careerLogo[]');
+  const careers = careerRoles.map((role, index) => {
+    const company = String(careerCompanies[index] || '').trim();
+    return {
+      role: String(role || '').trim(),
+      company,
+      period: String(careerPeriods[index] || '').trim(),
+      location: String(careerLocations[index] || '').trim(),
+      logo: String(careerLogos[index] || findCompanyLogo(company) || '').trim(),
+      public: formData.get(`careerPublic-${index}`) !== 'false'
+    };
+  }).filter((career) => career.role || career.company || career.period || career.location);
+  const primary = careers[0] || {};
   const school = university || vocationalSchool || highSchool;
-  const company = [companyRole, companyName].filter(Boolean).join(' / ');
+  const company = [primary.role, primary.company].filter(Boolean).join(' / ');
   return {
     ...current,
     name: String(formData.get('name') || '').trim(),
@@ -1212,15 +1335,19 @@ function profileDataFromForm(formData, current = {}) {
     university,
     vocationalSchool,
     school,
-    companyRole,
-    companyName,
-    companyPeriod,
-    companyLocation,
+    highSchoolPublic: formData.get('highSchoolPublic') === 'true',
+    universityPublic: formData.get('universityPublic') === 'true',
+    vocationalSchoolPublic: formData.get('vocationalSchoolPublic') === 'true',
+    companyRole: primary.role || '',
+    companyName: primary.company || '',
+    companyPeriod: primary.period || '',
+    companyLocation: primary.location || '',
+    careers,
     company,
     location: String(formData.get('location') || '').trim(),
     birthday: String(formData.get('birthday') || '').trim(),
-    schoolPublic: formData.get('schoolPublic') === 'true',
-    companyPublic: formData.get('companyPublic') === 'true',
+    schoolPublic: [formData.get('highSchoolPublic'), formData.get('universityPublic'), formData.get('vocationalSchoolPublic')].some((value) => value === 'true'),
+    companyPublic: careers.some((career) => career.public),
     locationPublic: formData.get('locationPublic') === 'true',
     birthdayPublic: formData.get('birthdayPublic') === 'true',
     sns: snsFromForm(formData),
@@ -1300,8 +1427,8 @@ function personProfileDetails(person = {}) {
   ];
   return `
     <section class="person-detail-list">
-      <div>${icon('grad', 20)}<span>学校</span><strong>${escapeHtml(person.schoolPublic === false ? '非公開' : (educationSummary(person) || '未入力'))}</strong></div>
-      ${person.companyPublic === false ? `<div>${icon('brief', 20)}<span>職歴</span><strong>非公開</strong></div>` : careerDisplay(person, 'compact')}
+      <div>${icon('grad', 20)}<span>学校</span><strong>${escapeHtml(educationSummary(person, { respectPrivacy: true }) || '未入力')}</strong></div>
+      ${careerDisplay(person, 'compact', { respectPrivacy: true })}
       ${rows.map(([ic, label, value]) => `<div>${icon(ic, 20)}<span>${label}</span><strong>${escapeHtml(value)}</strong></div>`).join('')}
       <div>${icon('link', 20)}<span>SNS</span><strong class="person-sns">${snsLinks({ sns: person.sns || {}, snsPublic: person.snsPublic || {} }, { respectPrivacy: true })}</strong></div>
     </section>
@@ -1322,6 +1449,10 @@ function personOverlayFromNode(node, fallbackName = 'ユーザー') {
     highSchool: node?.highSchool || '',
     university: node?.university || '',
     vocationalSchool: node?.vocationalSchool || '',
+    highSchoolPublic: node?.highSchoolPublic ?? node?.schoolPublic ?? true,
+    universityPublic: node?.universityPublic ?? node?.schoolPublic ?? true,
+    vocationalSchoolPublic: node?.vocationalSchoolPublic ?? node?.schoolPublic ?? true,
+    careers: normalizeCareers(node),
     company: node?.company || '',
     companyRole: node?.companyRole || '',
     companyName: node?.companyName || '',
@@ -1433,6 +1564,8 @@ function registerScreen() {
 }
 
 function profileFormFields(user = normalizeUser({}), mode = 'register') {
+  const careers = normalizeCareers(user);
+  const careerCards = (careers.length ? careers : [{ role: '', company: '', period: '', location: '', logo: '', public: true }]);
   return `
     <section class="form-section">
       <h2>基本情報</h2>
@@ -1444,22 +1577,18 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
     <section class="form-section profile-input-section">
       <h2>学歴</h2>
       <p class="form-section-note">学校を分けて入れると、つながりの共通点が見つけやすくなります。</p>
-      ${profileEditRow('高校', '<input name="highSchool" value="' + escapeHtml(user.highSchool) + '" placeholder="例：東京都立 Bondy 高校">', visibilityField('schoolPublic', '学校', user.schoolPublic))}
-      ${profileEditRow('大学', universityField('university', user.university || user.school, false, false), '')}
-      ${profileEditRow('専門学校', '<input name="vocationalSchool" value="' + escapeHtml(user.vocationalSchool) + '" placeholder="例：Bondy デザイン専門学校">', '')}
+      ${profileEditRow('高校', '<input name="highSchool" value="' + escapeHtml(user.highSchool) + '" placeholder="例：東京都立 Bondy 高校">', visibilityField('highSchoolPublic', '高校', user.highSchoolPublic))}
+      ${profileEditRow('大学', universityField('university', user.university || user.school, false, false), visibilityField('universityPublic', '大学', user.universityPublic))}
+      ${profileEditRow('専門学校', '<input name="vocationalSchool" value="' + escapeHtml(user.vocationalSchool) + '" placeholder="例：Bondy デザイン専門学校">', visibilityField('vocationalSchoolPublic', '専門学校', user.vocationalSchoolPublic))}
     </section>
     <section class="form-section profile-input-section">
-      <h2>職歴・所属</h2>
+      <div class="form-section-title-row">
+        <h2>職歴・所属</h2>
+        <button type="button" class="icon-add-button" data-career-add aria-label="職歴を追加">${icon('plus', 22)}</button>
+      </div>
       <p class="form-section-note">職種・所属・期間を入れると、2枚目のような職歴表示になります。</p>
-      <div class="career-edit-card">
-        <div class="sns-edit-head">
-          <span><b>現在・過去の所属</b></span>
-          ${visibilityField('companyPublic', '会社・所属', user.companyPublic)}
-        </div>
-        <input name="companyRole" value="${escapeHtml(user.companyRole)}" placeholder="職種・役割 例：Solution Engineer">
-        <input name="companyName" value="${escapeHtml(user.companyName || user.company)}" placeholder="会社・所属 例：Microsoft・インターンシップ">
-        <input name="companyPeriod" value="${escapeHtml(user.companyPeriod)}" placeholder="期間 例：2025年8月 - 2025年9月・2ヶ月">
-        <input name="companyLocation" value="${escapeHtml(user.companyLocation)}" placeholder="場所 例：日本 東京都 品川区">
+      <div class="career-edit-list">
+        ${careerCards.map((career, index) => careerEditCard(career, index)).join('')}
       </div>
     </section>
     <fieldset class="form-section sns-fieldset">
@@ -1483,6 +1612,26 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
   `;
 }
 
+function careerEditCard(career = {}, index = 0) {
+  const company = career.company || '';
+  const logo = career.logo || findCompanyLogo(company);
+  return `
+    <div class="career-edit-card">
+      <div class="sns-edit-head">
+        <span>${companyLogoMarkup(logo, company || 'B')}<b>職歴 ${index + 1}</b></span>
+        <div class="career-edit-actions">
+          ${careerVisibilityField(index, career.public ?? true)}
+          <button type="button" class="career-remove-button" data-career-remove aria-label="職歴を削除">${icon('x', 17)}</button>
+        </div>
+      </div>
+      <input name="careerRole[]" value="${escapeHtml(career.role || '')}" placeholder="職種・役割 例：Solution Engineer">
+      ${companyField(company, logo)}
+      <input name="careerPeriod[]" value="${escapeHtml(career.period || '')}" placeholder="期間 例：2025年8月 - 2025年9月・2ヶ月">
+      <input name="careerLocation[]" value="${escapeHtml(career.location || '')}" placeholder="場所 例：日本 東京都 品川区">
+    </div>
+  `;
+}
+
 function profileEditRow(label, control, visibility) {
   return `
     <div class="profile-edit-row">
@@ -1495,6 +1644,10 @@ function profileEditRow(label, control, visibility) {
   `;
 }
 
+function careerVisibilityField(index, isPublic) {
+  return visibilityField(`careerPublic-${index}`, `職歴${index + 1}`, isPublic);
+}
+
 function universityField(name, value = '', showLabel = true, required = true) {
   const label = value || '学校名を検索して選択';
   return `
@@ -1502,6 +1655,20 @@ function universityField(name, value = '', showLabel = true, required = true) {
       <input type="hidden" name="${name}" value="${escapeHtml(value)}" ${required ? 'required' : ''}>
       <button type="button" class="university-select" data-university-open>
         <span>${escapeHtml(label)}</span>
+        ${icon('chevronDown', 18)}
+      </button>
+    </label>
+  `;
+}
+
+function companyField(value = '', logo = '') {
+  const label = value || '企業・所属を選択または入力';
+  return `
+    <label class="company-field">
+      <input type="hidden" name="careerCompany[]" value="${escapeHtml(value)}">
+      <input type="hidden" name="careerLogo[]" value="${escapeHtml(logo || findCompanyLogo(value))}">
+      <button type="button" class="university-select company-select" data-company-open>
+        <span>${companyLogoMarkup(logo, value || 'B')}<b>${escapeHtml(label)}</b></span>
         ${icon('chevronDown', 18)}
       </button>
     </label>
@@ -1845,7 +2012,7 @@ function filteredConnectionRows() {
   const query = rawQuery.toLowerCase();
   if (!query) return filteredRows;
   return filteredRows.filter((person) => {
-    const haystack = [person.name, person.desc, person.common, person.tag, person.school, person.highSchool, person.university, person.vocationalSchool, person.company, person.companyRole, person.companyName, person.companyLocation, person.location]
+    const haystack = [person.name, person.desc, person.common, person.tag, person.school, person.highSchool, person.university, person.vocationalSchool, person.company, person.companyRole, person.companyName, person.companyLocation, careerSummary(person), person.location]
       .filter(Boolean)
       .join(' ');
     return haystack.toLowerCase().includes(query) || haystack.includes(rawQuery);
@@ -1945,8 +2112,8 @@ function profileScreen() {
       </div>
     </section>
     <section class="info-rows">
-      ${infoRow('grad', '学校', user.schoolPublic ? (educationSummary(user) || '未入力') : '非公開', 'schoolPublic', user.schoolPublic)}
-      ${user.companyPublic ? careerDisplay(user) : infoRow('brief', '職歴・所属', '非公開', 'companyPublic', user.companyPublic)}
+      ${educationDisplay(user, { editable: true })}
+      ${careerDisplay(user, '', { editable: true })}
       ${infoRow('mapPin', '所在地', user.locationPublic ? (user.location || '未入力') : '非公開', 'locationPublic', user.locationPublic)}
       ${infoRow('calendar', '誕生日', user.birthdayPublic ? (user.birthday || '未入力') : '非公開', 'birthdayPublic', user.birthdayPublic)}
       <div class="info-row">${icon('link', 25)}<span>SNS</span><strong class="sns">${snsLinks(user, { respectPrivacy: false })}</strong></div>
@@ -2067,25 +2234,51 @@ function editProfileScreen() {
   `;
 }
 
-function careerDisplay(user = {}, variant = '') {
-  const career = careerInfo(user);
-  if (!career.title && !career.company && !career.period && !career.location) {
+function educationDisplay(user = {}, options = {}) {
+  const items = educationItems(user, { respectPrivacy: options.respectPrivacy });
+  if (!items.length) {
+    const value = options.respectPrivacy && hiddenEducationItems(user).length ? '非公開' : '未入力';
+    return infoRow('grad', '学校', value);
+  }
+  const visibilityNames = { '高校': 'highSchoolPublic', '大学': 'universityPublic', '専門学校': 'vocationalSchoolPublic' };
+  return `
+    <div class="education-card">
+      ${items.map(([label, value, isPublic]) => `
+        <div class="education-row">
+          ${icon('grad', 24)}
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+          ${options.editable ? `<button class="visibility-toggle ${isPublic !== false ? 'is-public' : ''}" data-visibility-toggle="${visibilityNames[label]}">${isPublic !== false ? '公開' : '非公開'}</button>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function careerDisplay(user = {}, variant = '', options = {}) {
+  const careers = careerItems(user, { respectPrivacy: options.respectPrivacy });
+  if (!careers.length) {
+    const hiddenValue = options.respectPrivacy && hiddenCareerItems(user).length ? '非公開' : '未入力';
     return variant === 'compact'
-      ? `<div>${icon('brief', 20)}<span>職歴</span><strong>未入力</strong></div>`
-      : infoRow('brief', '職歴・所属', '未入力', 'companyPublic', user.companyPublic);
+      ? `<div>${icon('brief', 20)}<span>職歴</span><strong>${hiddenValue}</strong></div>`
+      : infoRow('brief', '職歴・所属', hiddenValue);
   }
   const compact = variant === 'compact';
   return `
-    <div class="${compact ? 'career-card compact-career-card' : 'career-card'}">
-      <div class="career-logo">${(career.company || career.title || 'B').slice(0, 1).toUpperCase()}</div>
-      <div>
-        <h3>${escapeHtml(career.title || '所属')}</h3>
-        <p>${escapeHtml(career.company || '会社・所属未入力')}</p>
-        ${career.period ? `<small>${escapeHtml(career.period)}</small>` : ''}
-        ${career.location ? `<small>${escapeHtml(career.location)}</small>` : ''}
+    <div class="${compact ? 'career-list compact-career-list' : 'career-list'}">
+      ${careers.map((career, index) => `
+        <div class="${compact ? 'career-card compact-career-card' : 'career-card'}">
+          ${companyLogoMarkup(career.logo, career.company || career.role || 'B')}
+          <div>
+            <h3>${escapeHtml(career.role || '所属')}</h3>
+            <p>${escapeHtml(career.company || '会社・所属未入力')}</p>
+            ${career.period ? `<small>${escapeHtml(career.period)}</small>` : ''}
+            ${career.location ? `<small>${escapeHtml(career.location)}</small>` : ''}
+          </div>
+          ${options.editable ? `<button class="visibility-toggle ${career.public !== false ? 'is-public' : ''}" data-career-visibility="${index}">${career.public !== false ? '公開' : '非公開'}</button>` : ''}
+        </div>
+      `).join('')}
       </div>
-      ${compact ? '' : `<button class="visibility-toggle ${user.companyPublic ? 'is-public' : ''}" data-visibility-toggle="companyPublic">${user.companyPublic ? '公開' : '非公開'}</button>`}
-    </div>
   `;
 }
 
@@ -2281,6 +2474,9 @@ function openOverlay(type) {
 app.addEventListener('click', async (event) => {
   const universityButton = event.target.closest('[data-university-open]');
   const locationButton = event.target.closest('[data-location-open]');
+  const companyButton = event.target.closest('[data-company-open]');
+  const careerAddButton = event.target.closest('[data-career-add]');
+  const careerRemoveButton = event.target.closest('[data-career-remove]');
   const action = event.target.closest('[data-action]')?.dataset.action;
   const nav = event.target.closest('[data-nav]')?.dataset.nav;
   const tab = event.target.closest('[data-tab]')?.dataset.tab;
@@ -2288,6 +2484,7 @@ app.addEventListener('click', async (event) => {
   const mode = event.target.closest('[data-mode]')?.dataset.mode;
   const filter = event.target.closest('[data-filter]')?.dataset.filter;
   const visibilityToggle = event.target.closest('[data-visibility-toggle]')?.dataset.visibilityToggle;
+  const careerVisibility = event.target.closest('[data-career-visibility]')?.dataset.careerVisibility;
   const request = event.target.closest('[data-request]');
   const centerProfileButton = event.target.closest('[data-center-profile]');
   const mapNodeButton = event.target.closest('[data-map-node]');
@@ -2314,6 +2511,36 @@ app.addEventListener('click', async (event) => {
       freeInputLabel: '入力した地域を使う',
       options: locationOptions
     });
+    return;
+  }
+  if (companyButton) {
+    openOptionPicker(companyButton, {
+      fieldSelector: '.company-field',
+      title: '企業・所属を選択',
+      searchPlaceholder: '企業名で検索',
+      freeInputLabel: '入力した企業名を使う',
+      options: companyOptions
+    });
+    return;
+  }
+  if (careerAddButton) {
+    const list = document.querySelector('.career-edit-list');
+    if (!list) return;
+    list.insertAdjacentHTML('beforeend', careerEditCard({}, list.querySelectorAll('.career-edit-card').length));
+    refreshCareerNumbers();
+    return;
+  }
+  if (careerRemoveButton) {
+    const list = careerRemoveButton.closest('.career-edit-list');
+    const cards = list?.querySelectorAll('.career-edit-card') || [];
+    if (cards.length <= 1) {
+      careerRemoveButton.closest('.career-edit-card')?.querySelectorAll('input').forEach((input) => {
+        input.value = '';
+      });
+    } else {
+      careerRemoveButton.closest('.career-edit-card')?.remove();
+    }
+    refreshCareerNumbers();
     return;
   }
   if (event.target.closest('[data-close]')) {
@@ -2361,6 +2588,21 @@ app.addEventListener('click', async (event) => {
     });
     saveRemoteUser(updatedUser).catch(() => {});
     showToast(updatedUser[visibilityToggle] ? '公開にしました' : '非公開にしました');
+    render();
+    return;
+  }
+  if (careerVisibility !== undefined) {
+    const current = currentUser();
+    const careers = normalizeCareers(current).map((career, index) => index === Number(careerVisibility)
+      ? { ...career, public: career.public === false }
+      : career);
+    const updatedUser = saveUserLocal({
+      ...current,
+      careers,
+      companyPublic: careers.some((career) => career.public !== false)
+    });
+    saveRemoteUser(updatedUser).catch(() => {});
+    showToast(careers[Number(careerVisibility)]?.public !== false ? '公開にしました' : '非公開にしました');
     render();
     return;
   }
@@ -2554,6 +2796,7 @@ function openOptionPicker(trigger, config) {
   document.querySelector('.university-picker-root')?.remove();
   const field = trigger.closest(config.fieldSelector);
   const hiddenInput = field.querySelector('input[type="hidden"]');
+  const logoInput = field.querySelector('input[name="careerLogo[]"]');
   const currentValue = hiddenInput.value;
   const root = document.createElement('div');
   root.className = 'university-picker-root';
@@ -2579,24 +2822,40 @@ function openOptionPicker(trigger, config) {
     const query = search.value.trim().toLowerCase();
     const normalizedQuery = search.value.trim();
     const matches = config.options
-      .filter((name) => !query || name.toLowerCase().includes(query) || name.includes(normalizedQuery))
+      .filter((option) => {
+        const name = typeof option === 'string' ? option : option.name;
+        const label = typeof option === 'string' ? option : option.label;
+        return !query || name.toLowerCase().includes(query) || label.toLowerCase().includes(query) || name.includes(normalizedQuery);
+      })
       .slice(0, 80);
-    list.innerHTML = matches.map((name) => `<button type="button" data-university-value="${escapeHtml(name)}">${escapeHtml(name)}</button>`).join('')
+    list.innerHTML = matches.map((option) => {
+      const name = typeof option === 'string' ? option : option.name;
+      const label = typeof option === 'string' ? option : option.label;
+      const logo = typeof option === 'string' ? '' : option.logo;
+      return `<button type="button" data-university-value="${escapeHtml(name)}" data-company-logo="${escapeHtml(logo || '')}">${logo ? companyLogoMarkup(logo, label) : ''}<span>${escapeHtml(label)}</span></button>`;
+    }).join('')
       || '<p>候補がありません。入力した名前を使えます。</p>';
   };
 
-  const choose = (value) => {
+  const choose = (value, logo = '') => {
     const cleanValue = value.trim();
     if (!cleanValue) return;
+    const cleanLogo = logo || findCompanyLogo(cleanValue);
     hiddenInput.value = cleanValue;
-    trigger.querySelector('span').textContent = cleanValue;
+    if (logoInput) logoInput.value = cleanLogo;
+    const triggerLabel = trigger.querySelector('span');
+    if (triggerLabel) {
+      triggerLabel.innerHTML = logoInput
+        ? `${companyLogoMarkup(cleanLogo, cleanValue)}<b>${escapeHtml(cleanValue)}</b>`
+        : escapeHtml(cleanValue);
+    }
     root.remove();
   };
 
   search.addEventListener('input', updateList);
   list.addEventListener('click', (event) => {
     const option = event.target.closest('[data-university-value]');
-    if (option) choose(option.dataset.universityValue);
+    if (option) choose(option.dataset.universityValue, option.dataset.companyLogo || '');
   });
   freeInputButton.addEventListener('click', () => choose(search.value));
   root.addEventListener('click', (event) => {
@@ -2605,6 +2864,19 @@ function openOptionPicker(trigger, config) {
 
   updateList();
   setTimeout(() => search.focus(), 50);
+}
+
+function refreshCareerNumbers() {
+  document.querySelectorAll('.career-edit-list .career-edit-card').forEach((card, index) => {
+    const title = card.querySelector('.sns-edit-head b');
+    if (title) title.textContent = `職歴 ${index + 1}`;
+    const fieldset = card.querySelector('.visibility-field');
+    const legend = fieldset?.querySelector('legend');
+    if (legend) legend.textContent = `職歴${index + 1}`;
+    fieldset?.querySelectorAll('input[type="radio"]').forEach((input) => {
+      input.name = `careerPublic-${index}`;
+    });
+  });
 }
 
 app.addEventListener('submit', async (event) => {

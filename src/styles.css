@@ -417,6 +417,28 @@ button.is-saving::before {
   line-height: 1.55;
 }
 
+.form-section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.form-section-title-row h2 {
+  margin: 0;
+}
+
+.icon-add-button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #dedede;
+  border-radius: 50%;
+  background: #fff;
+  color: #111;
+}
+
 .sns-edit-row,
 .profile-edit-row {
   display: grid;
@@ -425,6 +447,11 @@ button.is-saving::before {
   border: 1px solid #ededed;
   border-radius: 15px;
   background: #fff;
+}
+
+.career-edit-list {
+  display: grid;
+  gap: 10px;
 }
 
 .sns-edit-head {
@@ -475,7 +502,8 @@ button.is-saving::before {
 }
 
 .sns-edit-row .visibility-field,
-.profile-edit-row .visibility-field {
+.profile-edit-row .visibility-field,
+.career-edit-card .visibility-field {
   flex: 0 0 auto;
   width: 92px;
   display: grid;
@@ -488,7 +516,8 @@ button.is-saving::before {
 }
 
 .sns-edit-row .visibility-field legend,
-.profile-edit-row .visibility-field legend {
+.profile-edit-row .visibility-field legend,
+.career-edit-card .visibility-field legend {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -497,7 +526,8 @@ button.is-saving::before {
 }
 
 .sns-edit-row .visibility-field label,
-.profile-edit-row .visibility-field label {
+.profile-edit-row .visibility-field label,
+.career-edit-card .visibility-field label {
   height: 22px;
   border: 0;
   background: transparent;
@@ -514,11 +544,13 @@ button.is-saving::before {
 }
 
 .profile-edit-row .university-field,
-.profile-edit-row .location-field {
+.profile-edit-row .location-field,
+.career-edit-card .company-field {
   gap: 0;
 }
 
-.profile-edit-row .university-select {
+.profile-edit-row .university-select,
+.career-edit-card .company-select {
   height: 38px;
   font-size: 13px;
 }
@@ -530,6 +562,37 @@ button.is-saving::before {
   border: 1px solid #ededed;
   border-radius: 15px;
   background: #fff;
+}
+
+.career-edit-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.career-remove-button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #ededed;
+  border-radius: 50%;
+  background: #fff;
+  color: #555;
+}
+
+.company-select span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.company-select b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
 }
 
 .career-edit-card input {
@@ -1345,7 +1408,7 @@ button.is-saving::before {
   border-radius: 18px;
   background: #fbfbfb;
 }
-.person-detail-list > div {
+.person-detail-list > div:not(.career-list) {
   min-height: 30px;
   display: grid;
   grid-template-columns: 24px 84px 1fr;
@@ -1353,11 +1416,11 @@ button.is-saving::before {
   gap: 7px;
   font-size: 13px;
 }
-.person-detail-list > div > span {
+.person-detail-list > div:not(.career-list) > span {
   color: #595959;
   font-weight: 760;
 }
-.person-detail-list > div > strong {
+.person-detail-list > div:not(.career-list) > strong {
   min-width: 0;
   color: #111;
   font-weight: 650;
@@ -1367,6 +1430,12 @@ button.is-saving::before {
 .person-detail-list .compact-career-card {
   grid-template-columns: 36px 1fr;
   padding: 4px 0;
+}
+
+.person-detail-list .compact-career-list {
+  display: grid;
+  gap: 2px;
+  padding: 2px 0 4px;
 }
 
 .person-sns {
@@ -1629,10 +1698,18 @@ button.is-saving::before {
   min-height: 48px;
   display: flex;
   align-items: center;
+  gap: 11px;
   padding: 0 15px;
   border-bottom: 1px solid #f1f1f1;
   text-align: left;
   font-size: 15px;
+}
+
+.university-list .company-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  font-size: 13px;
 }
 .university-list button:last-child {
   border-bottom: 0;
@@ -2259,7 +2336,7 @@ body {
   border-bottom: 1px solid #f2f2f2;
 }
 
-.career-logo {
+.company-logo {
   width: 48px;
   height: 48px;
   display: grid;
@@ -2271,6 +2348,46 @@ body {
   font-weight: 850;
   letter-spacing: -.04em;
 }
+
+.company-logo-microsoft {
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  padding: 6px;
+  background: #fff;
+}
+
+.company-logo-microsoft i:nth-child(1) { background: #f25022; }
+.company-logo-microsoft i:nth-child(2) { background: #7fba00; }
+.company-logo-microsoft i:nth-child(3) { background: #00a4ef; }
+.company-logo-microsoft i:nth-child(4) { background: #ffb900; }
+
+.company-logo-tesla {
+  background: #e82127;
+  font-family: Georgia, serif;
+}
+
+.company-logo-dior {
+  background: #050505;
+  font-family: Georgia, serif;
+  font-size: 13px;
+}
+
+.company-logo-google { background: #4285f4; }
+.company-logo-apple { background: #111; }
+.company-logo-amazon { background: #ff9900; color: #111; }
+.company-logo-meta { background: #0668e1; }
+.company-logo-lineYahoo { background: #06c755; }
+.company-logo-cyberAgent { background: #1a9b83; }
+.company-logo-rakuten { background: #bf0000; }
+.company-logo-mercari { background: #ff0211; }
+.company-logo-recruit { background: #2684ff; }
+.company-logo-dena { background: #00a6e0; }
+.company-logo-smarthr { background: #00b8a9; }
+.company-logo-layerx { background: #111827; }
+.company-logo-sansan { background: #1b3d8f; }
+.company-logo-freee { background: #5c7cfa; }
+.company-logo-noteCompany { background: #41c9b4; color: #111; }
+.company-logo-mesh { background: #111; }
 
 .career-card h3 {
   margin: 0 0 3px;
@@ -2296,11 +2413,44 @@ body {
   line-height: 1.32;
 }
 
-.compact-career-card .career-logo {
+.compact-career-card .company-logo {
   width: 34px;
   height: 34px;
   border-radius: 9px;
   font-size: 15px;
+}
+
+.education-card {
+  display: grid;
+  gap: 0;
+  border-bottom: 1px solid #f2f2f2;
+}
+
+.education-row {
+  display: grid;
+  grid-template-columns: 28px 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  border-bottom: 1px solid #f7f7f7;
+}
+
+.education-row:last-child {
+  border-bottom: 0;
+}
+
+.education-row span {
+  color: #767676;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.education-row strong {
+  min-width: 0;
+  color: #111;
+  font-size: 15px;
+  font-weight: 520;
+  overflow-wrap: anywhere;
 }
 
 .compact-career-card h3 {
