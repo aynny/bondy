@@ -1339,17 +1339,13 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
       <h2>基本情報</h2>
       <label>名前<input name="name" required value="${escapeHtml(user.name)}" placeholder="あなたの名前"></label>
       <label>ユーザーID<input name="handle" required value="${escapeHtml(user.handle)}" placeholder="好きなID"></label>
-      ${universityField('school', user.school)}
-      ${visibilityField('schoolPublic', '学校', user.schoolPublic)}
-      <label>会社・所属<input name="company" value="${escapeHtml(user.company)}" placeholder="会社名・役職・所属"></label>
-      ${visibilityField('companyPublic', '会社・所属', user.companyPublic)}
+      ${profileEditRow('学校', universityField('school', user.school, false), visibilityField('schoolPublic', '学校', user.schoolPublic))}
+      ${profileEditRow('会社・所属', '<input name="company" value="' + escapeHtml(user.company) + '" placeholder="会社名・役職・所属">', visibilityField('companyPublic', '会社・所属', user.companyPublic))}
     </section>
     <section class="form-section">
       <h2>公開設定</h2>
-      ${locationField('location', user.location)}
-      ${visibilityField('locationPublic', '所在地', user.locationPublic)}
-      <label>誕生日<input name="birthday" type="date" value="${escapeHtml(user.birthday)}" required></label>
-      ${visibilityField('birthdayPublic', '誕生日', user.birthdayPublic)}
+      ${profileEditRow('所在地', locationField('location', user.location, false), visibilityField('locationPublic', '所在地', user.locationPublic))}
+      ${profileEditRow('誕生日', '<input name="birthday" type="date" value="' + escapeHtml(user.birthday) + '" required>', visibilityField('birthdayPublic', '誕生日', user.birthdayPublic))}
     </section>
     <fieldset class="form-section sns-fieldset">
       <legend>SNS</legend>
@@ -1372,10 +1368,22 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
   `;
 }
 
-function universityField(name, value = '') {
+function profileEditRow(label, control, visibility) {
+  return `
+    <div class="profile-edit-row">
+      <div class="sns-edit-head">
+        <span><b>${escapeHtml(label)}</b></span>
+        ${visibility}
+      </div>
+      ${control}
+    </div>
+  `;
+}
+
+function universityField(name, value = '', showLabel = true) {
   const label = value || '学校名を検索して選択';
   return `
-    <label class="university-field">学校
+    <label class="university-field">${showLabel ? '学校' : ''}
       <input type="hidden" name="${name}" value="${escapeHtml(value)}" required>
       <button type="button" class="university-select" data-university-open>
         <span>${escapeHtml(label)}</span>
@@ -1385,10 +1393,10 @@ function universityField(name, value = '') {
   `;
 }
 
-function locationField(name, value = '') {
+function locationField(name, value = '', showLabel = true) {
   const label = value || '地域を選択';
   return `
-    <label class="location-field">所在地
+    <label class="location-field">${showLabel ? '所在地' : ''}
       <input type="hidden" name="${name}" value="${escapeHtml(value)}">
       <button type="button" class="university-select location-select" data-location-open>
         <span>${escapeHtml(label)}</span>
@@ -1815,7 +1823,6 @@ function profileScreen() {
       <div class="profile-identity">
         <h1>${escapeHtml(user.name || '未設定')} <span>登録済み</span></h1>
         <p>@${escapeHtml(user.handle || 'your.id')}</p>
-        ${cloudSyncBadge()}
         <div class="profile-quick-actions">
           <button class="profile-share-button" data-action="edit">プロフィールを編集</button>
           <button class="profile-share-button" data-action="share-profile">プロフィールを共有</button>
