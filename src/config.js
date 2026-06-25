@@ -1,0 +1,3 @@
+const LOGO_DEV_TOKEN = "pk_NKVwAjJZSbSH5CXfccZtuw";
+
+window.LOGO_DEV_TOKEN = LOGO_DEV_TOKEN;

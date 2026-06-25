@@ -1445,27 +1445,25 @@ function careerInfo(user = {}) {
 }
 
 function companyLogoMarkup(logo = '', fallback = 'B', domain = '', logoUrlValue = '') {
-  const cleanLogo = logo || findCompanyLogo(fallback);
   const cleanDomain = domain || findCompanyDomain(fallback);
   const logoUrl = cleanDomain ? companyLogoUrl(fallback, cleanDomain) : logoUrlValue;
+  const company = { name: fallback, domain: cleanDomain };
+  console.log('logo debug', company.name, company.domain, logoUrl);
   if (logoUrl) {
-    return `<span class="company-logo company-logo-image" style="--logo-hue:${logoHue(cleanLogo || fallback)}"><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(fallback)} logo" loading="lazy" onerror="this.closest('.company-logo').classList.add('is-fallback');this.remove()"><b>${escapeHtml(companyInitial(fallback))}</b></span>`;
+    return `<span class="company-logo company-logo-image is-loading"><span class="company-logo-placeholder"></span><img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(fallback)} logo" loading="lazy" onload="this.closest('.company-logo').classList.remove('is-loading')" onerror="this.closest('.company-logo').classList.remove('is-loading');this.closest('.company-logo').classList.add('is-fallback');this.remove()"><b>${escapeHtml(companyInitial(fallback))}</b></span>`;
   }
-  const safeFallback = escapeHtml(companyInitial(fallback));
-  if (cleanLogo === 'microsoft') {
-    return '<span class="company-logo company-logo-microsoft"><i></i><i></i><i></i><i></i></span>';
-  }
-  if (cleanLogo === 'tesla') return '<span class="company-logo company-logo-tesla">T</span>';
-  if (cleanLogo === 'dior') return '<span class="company-logo company-logo-dior">DIOR</span>';
-  if (cleanLogo) return `<span class="company-logo company-logo-generic company-logo-${escapeHtml(cleanLogo)}" style="--logo-hue:${logoHue(cleanLogo)}">${safeFallback}</span>`;
-  return `<span class="company-logo">${safeFallback}</span>`;
+  return `<span class="company-logo company-logo-initial"><b>${escapeHtml(companyInitial(fallback))}</b></span>`;
 }
 
 function companyLogoUrl(company = '', domainValue = '') {
-  const apiKey = AUTH_CONFIG.logoDevApiKey || '';
-  const domain = domainValue || findCompanyDomain(company);
-  if (!apiKey || !domain) return '';
-  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(apiKey)}&size=128&format=png`;
+  const apiKey = AUTH_CONFIG.logoDevApiKey || window.LOGO_DEV_TOKEN || '';
+  const domain = normalizeDomain(domainValue || findCompanyDomain(company));
+  if (!apiKey) {
+    console.warn('Logo.dev token is empty');
+    return '';
+  }
+  if (!domain) return '';
+  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(apiKey)}&size=128&format=png&fallback=404&v=80`;
 }
 
 function snsLogo(key, label) {
