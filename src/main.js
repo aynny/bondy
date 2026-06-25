@@ -1546,13 +1546,23 @@ function companyLogoMarkup(logo = '', fallback = 'B', domain = '', logoUrlValue 
 
   console.log('logo debug', companyName, cleanDomain, logoUrl);
 
-  const initial = escapeHtml(companyInitial(companyName));
   const escapedName = escapeHtml(companyName);
-  const fallbackHtml = `<div class="company-logo-fallback" aria-label="${escapedName} logo fallback">${initial}</div>`;
+  const fallbackHtml = companyFallbackLogoMarkup(companyName);
+  const fallbackForHandler = fallbackHtml.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
   if (!logoUrl) return fallbackHtml;
 
-  return `<img class="company-logo-img" src="${escapeHtml(logoUrl)}" alt="${escapedName} logo" loading="lazy" onerror="console.warn('Logo failed', this.alt, this.src);this.outerHTML='<div class=&quot;company-logo-fallback&quot;>${initial}</div>'">`;
+  return `<img class="company-logo-img" src="${escapeHtml(logoUrl)}" alt="${escapedName} logo" loading="lazy" onerror="console.warn('Logo failed', this.alt, this.src);this.outerHTML='${fallbackForHandler}'">`;
+}
+
+function companyFallbackLogoMarkup(companyName = 'B') {
+  const clean = String(companyName || '').trim().toLowerCase();
+  const initial = escapeHtml(companyInitial(companyName));
+  const escapedName = escapeHtml(companyName || 'company');
+  if (clean === 'microsoft') {
+    return '<div class="company-logo-fallback company-logo-microsoft" aria-label="Microsoft logo fallback"><i></i><i></i><i></i><i></i></div>';
+  }
+  return `<div class="company-logo-fallback" aria-label="${escapedName} logo fallback">${initial}</div>`;
 }
 
 function companyLogoUrl(company = '', domainValue = '') {
@@ -1656,6 +1666,10 @@ function snsDisplayName(account) {
   if (!account) return '未登録';
   if (typeof account === 'string') return account.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
   return account.username ? `@${account.username}` : account.url || '登録済み';
+}
+
+function snsStatusLabel(account) {
+  return account ? '登録済み' : '未登録';
 }
 
 function profileDataFromForm(formData, current = {}) {
@@ -1961,8 +1975,8 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
           </div>
           <input name="${key}" type="hidden" value="${escapeHtml(snsAccountValue(user.sns[key]))}">
           <button type="button" class="sns-register-button" data-sns-register="${escapeHtml(key)}" data-sns-label="${escapeHtml(label)}">
-            <span>${escapeHtml(snsDisplayName(user.sns[key]))}</span>
-            ${icon('chevronRight', 18)}
+            <span class="sns-register-icon">${snsIcon}</span>
+            <span>${escapeHtml(snsStatusLabel(user.sns[key]))}</span>
           </button>
         </div>
       `).join('')}
@@ -3404,8 +3418,8 @@ app.addEventListener('submit', async (event) => {
     if (input) {
       input.value = snsAccountValue(account);
       const row = input.closest('.sns-edit-row');
-      const label = row?.querySelector('.sns-register-button span');
-      if (label) label.textContent = snsDisplayName(account);
+      const label = row?.querySelector('.sns-register-button span:not(.sns-register-icon)');
+      if (label) label.textContent = snsStatusLabel(account);
     }
     state.overlay = null;
     document.querySelector('.scrim')?.remove();

@@ -313,6 +313,14 @@ button.is-saving::before {
   display: grid;
   gap: 14px;
   padding: 8px 28px 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.register-form *,
+.edit-profile-screen *,
+.modal-sheet * {
+  box-sizing: border-box;
 }
 .form-section {
   display: grid;
@@ -399,7 +407,13 @@ button.is-saving::before {
 }
 .sns-fieldset {
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sns-fieldset legend,
+.sns-fieldset .sns-fieldset-note {
+  grid-column: 1 / -1;
 }
 
 .sns-fieldset-note {
@@ -449,6 +463,13 @@ button.is-saving::before {
   background: #fff;
 }
 
+.sns-fieldset .sns-edit-row {
+  min-width: 0;
+  gap: 6px;
+  padding: 8px 6px;
+  border-radius: 16px;
+}
+
 .career-edit-list {
   display: grid;
   gap: 10px;
@@ -461,6 +482,10 @@ button.is-saving::before {
   gap: 10px;
 }
 
+.sns-fieldset .sns-edit-head {
+  justify-content: center;
+}
+
 .sns-edit-head > span {
   min-width: 0;
   flex: 1 1 auto;
@@ -470,6 +495,10 @@ button.is-saving::before {
   color: #111;
   font-size: 13px;
   font-weight: 850;
+}
+
+.sns-fieldset .sns-edit-head > span {
+  display: none;
 }
 
 .sns-edit-head svg {
@@ -513,6 +542,17 @@ button.is-saving::before {
   border: 1px solid #ededed;
   border-radius: 999px;
   background: #f7f7f7;
+}
+
+.sns-fieldset .sns-edit-row .visibility-field {
+  width: 72px;
+  justify-self: center;
+  order: 2;
+}
+
+.sns-fieldset .sns-edit-row .visibility-field label {
+  height: 20px;
+  font-size: 8.5px;
 }
 
 .sns-edit-row .visibility-field legend,
@@ -2524,18 +2564,20 @@ body {
 
 .sns-register-button {
   width: 100%;
-  min-height: 46px;
+  min-height: 70px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0 14px;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 4px;
   border: 1px solid #ececec;
   border-radius: 14px;
   background: #fff;
   color: #111;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 760;
+  text-align: center;
 }
 
 .sns-register-button span {
@@ -2543,6 +2585,22 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sns-register-icon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+}
+
+.sns-register-icon .sns-logo {
+  width: 28px;
+  height: 28px;
+}
+
+.sns-register-icon .sns-logo-youtube {
+  width: 44px;
 }
 
 .sns-register-modal {
@@ -2681,10 +2739,16 @@ body {
 }
 
 .company-logo-microsoft {
+  display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 3px;
   padding: 6px;
   background: #fff;
+}
+
+.company-logo-microsoft i {
+  display: block;
+  border-radius: 1px;
 }
 
 .company-logo-microsoft i:nth-child(1) { background: #f25022; }
