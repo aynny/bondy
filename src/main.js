@@ -568,6 +568,9 @@ function requestPersonFromRow(row, profilesById) {
     highSchoolPublic: profile.highSchoolPublic ?? profile.schoolPublic ?? true,
     universityPublic: profile.universityPublic ?? profile.schoolPublic ?? true,
     vocationalSchoolPublic: profile.vocationalSchoolPublic ?? profile.schoolPublic ?? true,
+    highSchoolCurrent: profile.highSchoolCurrent ?? false,
+    universityCurrent: profile.universityCurrent ?? false,
+    vocationalSchoolCurrent: profile.vocationalSchoolCurrent ?? false,
     careers: normalizeCareers(profile),
     company: profile.company || '',
     companyRole: profile.companyRole || '',
@@ -673,6 +676,9 @@ function connectionPersonFromRow(row, profilesById, centerId = authState.user?.i
     highSchoolPublic: profile.highSchoolPublic ?? profile.schoolPublic ?? true,
     universityPublic: profile.universityPublic ?? profile.schoolPublic ?? true,
     vocationalSchoolPublic: profile.vocationalSchoolPublic ?? profile.schoolPublic ?? true,
+    highSchoolCurrent: profile.highSchoolCurrent ?? false,
+    universityCurrent: profile.universityCurrent ?? false,
+    vocationalSchoolCurrent: profile.vocationalSchoolCurrent ?? false,
     careers: normalizeCareers(profile),
     company: profile.company || '',
     companyRole: profile.companyRole || '',
@@ -698,6 +704,9 @@ function privacySafeProfile(profile = {}) {
     highSchoolPublic: normalized.highSchoolPublic,
     universityPublic: normalized.universityPublic,
     vocationalSchoolPublic: normalized.vocationalSchoolPublic,
+    highSchoolCurrent: normalized.highSchoolCurrent,
+    universityCurrent: normalized.universityCurrent,
+    vocationalSchoolCurrent: normalized.vocationalSchoolCurrent,
     careers: careerItems(normalized, { respectPrivacy: true }),
     company: normalized.companyPublic === false ? '' : normalized.company,
     companyRole: normalized.companyPublic === false ? '' : normalized.companyRole,
@@ -1247,6 +1256,9 @@ function normalizeUser(user) {
     highSchoolPublic: true,
     universityPublic: true,
     vocationalSchoolPublic: true,
+    highSchoolCurrent: false,
+    universityCurrent: false,
+    vocationalSchoolCurrent: false,
     companyPublic: true,
     locationPublic: true,
     birthdayPublic: false,
@@ -1275,6 +1287,9 @@ function normalizeUser(user) {
     highSchoolPublic: user?.highSchoolPublic ?? user?.schoolPublic ?? true,
     universityPublic: user?.universityPublic ?? user?.schoolPublic ?? true,
     vocationalSchoolPublic: user?.vocationalSchoolPublic ?? user?.schoolPublic ?? true,
+    highSchoolCurrent: user?.highSchoolCurrent ?? false,
+    universityCurrent: user?.universityCurrent ?? false,
+    vocationalSchoolCurrent: user?.vocationalSchoolCurrent ?? false,
     companyPublic: user?.companyPublic ?? true,
     locationPublic: user?.locationPublic ?? true,
     birthdayPublic: user?.birthdayPublic ?? false
@@ -1492,17 +1507,17 @@ function logoHue(value = '') {
 function educationItems(user = {}, options = {}) {
   const respectPrivacy = options.respectPrivacy === true;
   return [
-    ['高校', user.highSchool, user.highSchoolPublic],
-    ['大学', user.university || user.school, user.universityPublic],
-    ['専門学校', user.vocationalSchool, user.vocationalSchoolPublic]
+    ['高校', user.highSchool, user.highSchoolPublic, user.highSchoolCurrent],
+    ['大学', user.university || user.school, user.universityPublic, user.universityCurrent],
+    ['専門学校', user.vocationalSchool, user.vocationalSchoolPublic, user.vocationalSchoolCurrent]
   ].filter(([, value, isPublic]) => String(value || '').trim() && (!respectPrivacy || isPublic !== false));
 }
 
 function hiddenEducationItems(user = {}) {
   return [
-    ['高校', user.highSchool, user.highSchoolPublic],
-    ['大学', user.university || user.school, user.universityPublic],
-    ['専門学校', user.vocationalSchool, user.vocationalSchoolPublic]
+    ['高校', user.highSchool, user.highSchoolPublic, user.highSchoolCurrent],
+    ['大学', user.university || user.school, user.universityPublic, user.universityCurrent],
+    ['専門学校', user.vocationalSchool, user.vocationalSchoolPublic, user.vocationalSchoolCurrent]
   ].filter(([, value, isPublic]) => String(value || '').trim() && isPublic === false);
 }
 
@@ -1743,6 +1758,9 @@ function profileDataFromForm(formData, current = {}) {
     highSchoolPublic: formData.get('highSchoolPublic') === 'true',
     universityPublic: formData.get('universityPublic') === 'true',
     vocationalSchoolPublic: formData.get('vocationalSchoolPublic') === 'true',
+    highSchoolCurrent: formData.get('highSchoolCurrent') === 'true',
+    universityCurrent: formData.get('universityCurrent') === 'true',
+    vocationalSchoolCurrent: formData.get('vocationalSchoolCurrent') === 'true',
     companyRole: primary.role || '',
     companyName: primary.company || '',
     companyPeriod: primary.period || '',
@@ -1857,6 +1875,9 @@ function personOverlayFromNode(node, fallbackName = 'ユーザー') {
     highSchoolPublic: node?.highSchoolPublic ?? node?.schoolPublic ?? true,
     universityPublic: node?.universityPublic ?? node?.schoolPublic ?? true,
     vocationalSchoolPublic: node?.vocationalSchoolPublic ?? node?.schoolPublic ?? true,
+    highSchoolCurrent: node?.highSchoolCurrent ?? false,
+    universityCurrent: node?.universityCurrent ?? false,
+    vocationalSchoolCurrent: node?.vocationalSchoolCurrent ?? false,
     careers: normalizeCareers(node),
     company: node?.company || '',
     companyRole: node?.companyRole || '',
@@ -1983,9 +2004,9 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
     <section class="form-section profile-input-section">
       <h2>学歴</h2>
       <p class="form-section-note">学校を分けて入れると、つながりの共通点が見つけやすくなります。</p>
-      ${profileEditRow('高校', '<input name="highSchool" value="' + escapeHtml(user.highSchool) + '" placeholder="例：東京都立 Bondy 高校">', visibilityField('highSchoolPublic', '高校', user.highSchoolPublic))}
-      ${profileEditRow('大学', universityField('university', user.university || user.school, false, false), visibilityField('universityPublic', '大学', user.universityPublic))}
-      ${profileEditRow('専門学校', '<input name="vocationalSchool" value="' + escapeHtml(user.vocationalSchool) + '" placeholder="例：Bondy デザイン専門学校">', visibilityField('vocationalSchoolPublic', '専門学校', user.vocationalSchoolPublic))}
+      ${educationEditRow('高校', '<input name="highSchool" value="' + escapeHtml(user.highSchool) + '" placeholder="例：東京都立 Bondy 高校">', 'highSchoolPublic', user.highSchoolPublic, 'highSchoolCurrent', user.highSchoolCurrent)}
+      ${educationEditRow('大学', universityField('university', user.university || user.school, false, false), 'universityPublic', user.universityPublic, 'universityCurrent', user.universityCurrent)}
+      ${educationEditRow('専門学校', '<input name="vocationalSchool" value="' + escapeHtml(user.vocationalSchool) + '" placeholder="例：Bondy デザイン専門学校">', 'vocationalSchoolPublic', user.vocationalSchoolPublic, 'vocationalSchoolCurrent', user.vocationalSchoolCurrent)}
     </section>
     <section class="form-section profile-input-section">
       <h2>現在の仕事</h2>
@@ -2057,6 +2078,18 @@ function profileEditRow(label, control, visibility) {
       ${control}
     </div>
   `;
+}
+
+function educationEditRow(label, control, visibilityName, isPublic, currentName, isCurrent) {
+  return profileEditRow(label, `
+    <div class="education-edit-control">
+      ${control}
+      <label class="current-school-check">
+        <input type="checkbox" name="${currentName}" value="true" ${isCurrent ? 'checked' : ''}>
+        <span>現在在学中</span>
+      </label>
+    </div>
+  `, visibilityField(visibilityName, label, isPublic));
 }
 
 function careerVisibilityField(index, isPublic) {
@@ -2668,10 +2701,10 @@ function educationDisplay(user = {}, options = {}) {
   const visibilityNames = { '高校': 'highSchoolPublic', '大学': 'universityPublic', '専門学校': 'vocationalSchoolPublic' };
   return `
     <div class="education-card">
-      ${items.map(([label, value, isPublic]) => `
+      ${items.map(([label, value, isPublic, isCurrent]) => `
         <div class="education-row">
           <span>${escapeHtml(label)}</span>
-          <strong>${escapeHtml(value)}</strong>
+          <strong>${escapeHtml(value)}${isCurrent ? '<small>在学中</small>' : ''}</strong>
           ${options.editable ? `<button class="visibility-toggle ${isPublic !== false ? 'is-public' : ''}" data-visibility-toggle="${visibilityNames[label]}">${isPublic !== false ? '公開' : '非公開'}</button>` : ''}
         </div>
       `).join('')}
