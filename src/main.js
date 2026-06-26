@@ -757,7 +757,6 @@ async function loadMapCenterConnections(centerId, options = {}) {
   if (!authState.client || !authState.user || !centerId || centerId === 'you') return [];
   console.log('centerId', centerId);
   const rpcRows = await loadMapCenterConnectionsViaRpc(centerId, options);
-  if (rpcRows) return rpcRows;
   const { data, error } = await authState.client
     .from(CONNECTION_REQUEST_TABLE)
     .select('id,requester_id,recipient_id,status,message,created_at,updated_at')
@@ -766,6 +765,10 @@ async function loadMapCenterConnections(centerId, options = {}) {
     .order('updated_at', { ascending: false });
   if (error) {
     console.warn('Map center connections load failed', error);
+    if (rpcRows) {
+      state.mapCenterConnections[centerId] = rpcRows;
+      return rpcRows;
+    }
     state.mapCenterConnections[centerId] = [];
     return [];
   }
@@ -796,8 +799,9 @@ async function loadMapCenterConnections(centerId, options = {}) {
       requestId: '',
       readOnly: true
     }));
-  state.mapCenterConnections[centerId] = rows;
-  return rows;
+  const bestRows = rpcRows && rpcRows.length > rows.length ? rpcRows : rows;
+  state.mapCenterConnections[centerId] = bestRows;
+  return bestRows;
 }
 
 async function loadMapCenterConnectionsViaRpc(centerId, options = {}) {
