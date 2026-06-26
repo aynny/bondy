@@ -655,6 +655,7 @@ function connectionPersonFromRow(row, profilesById, centerId = authState.user?.i
   const otherId = row.requester_id === currentId ? row.recipient_id : row.requester_id;
   const remote = profilesById.get(otherId);
   const profile = remote?.profile || {};
+  const safeProfile = privacySafeProfile(profile);
   const tag = relationshipFromValue(row.message) || (profile.school ? '大学' : profile.company ? 'ビジネス' : '紹介');
   const name = profile.name || remote?.handle || 'ユーザー';
   return {
@@ -665,33 +666,22 @@ function connectionPersonFromRow(row, profilesById, centerId = authState.user?.i
     name,
     handle: profile.handle || remote?.handle || '',
     tag,
-    desc: profile.company || profile.school || (remote?.handle ? `@${remote.handle}` : 'Bondyユーザー'),
+    desc: connectionDescription(safeProfile, remote),
     common: `${tag}のつながり`,
     time: relativeTime(row.updated_at || row.created_at),
     photo: profile.photo || '',
-    school: profile.school || '',
-    highSchool: profile.highSchool || '',
-    university: profile.university || '',
-    vocationalSchool: profile.vocationalSchool || '',
-    highSchoolPublic: profile.highSchoolPublic ?? profile.schoolPublic ?? true,
-    universityPublic: profile.universityPublic ?? profile.schoolPublic ?? true,
-    vocationalSchoolPublic: profile.vocationalSchoolPublic ?? profile.schoolPublic ?? true,
-    highSchoolCurrent: profile.highSchoolCurrent ?? false,
-    universityCurrent: profile.universityCurrent ?? false,
-    vocationalSchoolCurrent: profile.vocationalSchoolCurrent ?? false,
-    careers: normalizeCareers(profile),
-    company: profile.company || '',
-    companyRole: profile.companyRole || '',
-    companyName: profile.companyName || '',
-    companyPeriod: profile.companyPeriod || '',
-    companyLocation: profile.companyLocation || '',
-    location: profile.location || '',
-    birthday: profile.birthday || '',
-    locationPublic: profile.locationPublic ?? true,
-    birthdayPublic: profile.birthdayPublic ?? false,
-    sns: profile.sns || {},
-    snsPublic: profile.snsPublic || {}
+    ...safeProfile
   };
+}
+
+function connectionDescription(profile = {}, remote = {}) {
+  return profile.company
+    || profile.companyName
+    || profile.school
+    || profile.university
+    || profile.highSchool
+    || profile.vocationalSchool
+    || (remote?.handle ? `@${remote.handle}` : 'Bondyユーザー');
 }
 
 function privacySafeProfile(profile = {}) {
@@ -824,7 +814,7 @@ async function loadMapCenterConnectionsViaRpc(centerId, options = {}) {
         name: isSelf ? 'あなた' : (profile.name || item.name || item.handle || 'ユーザー'),
         handle: profile.handle || item.handle || '',
         tag: isSelf ? 'あなた' : (relationshipFromValue(item.relationship || item.message || item.tag) || 'つながり'),
-        desc: profile.company || profile.school || '',
+        desc: connectionDescription(privacySafeProfile(profile), item),
         common: '公開つながり',
         time: relativeTime(item.updated_at || item.created_at),
         photo: profile.photo || item.photo || '',
@@ -2427,14 +2417,51 @@ async function withButtonPending(button, label, task) {
 
 function animateNodeToCenter(button) {
   if (!button) return Promise.resolve();
-  button.classList.add('moving-to-center');
-  button.style.left = '50%';
-  button.style.top = '50%';
+  const start = button.getBoundingClientRect();
+  const workspace = button.closest('[data-map-workspace]') || document.querySelector('.map-interactive-panel') || document.body;
+  const target = workspace.getBoundingClientRect();
+  const targetX = target.left + target.width / 2 - (start.left + start.width / 2);
+  const targetY = target.top + target.height / 2 - (start.top + start.height / 2);
+  const clone = button.cloneNode(true);
+  clone.classList.add('map-node-fly');
+  clone.style.position = 'fixed';
+  clone.style.left = `${start.left}px`;
+  clone.style.top = `${start.top}px`;
+  clone.style.width = `${start.width}px`;
+  clone.style.height = `${start.height}px`;
+  clone.style.margin = '0';
+  clone.style.transform = 'translate3d(0, 0, 0) scale(1)';
+  clone.style.zIndex = '9999';
+  clone.style.pointerEvents = 'none';
+  document.body.appendChild(clone);
+  button.style.visibility = 'hidden';
   return new Promise((resolve) => {
-    window.setTimeout(() => {
-      button.classList.remove('moving-to-center');
+    const cleanup = () => {
+      button.style.visibility = '';
+      clone.remove();
       resolve();
-    }, 330);
+    };
+    if (clone.animate) {
+      const animation = clone.animate([
+        { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1, filter: 'blur(0)' },
+        { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(1.14)`, opacity: .98, filter: 'blur(0)' }
+      ], {
+        duration: 520,
+        easing: 'cubic-bezier(.16, 1, .3, 1)',
+        fill: 'forwards'
+      });
+      animation.onfinish = cleanup;
+      animation.oncancel = cleanup;
+      return;
+    }
+    clone.style.transition = 'transform .52s cubic-bezier(.16, 1, .3, 1), opacity .52s ease';
+    requestAnimationFrame(() => {
+      clone.style.transform = `translate3d(${targetX}px, ${targetY}px, 0) scale(1.14)`;
+      clone.style.opacity = '.98';
+    });
+    window.setTimeout(() => {
+      cleanup();
+    }, 540);
   });
 }
 
@@ -2495,7 +2522,6 @@ function connectionRow(person) {
       <button class="connection-copy" type="button">
         <h3>${escapeHtml(person.name)}${connectionTag(person.tag)}</h3>
         <p>${escapeHtml(person.desc)}</p>
-        <p>共通のつながり：${escapeHtml(person.common)}</p>
       </button>
       <time>${escapeHtml(person.time)}</time>
       ${icon('chevronRight', 25)}
@@ -3183,14 +3209,14 @@ app.addEventListener('click', async (event) => {
       return;
     }
     if (mapNodeButton.dataset.centerable === 'true') {
+      const connectionsPromise = loadMapCenterConnections(centerId, { silent: true });
       await animateNodeToCenter(mapNodeButton);
       state.mapCenter = centerId;
       state.filter = 'すべて';
       state.mapPan = { x: 0, y: 0 };
       state.zoom = 1;
+      await connectionsPromise;
       showToast(`${node?.name || mapNodeButton.dataset.personName || 'ユーザー'}を中心にしました`);
-      render();
-      await loadMapCenterConnections(centerId, { silent: true });
       render();
       return;
     }
