@@ -2209,10 +2209,23 @@ function mapScreen() {
         </button>
         ${state.mapFilterOpen ? `<div class="map-filter-menu">${mapFilters().map(mapFilterOption).join('')}</div>` : ''}
       </div>
+      <button class="map-self-button ${state.mapCenter === 'you' ? 'is-current' : ''}" data-action="locate"><span>自分に戻る</span></button>
       <button class="map-fit-button" data-action="fit-map"><span>全体表示</span></button>
     </div>
     <section class="map-interactive-panel">
+      <div class="route-map-title">
+        <span class="route-map-icon">${icon('map', 26)}</span>
+        <div>
+          <h2>関係マップ</h2>
+          <p>${state.mapCenter === 'you' ? 'あなたを中心にしたつながり' : `${escapeHtml(mapCenterProfile().name)}を中心にしたつながり`}</p>
+        </div>
+      </div>
+      ${mapLegend(filtered)}
       ${networkGraph(filtered)}
+      <div class="route-map-hint">
+        <span>${icon('mapPin', 22)}</span>
+        <div><b>ヒント</b><p>駅をタップすると、つながりの詳細を表示できます。</p></div>
+      </div>
     </section>
   `;
 }
@@ -2235,28 +2248,30 @@ function mapFilters() {
 
 function relationshipColor(type) {
   return {
-    'すべて': '#111111',
-    '大学': '#3b82f6',
-    'ビジネス': '#22c55e',
-    '地元': '#f59e0b',
-    '家族': '#ef476f',
-    'イベント': '#8b5cf6',
-    '恋人': '#ec4899',
-    'あなた': '#94a3b8',
-    '紹介': '#111111'
-  }[type] || '#111111';
+    'すべて': '#20252d',
+    '大学': '#4b94d8',
+    'ビジネス': '#20354f',
+    '地元': '#b59258',
+    '家族': '#dd7483',
+    'イベント': '#76b88a',
+    'SNS': '#9c82ce',
+    '恋人': '#d7799d',
+    'あなた': '#20252d',
+    '紹介': '#6b7280'
+  }[type] || '#6b7280';
 }
 
 function relationshipTint(type) {
   return {
     'すべて': '#ffffff',
-    '大学': '#ffffff',
-    'ビジネス': '#ffffff',
-    '地元': '#ffffff',
-    '家族': '#ffffff',
-    'イベント': '#ffffff',
-    '恋人': '#ffffff'
-  }[type] || '#ffffff';
+    '大学': '#e8f3fd',
+    'ビジネス': '#eef2f7',
+    '地元': '#f3eadc',
+    '家族': '#fae6eb',
+    'イベント': '#e8f5ec',
+    'SNS': '#f0eafb',
+    '恋人': '#fae7f0'
+  }[type] || '#f5f5f4';
 }
 
 function mapFilterLabel(filter) {
@@ -2268,6 +2283,16 @@ function mapFilterOption(filter) {
   const selected = state.filter === filter;
   const label = mapFilterLabel(filter);
   return `<button class="filter-choice ${selected ? 'selected' : ''} ${filter === '恋人' ? 'heart-filter-button' : ''}" style="--filter-color:${relationshipColor(filter)};--filter-bg:${relationshipTint(filter)}" data-filter="${escapeHtml(filter)}" aria-label="${escapeHtml(filter)}">${label}</button>`;
+}
+
+function mapLegend(nodes = []) {
+  const visibleTags = [...new Set(nodes.map((node) => node.tag).filter((tag) => tag && tag !== 'あなた'))];
+  const tags = (visibleTags.length ? visibleTags : ['家族', '大学', '地元']).slice(0, 5);
+  return `
+    <aside class="route-legend" aria-label="つながりの凡例">
+      ${tags.map((tag) => `<span><i style="--legend-color:${relationshipColor(tag)}"></i>${escapeHtml(relationshipLabel(tag))}</span>`).join('')}
+    </aside>
+  `;
 }
 
 function connectionRowsData() {
@@ -2298,27 +2323,17 @@ function networkGraph(nodes) {
     ? 'まだつながりはありません<br>右上の＋から追加できます'
     : 'この人のつながりはまだ表示できません';
   const centerNode = state.mapCenter === 'you'
-    ? `<div class="center-node">${mapCenterAvatar(center)}<h3>${escapeHtml(center.name)}</h3><span>${escapeHtml(center.badge)}</span></div>`
-    : `<button class="center-node center-node-button" type="button" data-center-profile="${escapeHtml(state.mapCenter)}">${mapCenterAvatar(center)}<h3>${escapeHtml(center.name)}</h3><span>${escapeHtml(center.badge)}</span></button>`;
+    ? `<div class="center-node route-center-node">${mapCenterAvatar(center)}<h3>${escapeHtml(center.name)}</h3><span>${escapeHtml(center.badge)}</span></div>`
+    : `<button class="center-node center-node-button route-center-node" type="button" data-center-profile="${escapeHtml(state.mapCenter)}">${mapCenterAvatar(center)}<h3>${escapeHtml(center.name)}</h3><span>${escapeHtml(center.badge)}</span></button>`;
   return `
     <section class="network" data-map-workspace>
       <div class="map-canvas" data-map-canvas style="${mapCanvasStyle()}">
-        <div class="orbit-field" aria-hidden="true">
-          <span class="orbit orbit-1"></span>
-          <span class="orbit orbit-2"></span>
-          <span class="orbit orbit-3"></span>
-          <span class="orbit orbit-4"></span>
-          <span class="orbit-spark spark-1"></span>
-          <span class="orbit-spark spark-2"></span>
-          <span class="orbit-spark spark-3"></span>
-          <span class="orbit-spark spark-4"></span>
-        </div>
-        <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+        ${routeBackground()}
+        <svg class="lines route-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
           ${nodes.map((node, index) => mapConnectionLine(node, index)).join('')}
         </svg>
-        ${nodes.map((node, index) => `<span class="line-token" data-token-node="${escapeHtml(node.id || node.name)}" style="--dx:${node.x - 50}%;--dy:${node.y - 50}%;--token-color:${node.color};--token-delay:${index * -0.28}s">${mapRelationshipMark(node.tag)}</span>`).join('')}
         ${centerNode}
-        ${nodes.map((node) => `<button class="map-node ${node.centerable ? 'centerable' : 'profile-only'}" type="button" style="left:${node.x}%;top:${node.y}%" data-map-node="${escapeHtml(node.id || '')}" data-centerable="${node.centerable ? 'true' : 'false'}" data-person-id="${escapeHtml(node.id || '')}" data-person-name="${escapeHtml(node.name)}" data-person="${escapeHtml(node.name)}">${personAvatar(node, 54)}<b>${escapeHtml(node.name)}</b><em>${escapeHtml(relationshipLabel(node.tag))}</em></button>`).join('')}
+        ${nodes.map((node) => `<button class="map-node route-node ${node.centerable ? 'centerable' : 'profile-only'}" type="button" style="left:${node.x}%;top:${node.y}%;--node-color:${node.color};--node-bg:${relationshipTint(node.tag)}" data-map-node="${escapeHtml(node.id || '')}" data-centerable="${node.centerable ? 'true' : 'false'}" data-person-id="${escapeHtml(node.id || '')}" data-person-name="${escapeHtml(node.name)}" data-person="${escapeHtml(node.name)}">${personAvatar(node, 54)}<b>${escapeHtml(node.name)}</b><em>${escapeHtml(relationshipLabel(node.tag))}</em></button>`).join('')}
         ${nodes.length ? '' : `<div class="empty-map">${emptyMessage}</div>`}
       </div>
     </section>
@@ -2328,9 +2343,56 @@ function networkGraph(nodes) {
 function mapConnectionLine(node, index) {
   const key = escapeHtml(node.id || node.name);
   const color = escapeHtml(node.color || '#111');
+  const path = routePathToNode(node, index);
+  const station = routeStationPoint(node, index);
   return `
-    <line class="line-base" data-line-node="${key}" x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="${color}" />
-    <line class="line-flow" data-flow-node="${key}" style="--flow-delay:${(index * -0.18).toFixed(2)}s" x1="50" y1="50" x2="${node.x}" y2="${node.y}" stroke="${color}" />
+    <path class="line-base route-line" data-line-node="${key}" d="${path}" stroke="${color}" />
+    <path class="line-flow route-line-flow" data-flow-node="${key}" style="--flow-delay:${(index * -0.12).toFixed(2)}s" d="${path}" stroke="${color}" />
+    <circle class="route-station" cx="${station.x}" cy="${station.y}" r="1.25" stroke="${color}" />
+  `;
+}
+
+function routePathToNode(node, index = 0) {
+  const sx = 50;
+  const sy = 50;
+  const ex = Number(node.x);
+  const ey = Number(node.y);
+  const horizontalFirst = Math.abs(ex - sx) > Math.abs(ey - sy);
+  const bendX = horizontalFirst ? sx + (ex - sx) * 0.62 : sx + (ex - sx) * 0.34;
+  const bendY = horizontalFirst ? sy + (ey - sy) * 0.34 : sy + (ey - sy) * 0.62;
+  const r = 3.1 + (index % 2) * 0.8;
+  const dirX = ex >= sx ? 1 : -1;
+  const dirY = ey >= sy ? 1 : -1;
+  if (horizontalFirst) {
+    return `M ${sx} ${sy} H ${bendX - dirX * r} Q ${bendX} ${sy} ${bendX} ${sy + dirY * r} V ${bendY - dirY * r} Q ${bendX} ${bendY} ${bendX + dirX * r} ${bendY} H ${ex}`;
+  }
+  return `M ${sx} ${sy} V ${bendY - dirY * r} Q ${sx} ${bendY} ${sx + dirX * r} ${bendY} H ${bendX - dirX * r} Q ${bendX} ${bendY} ${bendX} ${bendY + dirY * r} V ${ey}`;
+}
+
+function routeStationPoint(node, index = 0) {
+  const sx = 50;
+  const sy = 50;
+  const ex = Number(node.x);
+  const ey = Number(node.y);
+  const amount = index % 2 ? 0.58 : 0.42;
+  return {
+    x: sx + (ex - sx) * amount,
+    y: sy + (ey - sy) * amount
+  };
+}
+
+function routeBackground() {
+  return `
+    <svg class="route-bg-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M -8 25 H 24 Q 30 25 30 31 V 38 Q 30 44 36 44 H 48 Q 54 44 54 50 V 100" />
+      <path d="M 108 43 H 92 Q 86 43 86 49 V 73 Q 86 80 93 80 H 108" />
+      <path d="M -6 78 H 18 Q 25 78 25 85 V 104" />
+      <circle cx="30" cy="31" r="1.3" />
+      <circle cx="54" cy="50" r="1.3" />
+      <circle cx="86" cy="73" r="1.3" />
+      <circle cx="18" cy="78" r="1.1" />
+    </svg>
+    <div class="route-dot-cluster" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
   `;
 }
 
@@ -3339,11 +3401,13 @@ app.addEventListener('click', async (event) => {
     return showToast('この設定は準備中です');
   }
   if (action === 'locate') {
-    state.mapCenter = 'you';
-    state.mapPan = { x: 0, y: 0 };
-    state.zoom = 1;
-    render();
-    return showToast('あなたを中心に戻しました');
+    await renderMapTransition(() => {
+      state.mapCenter = 'you';
+      state.mapPan = { x: 0, y: 0 };
+      state.zoom = 1;
+      state.toast = 'あなたを中心に戻しました';
+    });
+    return;
   }
   if (action === 'fit-map') {
     state.mapPan = { x: 0, y: 0 };
