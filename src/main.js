@@ -1560,7 +1560,7 @@ function companyLogoMarkup(logo = '', fallback = 'B', domain = '', logoUrlValue 
 
   if (!logoUrl) return fallbackHtml;
 
-  return `<span class="company-logo-shell is-loading">${fallbackHtml}<img class="company-logo-img" src="${escapeHtml(logoUrl)}" alt="${escapedName} logo" loading="lazy" onload="handleCompanyLogoLoad(this)" onerror="handleCompanyLogoError(this)"></span>`;
+  return `<span class="company-logo-shell is-loading">${fallbackHtml}<img class="company-logo-img" src="${escapeHtml(logoUrl)}" alt="${escapedName} logo" loading="lazy" referrerpolicy="origin" onload="handleCompanyLogoLoad(this)" onerror="handleCompanyLogoError(this)"></span>`;
 }
 
 window.handleCompanyLogoLoad = function handleCompanyLogoLoad(image) {
@@ -1600,7 +1600,7 @@ function companyLogoUrl(company = '', domainValue = '') {
     return '';
   }
   if (!domain) return '';
-  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(apiKey)}&size=128&format=png&fallback=404&v=89`;
+  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(apiKey)}&size=256&format=png&fallback=404&v=90`;
 }
 
 function companyNameLogoUrl(company = '') {
@@ -1611,7 +1611,7 @@ function companyNameLogoUrl(company = '') {
     return '';
   }
   if (!name || name === 'B') return '';
-  return `https://img.logo.dev/name/${encodeURIComponent(name)}?token=${encodeURIComponent(apiKey)}&size=128&format=png&fallback=404&v=89`;
+  return `https://img.logo.dev/name/${encodeURIComponent(name)}?token=${encodeURIComponent(apiKey)}&size=256&format=png&fallback=404&v=90`;
 }
 
 function snsLogo(key, label) {
