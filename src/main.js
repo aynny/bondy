@@ -2300,10 +2300,7 @@ function connectionRowsData() {
 }
 
 function mapNodeData() {
-  const positions = [
-    [50, 18], [74, 30], [80, 58], [68, 78], [50, 84], [30, 78],
-    [20, 58], [27, 30], [88, 44], [12, 44], [38, 16], [62, 16]
-  ];
+  const positions = routeNodePositions();
   return connectionRowsData().map((person, index) => {
     const [x, y] = positions[index % positions.length];
     const saved = state.mapNodePositions[person.id] || {};
@@ -2348,7 +2345,7 @@ function mapConnectionLine(node, index) {
   return `
     <path class="line-base route-line" data-line-node="${key}" d="${path}" stroke="${color}" />
     <path class="line-flow route-line-flow" data-flow-node="${key}" style="--flow-delay:${(index * -0.12).toFixed(2)}s" d="${path}" stroke="${color}" />
-    <circle class="route-station" cx="${station.x}" cy="${station.y}" r="1.25" stroke="${color}" />
+    <circle class="route-station" cx="${station.x}" cy="${station.y}" r="1.45" stroke="${color}" />
   `;
 }
 
@@ -2425,10 +2422,11 @@ function mapVisibleNodes() {
   }
   const rows = state.mapCenterConnections[state.mapCenter] || [];
   return rows.map((person, index) => {
-    const angle = (-90 + (360 / Math.max(rows.length, 1)) * index) * Math.PI / 180;
-    const radius = rows.length > 8 ? 35 : 31;
-    const x = 50 + Math.cos(angle) * radius;
-    const y = 50 + Math.sin(angle) * radius;
+    const [fallbackX, fallbackY] = routeNodePositions()[index % routeNodePositions().length];
+    const angle = (-115 + (360 / Math.max(rows.length, 1)) * index) * Math.PI / 180;
+    const radius = rows.length > 8 ? 36 : 32;
+    const x = rows.length <= routeNodePositions().length ? fallbackX : 50 + Math.cos(angle) * radius;
+    const y = rows.length <= routeNodePositions().length ? fallbackY : 52 + Math.sin(angle) * radius;
     const saved = state.mapNodePositions[person.id] || {};
     return {
       ...person,
@@ -2438,6 +2436,13 @@ function mapVisibleNodes() {
       centerable: false
     };
   });
+}
+
+function routeNodePositions() {
+  return [
+    [24, 39], [80, 28], [34, 78], [78, 64], [52, 21], [17, 57],
+    [64, 82], [86, 47], [13, 28], [45, 88], [72, 38], [28, 19]
+  ];
 }
 
 function personByIdOrName(value) {
