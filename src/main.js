@@ -186,11 +186,12 @@ function buildCompanyOptions() {
     { name: 'LayerX', label: 'LayerX', domain: 'layerx.co.jp', logo: 'layerx' },
     { name: 'Sansan', label: 'Sansan', domain: 'sansan.com', logo: 'sansan' },
     { name: 'freee', label: 'freee', domain: 'freee.co.jp', logo: 'freee' },
-    { name: 'note', label: 'note', domain: 'note.com', logo: 'noteCompany' },
-    { name: '株式会社Mesh', label: '株式会社Mesh', logo: 'mesh' }
+    { name: 'note', label: 'note', domain: 'note.com', logo: 'noteCompany' }
   ];
   const merged = [...loadSavedCompanies(), ...featured.map(normalizeCompanyOption), ...starterCompanies];
-  return merged.filter((company, index, list) => list.findIndex((item) => item.name.toLowerCase() === company.name.toLowerCase()) === index);
+  return merged
+    .filter((company) => !isRemovedCompany(company.name))
+    .filter((company, index, list) => list.findIndex((item) => item.name.toLowerCase() === company.name.toLowerCase()) === index);
 }
 
 const icons = {
@@ -1323,16 +1324,19 @@ function normalizeCareers(user = {}) {
 
 function findCompanyLogo(company = '') {
   const clean = String(company || '').trim().toLowerCase();
+  if (isRemovedCompany(clean)) return '';
   return companyOptions.find((option) => option.name.toLowerCase() === clean || option.label.toLowerCase() === clean)?.logo || '';
 }
 
 function findCompanyDomain(company = '') {
   const clean = String(company || '').trim().toLowerCase();
+  if (isRemovedCompany(clean)) return '';
   return companyOptions.find((option) => option.name.toLowerCase() === clean || option.label.toLowerCase() === clean)?.domain || '';
 }
 
 function findCompanyLogoUrl(company = '', domainValue = '') {
   const clean = String(company || '').trim().toLowerCase();
+  if (isRemovedCompany(clean)) return '';
   const domain = domainValue || findCompanyDomain(company);
   if (domain) return companyLogoUrl(company, domain);
   return companyOptions.find((option) => option.name.toLowerCase() === clean || option.label.toLowerCase() === clean)?.logoUrl || '';
@@ -1341,6 +1345,7 @@ function findCompanyLogoUrl(company = '', domainValue = '') {
 function normalizeCompanyOption(company = {}) {
   const name = String(company.name || company.label || '').trim();
   const label = String(company.label || name).trim();
+  if (isRemovedCompany(name)) return { name: '', label: '', domain: '', logoUrl: '', logo: '' };
   const domain = normalizeDomain(company.domain || company.website || '');
   const logoUrl = String(company.logoUrl || company.logo_url || '').trim() || (domain ? companyLogoUrl(name, domain) : '');
   return {
@@ -1364,10 +1369,14 @@ function normalizeDomain(value = '') {
 function loadSavedCompanies() {
   try {
     const raw = JSON.parse(localStorage.getItem(COMPANY_CACHE_KEY) || '[]');
-    return Array.isArray(raw) ? raw.map(normalizeCompanyOption).filter((company) => company.name) : [];
+    return Array.isArray(raw) ? raw.map(normalizeCompanyOption).filter((company) => company.name && !isRemovedCompany(company.name)) : [];
   } catch {
     return [];
   }
+}
+
+function isRemovedCompany(name = '') {
+  return ['株式会社mesh', 'mesh'].includes(String(name || '').trim().toLowerCase());
 }
 
 function saveCompanyCandidate(company = {}) {
@@ -1543,7 +1552,7 @@ function companyLogoMarkup(logo = '', fallback = 'B', domain = '', logoUrlValue 
   const logoUrl = cleanDomain
     ? companyLogoUrl(companyName, cleanDomain)
     : String(logoUrlValue || '').trim() || companyNameLogoUrl(companyName);
-  const backupLogoUrl = companyBackupLogoUrl(companyName, cleanDomain);
+  const backupLogoUrl = cleanDomain ? companyBackupLogoUrl(companyName, cleanDomain) : '';
 
   console.log('logo debug', companyName, cleanDomain, logoUrl);
 
@@ -1552,8 +1561,22 @@ function companyLogoMarkup(logo = '', fallback = 'B', domain = '', logoUrlValue 
 
   if (!logoUrl) return fallbackHtml;
 
-  return `<img class="company-logo-img is-loading" src="${escapeHtml(logoUrl)}" alt="${escapedName} logo" loading="lazy" data-logo-backup="${escapeHtml(backupLogoUrl)}" data-logo-fallback="${escapeHtml(fallbackHtml)}" onload="this.classList.remove('is-loading')" onerror="handleCompanyLogoError(this)">`;
+  return `<img class="company-logo-img is-loading" src="${escapeHtml(logoUrl)}" alt="${escapedName} logo" loading="lazy" data-logo-backup="${escapeHtml(backupLogoUrl)}" data-logo-fallback="${escapeHtml(fallbackHtml)}" onload="handleCompanyLogoLoad(this)" onerror="handleCompanyLogoError(this)">`;
 }
+
+window.handleCompanyLogoLoad = function handleCompanyLogoLoad(image) {
+  const tooSmall = Math.max(image.naturalWidth || 0, image.naturalHeight || 0) < 72;
+  if (tooSmall && image.dataset.logoBackup && image.dataset.logoBackupTried !== 'true') {
+    image.dataset.logoBackupTried = 'true';
+    image.src = image.dataset.logoBackup;
+    return;
+  }
+  if (tooSmall) {
+    image.outerHTML = image.dataset.logoFallback || companyFallbackLogoMarkup(image.alt?.replace(/\s+logo$/i, '') || 'B');
+    return;
+  }
+  image.classList.remove('is-loading');
+};
 
 window.handleCompanyLogoError = function handleCompanyLogoError(image) {
   const backup = image.dataset.logoBackup || '';
@@ -1586,7 +1609,7 @@ function companyLogoUrl(company = '', domainValue = '') {
     return '';
   }
   if (!domain) return '';
-  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(apiKey)}&size=128&format=png&fallback=404&v=87`;
+  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(apiKey)}&size=128&format=png&fallback=404&v=88`;
 }
 
 function companyNameLogoUrl(company = '') {
@@ -1597,13 +1620,13 @@ function companyNameLogoUrl(company = '') {
     return '';
   }
   if (!name || name === 'B') return '';
-  return `https://img.logo.dev/name/${encodeURIComponent(name)}?token=${encodeURIComponent(apiKey)}&size=128&format=png&fallback=404&v=87`;
+  return `https://img.logo.dev/name/${encodeURIComponent(name)}?token=${encodeURIComponent(apiKey)}&size=128&format=png&fallback=404&v=88`;
 }
 
 function companyBackupLogoUrl(company = '', domainValue = '') {
   const domain = normalizeDomain(domainValue || findCompanyDomain(company));
   if (!domain) return '';
-  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128&v=87`;
+  return `https://logo.clearbit.com/${encodeURIComponent(domain)}?size=256&v=88`;
 }
 
 function snsLogo(key, label) {
@@ -2064,15 +2087,18 @@ function companyField(value = '', logo = '', domainValue = '', logoUrlValue = ''
   const domain = domainValue || findCompanyDomain(value);
   const logoUrl = logoUrlValue || findCompanyLogoUrl(value, domain);
   return `
-    <label class="company-field">
+    <label class="company-field ${value ? 'has-company' : ''}">
       <input type="hidden" name="careerCompany[]" value="${escapeHtml(value)}">
       <input type="hidden" name="careerLogo[]" value="${escapeHtml(logo || findCompanyLogo(value))}">
       <input type="hidden" name="careerDomain[]" value="${escapeHtml(domain)}">
       <input type="hidden" name="careerLogoUrl[]" value="${escapeHtml(logoUrl)}">
-      <button type="button" class="university-select company-select" data-company-open>
-        <span><b>${escapeHtml(label)}</b></span>
-        ${icon('chevronDown', 18)}
-      </button>
+      <div class="company-field-control">
+        <button type="button" class="university-select company-select" data-company-open>
+          <span><b>${escapeHtml(label)}</b></span>
+          ${icon('chevronDown', 18)}
+        </button>
+        <button type="button" class="company-clear-button" data-company-clear aria-label="会社を削除">${icon('x', 16)}</button>
+      </div>
     </label>
   `;
 }
@@ -2921,6 +2947,7 @@ app.addEventListener('click', async (event) => {
   const universityButton = event.target.closest('[data-university-open]');
   const locationButton = event.target.closest('[data-location-open]');
   const companyButton = event.target.closest('[data-company-open]');
+  const companyClearButton = event.target.closest('[data-company-clear]');
   const snsRegisterButton = event.target.closest('[data-sns-register]');
   const careerAddButton = event.target.closest('[data-career-add]');
   const careerRemoveButton = event.target.closest('[data-career-remove]');
@@ -2958,6 +2985,10 @@ app.addEventListener('click', async (event) => {
       freeInputLabel: '入力した地域を使う',
       options: locationOptions
     });
+    return;
+  }
+  if (companyClearButton) {
+    clearCompanyField(companyClearButton.closest('.company-field'));
     return;
   }
   if (companyButton) {
@@ -3385,6 +3416,7 @@ function openOptionPicker(trigger, config) {
         ? `<b>${escapeHtml(cleanValue)}</b>`
         : escapeHtml(cleanValue);
     }
+    field.classList.toggle('has-company', Boolean(cleanValue));
     root.remove();
   };
 
@@ -3400,6 +3432,20 @@ function openOptionPicker(trigger, config) {
 
   updateList();
   setTimeout(() => search.focus(), 50);
+}
+
+function clearCompanyField(field) {
+  if (!field) return;
+  field.querySelector('input[name="careerCompany[]"]')?.setAttribute('value', '');
+  field.querySelector('input[name="careerLogo[]"]')?.setAttribute('value', '');
+  field.querySelector('input[name="careerDomain[]"]')?.setAttribute('value', '');
+  field.querySelector('input[name="careerLogoUrl[]"]')?.setAttribute('value', '');
+  field.querySelectorAll('input[type="hidden"]').forEach((input) => {
+    input.value = '';
+  });
+  const label = field.querySelector('.company-select span');
+  if (label) label.innerHTML = '<b>企業・所属を選択または入力</b>';
+  field.classList.remove('has-company');
 }
 
 function refreshCareerNumbers() {

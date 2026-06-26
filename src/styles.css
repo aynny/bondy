@@ -602,6 +602,33 @@ button.is-saving::before {
   gap: 0;
 }
 
+.company-field-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 0;
+  align-items: center;
+  gap: 0;
+}
+
+.company-field.has-company .company-field-control {
+  grid-template-columns: minmax(0, 1fr) 34px;
+  gap: 7px;
+}
+
+.company-clear-button {
+  width: 34px;
+  height: 34px;
+  display: none;
+  place-items: center;
+  border: 1px solid #ededed;
+  border-radius: 11px;
+  background: #fff;
+  color: #444;
+}
+
+.company-field.has-company .company-clear-button {
+  display: grid;
+}
+
 .profile-edit-row .university-select,
 .career-edit-card .company-select {
   height: 38px;
@@ -2529,23 +2556,23 @@ body {
 
 .career-card {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
-  gap: 13px;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 12px;
   align-items: center;
-  min-height: 86px;
-  padding: 13px 0;
+  min-height: 62px;
+  padding: 9px 0;
   border-bottom: 1px solid #f2f2f2;
 }
 
 .company-logo {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
-  border-radius: 13px;
+  border-radius: 9px;
   background: #fff;
   color: #fff;
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 850;
   letter-spacing: -.04em;
   overflow: hidden;
@@ -2553,9 +2580,9 @@ body {
 }
 
 .company-logo-img {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   object-fit: contain;
   background: #fff;
   border: 1px solid #eee;
@@ -2563,9 +2590,9 @@ body {
 }
 
 .company-logo-fallback {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   background: #f5f5f5;
   border: 1px solid #eee;
   display: flex;
@@ -2821,25 +2848,25 @@ body {
 .company-logo-mesh { background: #111; }
 
 .career-card h3 {
-  margin: 0 0 3px;
+  margin: 0 0 2px;
   color: #111;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 820;
-  line-height: 1.12;
+  line-height: 1.18;
 }
 
 .career-card p {
-  margin: 0 0 3px;
+  margin: 0 0 2px;
   color: #111;
-  font-size: 14px;
-  font-weight: 560;
+  font-size: 13px;
+  font-weight: 540;
   line-height: 1.2;
 }
 
 .career-card small {
   display: block;
   color: #777;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 520;
   line-height: 1.32;
 }
@@ -2847,8 +2874,15 @@ body {
 .compact-career-card .company-logo {
   width: 34px;
   height: 34px;
-  border-radius: 9px;
+  border-radius: 8px;
   font-size: 15px;
+}
+
+.compact-career-card .company-logo-img,
+.compact-career-card .company-logo-fallback {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
 }
 
 .education-card {
