@@ -614,27 +614,34 @@ button.is-saving::before {
 
 .current-school-check {
   width: fit-content;
-  min-height: 28px;
+  min-height: 24px;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 0 10px;
-  border: 1px solid #ededed;
-  border-radius: 999px;
-  background: #fafafa;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: #555;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 820;
+  line-height: 1;
 }
 
 .profile-edit-row .current-school-check input {
-  width: 14px;
-  height: 14px;
+  appearance: auto;
+  width: 15px;
+  height: 15px;
   min-height: 0;
+  flex: 0 0 15px;
   margin: 0;
   padding: 0;
   border-radius: 3px;
   accent-color: #111;
+}
+
+.current-school-check span {
+  white-space: nowrap;
 }
 
 .company-field-control {
