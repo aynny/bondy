@@ -1970,7 +1970,8 @@ function registerScreen() {
 
 function profileFormFields(user = normalizeUser({}), mode = 'register') {
   const careers = normalizeCareers(user);
-  const careerCards = (careers.length ? careers : [{ role: '', company: '', period: '', location: '', logo: '', public: true }]);
+  const currentCareer = careers[0] || { role: '', company: '', period: '', location: '', logo: '', public: true };
+  const pastCareerCards = careers.length > 1 ? careers.slice(1) : [];
   return `
     <section class="form-section">
       <h2>基本情報</h2>
@@ -1987,13 +1988,20 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
       ${profileEditRow('専門学校', '<input name="vocationalSchool" value="' + escapeHtml(user.vocationalSchool) + '" placeholder="例：Bondy デザイン専門学校">', visibilityField('vocationalSchoolPublic', '専門学校', user.vocationalSchoolPublic))}
     </section>
     <section class="form-section profile-input-section">
+      <h2>現在の仕事</h2>
+      <p class="form-section-note">いまの仕事や所属している会社を入力できます。</p>
+      <div class="career-edit-list current-career-list">
+        ${careerEditCard(currentCareer, 0, 'current')}
+      </div>
+    </section>
+    <section class="form-section profile-input-section">
       <div class="form-section-title-row">
-        <h2>職歴</h2>
+        <h2>今までの職歴</h2>
         <button type="button" class="icon-add-button" data-career-add aria-label="職歴を追加">${icon('plus', 22)}</button>
       </div>
-      <p class="form-section-note">職種・企業・期間を入れると、2枚目のような職歴表示になります。</p>
-      <div class="career-edit-list">
-        ${careerCards.map((career, index) => careerEditCard(career, index)).join('')}
+      <p class="form-section-note">インターン、前職、プロジェクトなどを追加できます。</p>
+      <div class="career-edit-list past-career-list">
+        ${pastCareerCards.map((career, index) => careerEditCard(career, index + 1, 'past')).join('')}
       </div>
     </section>
     <fieldset class="form-section sns-fieldset">
@@ -2018,16 +2026,17 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
   `;
 }
 
-function careerEditCard(career = {}, index = 0) {
+function careerEditCard(career = {}, index = 0, type = 'past') {
   const company = career.company || '';
   const logo = career.logo || findCompanyLogo(company);
+  const isCurrent = type === 'current';
   return `
-    <div class="career-edit-card">
+    <div class="career-edit-card ${isCurrent ? 'is-current-career' : ''}">
       <div class="sns-edit-head">
-        <span><b>職歴 ${index + 1}</b></span>
+        <span><b>${isCurrent ? '現在' : `経歴 ${index}`}</b></span>
         <div class="career-edit-actions">
           ${careerVisibilityField(index, career.public ?? true)}
-          <button type="button" class="career-remove-button" data-career-remove aria-label="職歴を削除">${icon('x', 17)}</button>
+          ${isCurrent ? '' : `<button type="button" class="career-remove-button" data-career-remove aria-label="職歴を削除">${icon('x', 17)}</button>`}
         </div>
       </div>
       <input name="careerRole[]" value="${escapeHtml(career.role || '')}" placeholder="職種・役割 例：Solution Engineer">
@@ -3020,22 +3029,15 @@ app.addEventListener('click', async (event) => {
     return;
   }
   if (careerAddButton) {
-    const list = document.querySelector('.career-edit-list');
+    const list = document.querySelector('.past-career-list');
     if (!list) return;
-    list.insertAdjacentHTML('beforeend', careerEditCard({}, list.querySelectorAll('.career-edit-card').length));
+    const index = document.querySelectorAll('.career-edit-card').length;
+    list.insertAdjacentHTML('beforeend', careerEditCard({}, index, 'past'));
     refreshCareerNumbers();
     return;
   }
   if (careerRemoveButton) {
-    const list = careerRemoveButton.closest('.career-edit-list');
-    const cards = list?.querySelectorAll('.career-edit-card') || [];
-    if (cards.length <= 1) {
-      careerRemoveButton.closest('.career-edit-card')?.querySelectorAll('input').forEach((input) => {
-        input.value = '';
-      });
-    } else {
-      careerRemoveButton.closest('.career-edit-card')?.remove();
-    }
+    careerRemoveButton.closest('.career-edit-card')?.remove();
     refreshCareerNumbers();
     return;
   }
@@ -3456,10 +3458,11 @@ function clearCompanyField(field) {
 function refreshCareerNumbers() {
   document.querySelectorAll('.career-edit-list .career-edit-card').forEach((card, index) => {
     const title = card.querySelector('.sns-edit-head b');
-    if (title) title.textContent = `職歴 ${index + 1}`;
+    const isCurrent = card.classList.contains('is-current-career');
+    if (title) title.textContent = isCurrent ? '現在' : `経歴 ${index}`;
     const fieldset = card.querySelector('.visibility-field');
     const legend = fieldset?.querySelector('legend');
-    if (legend) legend.textContent = `職歴${index + 1}`;
+    if (legend) legend.textContent = isCurrent ? '現在の仕事' : `経歴${index}`;
     fieldset?.querySelectorAll('input[type="radio"]').forEach((input) => {
       input.name = `careerPublic-${index}`;
     });
