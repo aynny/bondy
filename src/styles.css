@@ -1973,7 +1973,7 @@ button.is-saving::before {
   .request-side div { gap: 6px; }
   .request-side button { flex-basis: 48px; }
   .request-side .accept { flex-basis: 56px; }
-  .info-row { grid-template-columns: 31px 86px 1fr; }
+  .info-row { grid-template-columns: 86px 1fr auto; }
   .display-settings { top: 611px; }
   .graph-controls { top: 505px; }
 }
@@ -2523,7 +2523,7 @@ body {
 }
 
 .info-row {
-  grid-template-columns: 31px 78px minmax(0, 1fr) auto;
+  grid-template-columns: 78px minmax(0, 1fr) auto;
   min-height: 48px;
   margin: 0;
   padding: 7px 0;
@@ -2536,9 +2536,7 @@ body {
 }
 
 .info-row svg {
-  width: 22px;
-  height: 22px;
-  color: #111;
+  display: none;
 }
 
 .info-row span {
@@ -2562,6 +2560,28 @@ body {
   min-height: 62px;
   padding: 9px 0;
   border-bottom: 1px solid #f2f2f2;
+}
+
+.career-group {
+  display: grid;
+  gap: 0;
+  border-bottom: 1px solid #f2f2f2;
+}
+
+.career-group:last-child {
+  border-bottom: 0;
+}
+
+.career-group .career-card:last-child {
+  border-bottom: 0;
+}
+
+.career-group-title {
+  display: block;
+  padding: 10px 0 2px;
+  color: #767676;
+  font-size: 13px;
+  font-weight: 760;
 }
 
 .company-logo {
@@ -2925,7 +2945,7 @@ body {
 
 .education-row {
   display: grid;
-  grid-template-columns: 31px 78px minmax(0, 1fr) auto;
+  grid-template-columns: 78px minmax(0, 1fr) auto;
   align-items: center;
   gap: 0;
   min-height: 48px;
@@ -2941,12 +2961,6 @@ body {
   color: #767676;
   font-size: 13px;
   font-weight: 600;
-}
-
-.education-row svg {
-  width: 22px;
-  height: 22px;
-  color: #111;
 }
 
 .education-row strong {

@@ -1988,10 +1988,10 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
     </section>
     <section class="form-section profile-input-section">
       <div class="form-section-title-row">
-        <h2>職歴・所属</h2>
+        <h2>職歴</h2>
         <button type="button" class="icon-add-button" data-career-add aria-label="職歴を追加">${icon('plus', 22)}</button>
       </div>
-      <p class="form-section-note">職種・所属・期間を入れると、2枚目のような職歴表示になります。</p>
+      <p class="form-section-note">職種・企業・期間を入れると、2枚目のような職歴表示になります。</p>
       <div class="career-edit-list">
         ${careerCards.map((career, index) => careerEditCard(career, index)).join('')}
       </div>
@@ -2068,7 +2068,7 @@ function universityField(name, value = '', showLabel = true, required = true) {
 }
 
 function companyField(value = '', logo = '', domainValue = '', logoUrlValue = '') {
-  const label = value || '企業・所属を選択または入力';
+  const label = value || '企業を選択または入力';
   const domain = domainValue || findCompanyDomain(value);
   const logoUrl = logoUrlValue || findCompanyLogoUrl(value, domain);
   return `
@@ -2534,7 +2534,7 @@ function profileScreen() {
       ${infoRow('calendar', '誕生日', user.birthdayPublic ? (user.birthday || '未入力') : '非公開', 'birthdayPublic', user.birthdayPublic)}
       <div class="info-row">${icon('link', 25)}<span>SNS</span><strong class="sns">${snsLinks(user, { respectPrivacy: false })}</strong></div>
     </section>
-    <section class="stats-card profile-stats">${[['users', 'つながり', String(connectionRowsData().length)], ['user', '共通の知人', '0'], ['users', '所属グループ', '0']].map(([ic, label, value]) => `<div>${icon(ic, 28)}<span>${label}</span><b>${value}</b></div>`).join('')}</section>
+    <section class="stats-card profile-stats">${[['users', 'つながり', String(connectionRowsData().length)], ['user', '共通の知人', '0'], ['users', 'グループ', '0']].map(([ic, label, value]) => `<div>${icon(ic, 28)}<span>${label}</span><b>${value}</b></div>`).join('')}</section>
   `;
 }
 
@@ -2661,7 +2661,6 @@ function educationDisplay(user = {}, options = {}) {
     <div class="education-card">
       ${items.map(([label, value, isPublic]) => `
         <div class="education-row">
-          ${icon('grad', 24)}
           <span>${escapeHtml(label)}</span>
           <strong>${escapeHtml(value)}</strong>
           ${options.editable ? `<button class="visibility-toggle ${isPublic !== false ? 'is-public' : ''}" data-visibility-toggle="${visibilityNames[label]}">${isPublic !== false ? '公開' : '非公開'}</button>` : ''}
@@ -2677,24 +2676,45 @@ function careerDisplay(user = {}, variant = '', options = {}) {
     const hiddenValue = options.respectPrivacy && hiddenCareerItems(user).length ? '非公開' : '未入力';
     return variant === 'compact'
       ? `<div>${icon('brief', 20)}<span>職歴</span><strong>${hiddenValue}</strong></div>`
-      : infoRow('brief', '職歴・所属', hiddenValue);
+      : infoRow('brief', '職歴', hiddenValue);
   }
   const compact = variant === 'compact';
-  return `
-    <div class="${compact ? 'career-list compact-career-list' : 'career-list'}">
-      ${careers.map((career, index) => `
-        <div class="${compact ? 'career-card compact-career-card' : 'career-card'}">
-          ${companyLogoMarkup(career.logo, career.company || career.role || 'B', career.domain, career.logoUrl)}
-          <div>
-            <h3>${escapeHtml(career.role || '所属')}</h3>
-            <p>${escapeHtml(career.company || '会社・所属未入力')}</p>
-            ${career.period ? `<small>${escapeHtml(career.period)}</small>` : ''}
-            ${career.location ? `<small>${escapeHtml(career.location)}</small>` : ''}
-          </div>
-          ${options.editable ? `<button class="visibility-toggle ${career.public !== false ? 'is-public' : ''}" data-career-visibility="${index}">${career.public !== false ? '公開' : '非公開'}</button>` : ''}
+  if (!compact) {
+    const [currentCareer, ...pastCareers] = careers;
+    return `
+      <div class="career-list">
+        <div class="career-group">
+          <span class="career-group-title">現在</span>
+          ${careerCardMarkup(currentCareer, 0, options)}
         </div>
-      `).join('')}
+        ${pastCareers.length ? `
+          <div class="career-group">
+            <span class="career-group-title">経歴</span>
+            ${pastCareers.map((career, index) => careerCardMarkup(career, index + 1, options)).join('')}
+          </div>
+        ` : ''}
       </div>
+    `;
+  }
+  return `
+    <div class="career-list compact-career-list">
+      ${careers.map((career, index) => careerCardMarkup(career, index, options, true)).join('')}
+      </div>
+  `;
+}
+
+function careerCardMarkup(career = {}, index = 0, options = {}, compact = false) {
+  return `
+    <div class="${compact ? 'career-card compact-career-card' : 'career-card'}">
+      ${companyLogoMarkup(career.logo, career.company || career.role || 'B', career.domain, career.logoUrl)}
+      <div>
+        ${career.role ? `<h3>${escapeHtml(career.role)}</h3>` : ''}
+        <p>${escapeHtml(career.company || '会社未入力')}</p>
+        ${career.period ? `<small>${escapeHtml(career.period)}</small>` : ''}
+        ${career.location ? `<small>${escapeHtml(career.location)}</small>` : ''}
+      </div>
+      ${options.editable ? `<button class="visibility-toggle ${career.public !== false ? 'is-public' : ''}" data-career-visibility="${index}">${career.public !== false ? '公開' : '非公開'}</button>` : ''}
+    </div>
   `;
 }
 
@@ -2746,7 +2766,7 @@ function overlay() {
   if (type === 'notifications') return modal(notificationsContent(), 'connect-modal');
   if (type === 'account-security') return modal(`<h2>アカウントとセキュリティ</h2><p>ログイン中のメールアドレス：${escapeHtml(authState.user?.email || currentUser().email || '未ログイン')}</p><p>パスワードを変更したい場合は、ログイン画面の「パスワードを忘れた方」から再設定できます。</p><button data-action="logout">ログアウト</button><button data-close>閉じる</button>`);
   if (type === 'manage-connections') return modal(`<h2>つながりの管理</h2><p>現在のつながり数は ${connectionRowsData().length} 人です。承認済みの申請がここに反映されます。</p><button data-action="add">つながりを追加</button><button data-close>閉じる</button>`);
-  if (type === 'profile-visibility') return modal(`<h2>プロフィールの公開範囲</h2><p>学校、会社・所属、所在地、誕生日、SNSごとのリンクはプロフィール編集から公開・非公開を選べます。SNSリンクは入力して公開にしたものだけプロフィールに表示されます。</p><button data-action="edit">プロフィールを編集</button><button data-close>閉じる</button>`);
+  if (type === 'profile-visibility') return modal(`<h2>プロフィールの公開範囲</h2><p>学校、会社、所在地、誕生日、SNSごとのリンクはプロフィール編集から公開・非公開を選べます。SNSリンクは入力して公開にしたものだけプロフィールに表示されます。</p><button data-action="edit">プロフィールを編集</button><button data-close>閉じる</button>`);
   if (type === 'privacy-settings') return modal(`<h2>プライバシー設定</h2><p>プロフィール情報はログイン中のアカウントに紐づいて保存されます。公開範囲はプロフィール編集から変更できます。</p><button data-action="edit">公開設定を変更</button><button data-close>閉じる</button>`);
   if (type === 'version-info') return modal(`<h2>バージョン情報</h2><p>Bondy Web App<br>Ver. 1.3.0</p><p>プロフィールのクラウド保存、Googleログイン、マップ操作改善に対応しています。</p><button data-close>閉じる</button>`);
   if (type === 'help-support') return modal(helpSupportContent(), 'document-modal');
@@ -2979,7 +2999,7 @@ app.addEventListener('click', async (event) => {
   if (companyButton) {
     openOptionPicker(companyButton, {
       fieldSelector: '.company-field',
-      title: '企業・所属を選択',
+      title: '企業を選択',
       searchPlaceholder: '企業名で検索',
       freeInputLabel: '入力した企業名を使う',
       options: companyOptions,
@@ -3429,7 +3449,7 @@ function clearCompanyField(field) {
     input.value = '';
   });
   const label = field.querySelector('.company-select span');
-  if (label) label.innerHTML = '<b>企業・所属を選択または入力</b>';
+  if (label) label.innerHTML = '<b>企業を選択または入力</b>';
   field.classList.remove('has-company');
 }
 
