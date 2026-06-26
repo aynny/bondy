@@ -75,6 +75,19 @@ begin
     end
   where cr.status = 'accepted'
     and (cr.requester_id = center_id or cr.recipient_id = center_id)
+    and (
+      center_id = viewer_id
+      or exists (
+        select 1
+        from public.connection_requests viewer_link
+        where viewer_link.status = 'accepted'
+          and (
+            (viewer_link.requester_id = viewer_id and viewer_link.recipient_id = center_id)
+            or
+            (viewer_link.requester_id = center_id and viewer_link.recipient_id = viewer_id)
+          )
+      )
+    )
   order by cr.updated_at desc nulls last, cr.created_at desc;
 end;
 $$;

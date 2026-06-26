@@ -810,14 +810,16 @@ async function loadMapCenterConnectionsViaRpc(centerId, options = {}) {
     console.log('map center rows', data);
     const rows = (data || []).map((item) => {
       const profile = normalizeUser(item.profile || item);
+      const personId = item.connected_user_id || item.other_id || item.user_id || item.profile_id || item.id;
+      const isSelf = personId === authState.user?.id;
       return {
-        id: item.id || item.user_id || item.profile_id,
+        id: personId,
         requestId: item.request_id || '',
         requesterId: item.requester_id || '',
         recipientId: item.recipient_id || '',
-        name: profile.name || item.name || item.handle || 'ユーザー',
+        name: isSelf ? 'あなた' : (profile.name || item.name || item.handle || 'ユーザー'),
         handle: profile.handle || item.handle || '',
-        tag: relationshipFromValue(item.relationship || item.message || item.tag) || 'つながり',
+        tag: isSelf ? 'あなた' : (relationshipFromValue(item.relationship || item.message || item.tag) || 'つながり'),
         desc: profile.company || profile.school || '',
         common: '公開つながり',
         time: relativeTime(item.updated_at || item.created_at),
@@ -2194,7 +2196,6 @@ function mapScreen() {
         </button>
         ${state.mapFilterOpen ? `<div class="map-filter-menu">${mapFilters().map(mapFilterOption).join('')}</div>` : ''}
       </div>
-      <button class="map-self-button ${state.mapCenter === 'you' ? 'is-current' : ''}" data-action="locate"><span>自分に戻す</span></button>
       <button class="map-fit-button" data-action="fit-map"><span>全体表示</span></button>
     </div>
     <section class="map-interactive-panel">
@@ -3167,6 +3168,16 @@ app.addEventListener('click', async (event) => {
     const centerId = mapNodeButton.dataset.mapNode || mapNodeButton.dataset.personId;
     const visibleNode = mapVisibleNodes().find((node) => node.id === centerId);
     const node = visibleNode || personByIdOrName(centerId);
+    if (state.mapCenter !== 'you' && centerId === authState.user?.id) {
+      await animateNodeToCenter(mapNodeButton);
+      state.mapCenter = 'you';
+      state.filter = 'すべて';
+      state.mapPan = { x: 0, y: 0 };
+      state.zoom = 1;
+      showToast('自分を中心に戻しました');
+      render();
+      return;
+    }
     if (mapNodeButton.dataset.centerable === 'true') {
       await animateNodeToCenter(mapNodeButton);
       state.mapCenter = centerId;
