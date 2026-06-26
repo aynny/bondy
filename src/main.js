@@ -1600,7 +1600,7 @@ function companyLogoUrl(company = '', domainValue = '') {
     return '';
   }
   if (!domain) return '';
-  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(apiKey)}&size=256&format=png&fallback=404&v=90`;
+  return `https://img.logo.dev/${encodeURIComponent(domain)}?token=${encodeURIComponent(apiKey)}&size=256&format=png&fallback=404&v=91`;
 }
 
 function companyNameLogoUrl(company = '') {
@@ -1611,7 +1611,7 @@ function companyNameLogoUrl(company = '') {
     return '';
   }
   if (!name || name === 'B') return '';
-  return `https://img.logo.dev/name/${encodeURIComponent(name)}?token=${encodeURIComponent(apiKey)}&size=256&format=png&fallback=404&v=90`;
+  return `https://img.logo.dev/name/${encodeURIComponent(name)}?token=${encodeURIComponent(apiKey)}&size=256&format=png&fallback=404&v=91`;
 }
 
 function snsLogo(key, label) {
