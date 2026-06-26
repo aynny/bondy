@@ -257,6 +257,25 @@ function render() {
   app.innerHTML = `${state.screen === 'login' ? loginScreen() : state.screen === 'register' ? registerScreen() : appScreen()}${overlay()}${state.toast ? `<div class="toast">${state.toast}</div>` : ''}`;
 }
 
+async function renderMapTransition(update) {
+  if (typeof update !== 'function') return render();
+  if (!document.startViewTransition || state.screen !== 'map') {
+    update();
+    render();
+    return;
+  }
+  document.documentElement.classList.add('map-view-transition');
+  const transition = document.startViewTransition(() => {
+    update();
+    render();
+  });
+  try {
+    await transition.finished;
+  } finally {
+    document.documentElement.classList.remove('map-view-transition');
+  }
+}
+
 function loadUser() {
   return loadStoredUser(STORAGE_KEY);
 }
@@ -2415,8 +2434,10 @@ async function withButtonPending(button, label, task) {
   }
 }
 
-function animateNodeToCenter(button) {
+function animateNodeToCenter(button, options = {}) {
   if (!button) return Promise.resolve();
+  const duration = options.duration || 360;
+  const scale = options.scale || 1.08;
   const start = button.getBoundingClientRect();
   const workspace = button.closest('[data-map-workspace]') || document.querySelector('.map-interactive-panel') || document.body;
   const target = workspace.getBoundingClientRect();
@@ -2444,24 +2465,24 @@ function animateNodeToCenter(button) {
     if (clone.animate) {
       const animation = clone.animate([
         { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1, filter: 'blur(0)' },
-        { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(1.14)`, opacity: .98, filter: 'blur(0)' }
+        { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(${scale})`, opacity: .96, filter: 'blur(0)' }
       ], {
-        duration: 520,
-        easing: 'cubic-bezier(.16, 1, .3, 1)',
+        duration,
+        easing: 'cubic-bezier(.22, 1, .36, 1)',
         fill: 'forwards'
       });
       animation.onfinish = cleanup;
       animation.oncancel = cleanup;
       return;
     }
-    clone.style.transition = 'transform .52s cubic-bezier(.16, 1, .3, 1), opacity .52s ease';
+    clone.style.transition = `transform ${duration}ms cubic-bezier(.22, 1, .36, 1), opacity ${duration}ms ease`;
     requestAnimationFrame(() => {
-      clone.style.transform = `translate3d(${targetX}px, ${targetY}px, 0) scale(1.14)`;
-      clone.style.opacity = '.98';
+      clone.style.transform = `translate3d(${targetX}px, ${targetY}px, 0) scale(${scale})`;
+      clone.style.opacity = '.96';
     });
     window.setTimeout(() => {
       cleanup();
-    }, 540);
+    }, duration + 30);
   });
 }
 
@@ -3199,25 +3220,27 @@ app.addEventListener('click', async (event) => {
     const visibleNode = mapVisibleNodes().find((node) => node.id === centerId);
     const node = visibleNode || personByIdOrName(centerId);
     if (state.mapCenter !== 'you' && centerId === authState.user?.id) {
-      await animateNodeToCenter(mapNodeButton);
-      state.mapCenter = 'you';
-      state.filter = 'すべて';
-      state.mapPan = { x: 0, y: 0 };
-      state.zoom = 1;
-      showToast('自分を中心に戻しました');
-      render();
+      await animateNodeToCenter(mapNodeButton, { duration: 260, scale: 1.06 });
+      await renderMapTransition(() => {
+        state.mapCenter = 'you';
+        state.filter = 'すべて';
+        state.mapPan = { x: 0, y: 0 };
+        state.zoom = 1;
+        state.toast = '自分を中心に戻しました';
+      });
       return;
     }
     if (mapNodeButton.dataset.centerable === 'true') {
       const connectionsPromise = loadMapCenterConnections(centerId, { silent: true });
-      await animateNodeToCenter(mapNodeButton);
-      state.mapCenter = centerId;
-      state.filter = 'すべて';
-      state.mapPan = { x: 0, y: 0 };
-      state.zoom = 1;
+      await animateNodeToCenter(mapNodeButton, { duration: 280, scale: 1.06 });
       await connectionsPromise;
-      showToast(`${node?.name || mapNodeButton.dataset.personName || 'ユーザー'}を中心にしました`);
-      render();
+      await renderMapTransition(() => {
+        state.mapCenter = centerId;
+        state.filter = 'すべて';
+        state.mapPan = { x: 0, y: 0 };
+        state.zoom = 1;
+        state.toast = `${node?.name || mapNodeButton.dataset.personName || 'ユーザー'}を中心にしました`;
+      });
       return;
     }
     state.overlay = personOverlayFromNode(node, mapNodeButton.dataset.personName || 'ユーザー');

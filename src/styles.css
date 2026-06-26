@@ -3410,6 +3410,32 @@ body {
   box-shadow: none;
   touch-action: none;
   overscroll-behavior: contain;
+  view-transition-name: bondy-map-panel;
+}
+
+.map-view-transition::view-transition-old(bondy-map-panel),
+.map-view-transition::view-transition-new(bondy-map-panel) {
+  animation-duration: .46s;
+  animation-timing-function: cubic-bezier(.22, 1, .36, 1);
+  mix-blend-mode: normal;
+}
+
+.map-view-transition::view-transition-old(bondy-map-panel) {
+  animation-name: map-panel-out;
+}
+
+.map-view-transition::view-transition-new(bondy-map-panel) {
+  animation-name: map-panel-in;
+}
+
+@keyframes map-panel-out {
+  from { opacity: 1; transform: scale(1); filter: blur(0); }
+  to { opacity: 0; transform: scale(.985); filter: blur(2px); }
+}
+
+@keyframes map-panel-in {
+  from { opacity: 0; transform: scale(1.018); filter: blur(2px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0); }
 }
 
 .map-screen .map-interactive-panel::before,
