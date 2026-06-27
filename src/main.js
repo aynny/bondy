@@ -1328,21 +1328,46 @@ function snsFields() {
 
 function normalizeCareers(user = {}) {
   const source = Array.isArray(user.careers) ? user.careers : [];
-  const careers = source.map((career) => ({
-    role: String(career?.role || career?.title || '').trim(),
-    company: String(career?.company || career?.name || '').trim(),
-    period: String(career?.period || '').trim(),
-    location: String(career?.location || '').trim(),
-    logo: String(career?.logo || findCompanyLogo(career?.company || career?.name || '') || '').trim(),
-    domain: String(career?.domain || findCompanyDomain(career?.company || career?.name || '') || '').trim(),
-    logoUrl: String(career?.logoUrl || career?.logo_url || companyLogoUrl(career?.company || career?.name || '', career?.domain || '') || '').trim(),
-    public: career?.public ?? user.companyPublic ?? true
-  })).filter((career) => career.role || career.company || career.period || career.location);
+  const careers = source.map((career, index) => {
+    const type = career?.type === 'past' || career?.current === false
+      ? 'past'
+      : career?.type === 'current' || career?.current === true
+        ? 'current'
+        : (index === 0 ? 'current' : 'past');
+    const dates = normalizeCareerDates(career);
+    return {
+      role: String(career?.role || career?.title || '').trim(),
+      company: String(career?.company || career?.name || '').trim(),
+      type,
+      startYear: dates.startYear,
+      startMonth: dates.startMonth,
+      endYear: type === 'current' ? '' : dates.endYear,
+      endMonth: type === 'current' ? '' : dates.endMonth,
+      period: formatCareerPeriod({
+        startYear: dates.startYear,
+        startMonth: dates.startMonth,
+        endYear: type === 'current' ? '' : dates.endYear,
+        endMonth: type === 'current' ? '' : dates.endMonth,
+        type
+      }) || dates.period,
+      location: String(career?.location || '').trim(),
+      logo: String(career?.logo || findCompanyLogo(career?.company || career?.name || '') || '').trim(),
+      domain: String(career?.domain || findCompanyDomain(career?.company || career?.name || '') || '').trim(),
+      logoUrl: String(career?.logoUrl || career?.logo_url || companyLogoUrl(career?.company || career?.name || '', career?.domain || '') || '').trim(),
+      public: career?.public ?? user.companyPublic ?? true
+    };
+  }).filter((career) => career.role || career.company || career.period || career.location);
   if (careers.length) return careers;
+  const legacyDates = normalizeCareerDates(user);
   const legacy = {
     role: String(user.companyRole || '').trim(),
     company: String(user.companyName || user.company || '').trim(),
-    period: String(user.companyPeriod || '').trim(),
+    type: 'current',
+    startYear: legacyDates.startYear,
+    startMonth: legacyDates.startMonth,
+    endYear: legacyDates.endYear,
+    endMonth: legacyDates.endMonth,
+    period: legacyDates.period,
     location: String(user.companyLocation || '').trim(),
     logo: findCompanyLogo(user.companyName || user.company || ''),
     domain: findCompanyDomain(user.companyName || user.company || ''),
@@ -1350,6 +1375,85 @@ function normalizeCareers(user = {}) {
     public: user.companyPublic ?? true
   };
   return legacy.role || legacy.company || legacy.period || legacy.location ? [legacy] : [];
+}
+
+function normalizeCareerDates(career = {}) {
+  const startYear = String(career?.startYear || career?.start_year || '').trim();
+  const startMonth = normalizeMonth(career?.startMonth || career?.start_month || '');
+  const endYear = String(career?.endYear || career?.end_year || '').trim();
+  const endMonth = normalizeMonth(career?.endMonth || career?.end_month || '');
+  const period = formatCareerPeriod({ startYear, startMonth, endYear, endMonth, type: career?.type || (career?.current ? 'current' : '') })
+    || String(career?.period || career?.companyPeriod || '').trim();
+  return { startYear, startMonth, endYear, endMonth, period };
+}
+
+function normalizeMonth(value) {
+  const month = String(value || '').replace('月', '').padStart(2, '0');
+  return /^(0[1-9]|1[0-2])$/.test(month) ? month : '';
+}
+
+function formatCareerPeriod({ startYear = '', startMonth = '', endYear = '', endMonth = '', type = '' } = {}) {
+  const start = formatYearMonth(startYear, startMonth);
+  const end = type === 'current' ? '現在' : formatYearMonth(endYear, endMonth);
+  if (start && end) return `${start} - ${end}`;
+  if (start) return type === 'current' ? `${start} - 現在` : start;
+  if (end && type !== 'current') return end;
+  return '';
+}
+
+function formatYearMonth(year = '', month = '') {
+  const cleanYear = String(year || '').trim();
+  const cleanMonth = normalizeMonth(month);
+  return cleanYear && cleanMonth ? `${cleanYear}年${Number(cleanMonth)}月` : cleanYear ? `${cleanYear}年` : '';
+}
+
+function careerYearOptions(selectedYear = '') {
+  const currentYear = new Date().getFullYear();
+  const selected = String(selectedYear || '').trim();
+  const start = Math.max(1950, Math.min(Number(selected) || currentYear, currentYear) - 80);
+  const end = Math.max(currentYear + 5, Number(selected) || currentYear);
+  const years = [];
+  for (let year = end; year >= start; year -= 1) years.push(year);
+  return `<option value="">年</option>${years.map((year) => `<option value="${year}" ${String(year) === selected ? 'selected' : ''}>${year}年</option>`).join('')}`;
+}
+
+function careerMonthOptions(selectedMonth = '') {
+  const selected = normalizeMonth(selectedMonth);
+  return `<option value="">月</option>${Array.from({ length: 12 }, (_, index) => {
+    const month = String(index + 1).padStart(2, '0');
+    return `<option value="${month}" ${month === selected ? 'selected' : ''}>${index + 1}月</option>`;
+  }).join('')}`;
+}
+
+function careerDateSelects(career = {}, type = 'past') {
+  const isCurrent = type === 'current';
+  return `
+    <div class="career-period-grid">
+      <div class="career-period-row">
+        <span>開始</span>
+        <div class="career-period-selects">
+          <select name="careerStartYear[]" aria-label="開始年">${careerYearOptions(career.startYear)}</select>
+          <select name="careerStartMonth[]" aria-label="開始月">${careerMonthOptions(career.startMonth)}</select>
+        </div>
+      </div>
+      ${isCurrent ? `
+        <input type="hidden" name="careerEndYear[]" value="">
+        <input type="hidden" name="careerEndMonth[]" value="">
+        <div class="career-period-row">
+          <span>終了</span>
+          <b class="career-period-now">現在</b>
+        </div>
+      ` : `
+        <div class="career-period-row">
+          <span>終了</span>
+          <div class="career-period-selects">
+            <select name="careerEndYear[]" aria-label="終了年">${careerYearOptions(career.endYear)}</select>
+            <select name="careerEndMonth[]" aria-label="終了月">${careerMonthOptions(career.endMonth)}</select>
+          </div>
+        </div>
+      `}
+    </div>
+  `;
 }
 
 function findCompanyLogo(company = '') {
@@ -1740,7 +1844,11 @@ function profileDataFromForm(formData, current = {}) {
   const vocationalSchool = String(formData.get('vocationalSchool') || '').trim();
   const careerRoles = formData.getAll('careerRole[]');
   const careerCompanies = formData.getAll('careerCompany[]');
-  const careerPeriods = formData.getAll('careerPeriod[]');
+  const careerTypes = formData.getAll('careerType[]');
+  const careerStartYears = formData.getAll('careerStartYear[]');
+  const careerStartMonths = formData.getAll('careerStartMonth[]');
+  const careerEndYears = formData.getAll('careerEndYear[]');
+  const careerEndMonths = formData.getAll('careerEndMonth[]');
   const careerLocations = formData.getAll('careerLocation[]');
   const careerLogos = formData.getAll('careerLogo[]');
   const careerDomains = formData.getAll('careerDomain[]');
@@ -1748,10 +1856,20 @@ function profileDataFromForm(formData, current = {}) {
   const careers = careerRoles.map((role, index) => {
     const company = String(careerCompanies[index] || '').trim();
     const domain = String(careerDomains[index] || findCompanyDomain(company) || '').trim();
+    const type = careerTypes[index] === 'current' ? 'current' : 'past';
+    const startYear = String(careerStartYears[index] || '').trim();
+    const startMonth = normalizeMonth(careerStartMonths[index] || '');
+    const endYear = type === 'current' ? '' : String(careerEndYears[index] || '').trim();
+    const endMonth = type === 'current' ? '' : normalizeMonth(careerEndMonths[index] || '');
     return {
       role: String(role || '').trim(),
       company,
-      period: String(careerPeriods[index] || '').trim(),
+      type,
+      startYear,
+      startMonth,
+      endYear,
+      endMonth,
+      period: formatCareerPeriod({ startYear, startMonth, endYear, endMonth, type }),
       location: String(careerLocations[index] || '').trim(),
       logo: String(careerLogos[index] || findCompanyLogo(company) || '').trim(),
       domain,
@@ -1759,7 +1877,7 @@ function profileDataFromForm(formData, current = {}) {
       public: formData.get(`careerPublic-${index}`) !== 'false'
     };
   }).filter((career) => career.role || career.company || career.period || career.location);
-  const primary = careers[0] || {};
+  const primary = careers.find((career) => career.type === 'current') || {};
   const school = university || vocationalSchool || highSchool;
   const company = [primary.role, primary.company].filter(Boolean).join(' / ');
   return {
@@ -1785,7 +1903,7 @@ function profileDataFromForm(formData, current = {}) {
     location: String(formData.get('location') || '').trim(),
     birthday: String(formData.get('birthday') || '').trim(),
     schoolPublic: [formData.get('highSchoolPublic'), formData.get('universityPublic'), formData.get('vocationalSchoolPublic')].some((value) => value === 'true'),
-    companyPublic: careers.some((career) => career.public),
+    companyPublic: careers.some((career) => career.public !== false),
     locationPublic: formData.get('locationPublic') === 'true',
     birthdayPublic: formData.get('birthdayPublic') === 'true',
     sns: snsFromForm(formData),
@@ -2006,8 +2124,8 @@ function registerScreen() {
 
 function profileFormFields(user = normalizeUser({}), mode = 'register') {
   const careers = normalizeCareers(user);
-  const currentCareer = careers[0] || { role: '', company: '', period: '', location: '', logo: '', public: true };
-  const pastCareerCards = careers.length > 1 ? careers.slice(1) : [];
+  const currentCareer = careers.find((career) => career.type === 'current') || { role: '', company: '', type: 'current', startYear: '', startMonth: '', endYear: '', endMonth: '', period: '', location: '', logo: '', public: true };
+  const pastCareerCards = careers.filter((career) => career.type !== 'current');
   return `
     <section class="form-section">
       <h2>基本情報</h2>
@@ -2066,6 +2184,7 @@ function careerEditCard(career = {}, index = 0, type = 'past') {
   const company = career.company || '';
   const logo = career.logo || findCompanyLogo(company);
   const isCurrent = type === 'current';
+  const careerWithType = { ...career, type: isCurrent ? 'current' : 'past' };
   return `
     <div class="career-edit-card ${isCurrent ? 'is-current-career' : ''}">
       <div class="sns-edit-head">
@@ -2075,9 +2194,10 @@ function careerEditCard(career = {}, index = 0, type = 'past') {
           ${isCurrent ? '' : `<button type="button" class="career-remove-button" data-career-remove aria-label="職歴を削除">${icon('x', 17)}</button>`}
         </div>
       </div>
+      <input type="hidden" name="careerType[]" value="${isCurrent ? 'current' : 'past'}">
       <input name="careerRole[]" value="${escapeHtml(career.role || '')}" placeholder="職種・役割 例：Solution Engineer">
       ${companyField(company, logo, career.domain || findCompanyDomain(company), career.logoUrl || findCompanyLogoUrl(company, career.domain))}
-      <input name="careerPeriod[]" value="${escapeHtml(career.period || '')}" placeholder="期間 例：2025年8月 - 2025年9月・2ヶ月">
+      ${careerDateSelects(careerWithType, isCurrent ? 'current' : 'past')}
       <input name="careerLocation[]" value="${escapeHtml(career.location || '')}" placeholder="場所 例：日本 東京都 品川区">
     </div>
   `;
@@ -2765,7 +2885,8 @@ function educationDisplay(user = {}, options = {}) {
 }
 
 function careerDisplay(user = {}, variant = '', options = {}) {
-  const careers = careerItems(user, { respectPrivacy: options.respectPrivacy });
+  const careers = careerItems(user, { respectPrivacy: options.respectPrivacy })
+    .map((career, index) => ({ ...career, sourceIndex: index }));
   if (!careers.length) {
     const hiddenValue = options.respectPrivacy && hiddenCareerItems(user).length ? '非公開' : '未入力';
     return variant === 'compact'
@@ -2774,17 +2895,20 @@ function careerDisplay(user = {}, variant = '', options = {}) {
   }
   const compact = variant === 'compact';
   if (!compact) {
-    const [currentCareer, ...pastCareers] = careers;
+    const currentCareer = careers.find((career) => career.type === 'current');
+    const pastCareers = careers.filter((career) => career.type !== 'current');
     return `
       <div class="career-list">
-        <div class="career-group">
-          <span class="career-group-title">現在</span>
-          ${careerCardMarkup(currentCareer, 0, options)}
-        </div>
+        ${currentCareer ? `
+          <div class="career-group">
+            <span class="career-group-title">現在</span>
+            ${careerCardMarkup(currentCareer, currentCareer.sourceIndex, options)}
+          </div>
+        ` : ''}
         ${pastCareers.length ? `
           <div class="career-group">
             <span class="career-group-title">経歴</span>
-            ${pastCareers.map((career, index) => careerCardMarkup(career, index + 1, options)).join('')}
+            ${pastCareers.map((career) => careerCardMarkup(career, career.sourceIndex, options)).join('')}
           </div>
         ` : ''}
       </div>
@@ -2798,6 +2922,7 @@ function careerDisplay(user = {}, variant = '', options = {}) {
 }
 
 function careerCardMarkup(career = {}, index = 0, options = {}, compact = false) {
+  const visibilityIndex = Number.isInteger(career.sourceIndex) ? career.sourceIndex : index;
   return `
     <div class="${compact ? 'career-card compact-career-card' : 'career-card'}">
       ${companyLogoMarkup(career.logo, career.company || career.role || 'B', career.domain, career.logoUrl)}
@@ -2807,7 +2932,7 @@ function careerCardMarkup(career = {}, index = 0, options = {}, compact = false)
         ${career.period ? `<small>${escapeHtml(career.period)}</small>` : ''}
         ${career.location ? `<small>${escapeHtml(career.location)}</small>` : ''}
       </div>
-      ${options.editable ? `<button class="visibility-toggle ${career.public !== false ? 'is-public' : ''}" data-career-visibility="${index}">${career.public !== false ? '公開' : '非公開'}</button>` : ''}
+      ${options.editable ? `<button class="visibility-toggle ${career.public !== false ? 'is-public' : ''}" data-career-visibility="${visibilityIndex}">${career.public !== false ? '公開' : '非公開'}</button>` : ''}
     </div>
   `;
 }

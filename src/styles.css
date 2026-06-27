@@ -722,9 +722,57 @@ button.is-saving::before {
   font-size: 13px;
 }
 
-.career-edit-card input {
+.career-edit-card input,
+.career-edit-card select {
   height: 38px;
   font-size: 13px;
+}
+
+.career-edit-card select {
+  width: 100%;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  background: #fafafa;
+  color: #111;
+  padding: 0 10px;
+  font-weight: 720;
+}
+
+.career-period-grid {
+  display: grid;
+  gap: 7px;
+}
+
+.career-period-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.career-period-row > span {
+  color: #777;
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.career-period-selects {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr);
+  gap: 7px;
+}
+
+.career-period-now {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  background: #f7f7f7;
+  color: #111;
+  font-size: 13px;
+  font-weight: 850;
 }
 
 .register-form input[type="file"] {
