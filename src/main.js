@@ -1002,6 +1002,12 @@ async function findRelatedConnectionRequestId(personId = '') {
   return data?.[0]?.id || '';
 }
 
+function directConnectionForPerson(person = {}) {
+  const key = personIdentityKey(person);
+  if (!key) return null;
+  return connectionRowsData().find((connection) => personIdentityKey(connection) === key) || null;
+}
+
 async function updateConnectionRelationship(requestId, relationship, personId = '') {
   if (!authState.client || !authState.user) return false;
   const cleanRelationship = relationshipFromValue(relationship);
@@ -1042,23 +1048,44 @@ async function updateConnectionRelationship(requestId, relationship, personId = 
   return true;
 }
 
-async function removeConnection(requestId, relationship) {
+async function removeConnection(requestId, relationship, personId = '') {
   if (!authState.client || !authState.user) return false;
-  const { error } = await authState.client
+  const resolvedRequestId = requestId || await findRelatedConnectionRequestId(personId);
+  if (!resolvedRequestId) {
+    showToast('つながり情報を再読み込みしてください');
+    return false;
+  }
+  const { data: removedRows, error } = await authState.client
     .from(CONNECTION_REQUEST_TABLE)
     .update({
       status: 'removed',
       message: removalPayload(authState.user.id, relationship),
       updated_at: new Date().toISOString()
     })
-    .eq('id', requestId)
-    .eq('status', 'accepted');
+    .eq('id', resolvedRequestId)
+    .eq('status', 'accepted')
+    .select('id');
   if (error) {
     console.warn('Connection removal failed', error);
     showToast('つながり削除の設定を確認してください');
     return false;
   }
-  state.connections = state.connections.filter((person) => person.requestId !== requestId);
+  if (!removedRows?.length && personId && requestId) {
+    const fallbackRequestId = await findRelatedConnectionRequestId(personId);
+    if (fallbackRequestId && fallbackRequestId !== requestId) {
+      return removeConnection(fallbackRequestId, relationship, personId);
+    }
+  }
+  if (!removedRows?.length) {
+    showToast('つながり情報を再読み込みしてください');
+    return false;
+  }
+  state.connections = state.connections.filter((person) => person.requestId !== resolvedRequestId && person.id !== personId);
+  if (personId) {
+    Object.keys(state.mapCenterConnections || {}).forEach((centerId) => {
+      state.mapCenterConnections[centerId] = (state.mapCenterConnections[centerId] || []).filter((person) => person.id !== personId);
+    });
+  }
   if (!state.connections.some((person) => person.id === state.mapCenter)) {
     state.mapCenter = 'you';
   }
@@ -2066,7 +2093,10 @@ function personModalContent(person) {
       : initialsAvatar(name, 70);
   const desc = person?.desc || '登録したプロフィール情報を確認できます。';
   const identity = person?.handle ? `@${person.handle}` : desc;
-  const isConnection = Boolean(person?.requestId);
+  const directConnection = person?.readOnly ? null : directConnectionForPerson(person);
+  const editableConnection = Boolean(directConnection?.requestId || person?.requestId) && !person?.readOnly;
+  const editableRequestId = directConnection?.requestId || person?.requestId || '';
+  const editableTag = directConnection?.tag || person?.tag || '';
   return `
     <header class="person-modal-header">
       <div class="modal-avatar">${avatarHtml}</div>
@@ -2076,14 +2106,14 @@ function personModalContent(person) {
       </div>
     </header>
     ${personProfileDetails(person)}
-    ${isConnection ? `
+    ${editableConnection ? `
       <fieldset class="relationship-picker manage-relationship">
         <legend>関係を変更</legend>
-        ${relationshipTypes().map((type) => `<label><input type="radio" name="manageRelationshipType" value="${escapeHtml(type)}" ${person.tag === type ? 'checked' : ''}>${type === '恋人' ? icon('heart', 15) : escapeHtml(type)}</label>`).join('')}
+        ${relationshipTypes().map((type) => `<label><input type="radio" name="manageRelationshipType" value="${escapeHtml(type)}" ${editableTag === type ? 'checked' : ''}>${type === '恋人' ? icon('heart', 15) : escapeHtml(type)}</label>`).join('')}
       </fieldset>
       <div class="connection-manage-actions">
-        <button data-action="update-relationship" data-request-id="${escapeHtml(person.requestId || '')}" data-person-id="${escapeHtml(person.id || '')}">関係を保存</button>
-        <button class="danger-button" data-action="remove-connection" data-request-id="${escapeHtml(person.requestId)}" data-relationship="${escapeHtml(person.tag || '')}">つながりを削除</button>
+        <button data-action="update-relationship" data-request-id="${escapeHtml(editableRequestId)}" data-person-id="${escapeHtml(person.id || '')}">関係を保存</button>
+        <button class="danger-button" data-action="remove-connection" data-request-id="${escapeHtml(editableRequestId)}" data-person-id="${escapeHtml(person.id || '')}" data-relationship="${escapeHtml(editableTag)}">つながりを削除</button>
       </div>
     ` : ''}
     <button data-close>閉じる</button>
@@ -2115,6 +2145,7 @@ function personOverlayFromNode(node, fallbackName = 'ユーザー') {
     handle: node?.handle || '',
     tag: node?.tag,
     requestId: node?.requestId,
+    readOnly: node?.readOnly ?? false,
     school: node?.school || '',
     highSchool: node?.highSchool || '',
     university: node?.university || '',
@@ -2688,10 +2719,15 @@ function animateNodeToCenter(button, options = {}) {
   const scale = options.scale || 1.12;
   const color = options.color || button.closest('.map-canvas')?.querySelector(`[data-line-node="${cssEscape(button.dataset.mapNode || '')}"]`)?.getAttribute('stroke') || '#9cc8ff';
   const start = button.getBoundingClientRect();
+  const startAvatar = button.querySelector('.avatar')?.getBoundingClientRect() || start;
   const workspace = button.closest('[data-map-workspace]') || document.querySelector('.map-interactive-panel') || document.body;
   const target = workspace.getBoundingClientRect();
-  const targetX = target.left + target.width / 2 - (start.left + start.width / 2);
-  const targetY = target.top + target.height / 2 - (start.top + start.height / 2);
+  const centerAvatar = workspace.querySelector('.center-node .avatar')?.getBoundingClientRect();
+  const targetCenterX = centerAvatar ? centerAvatar.left + centerAvatar.width / 2 : target.left + target.width / 2;
+  const targetCenterY = centerAvatar ? centerAvatar.top + centerAvatar.height / 2 : target.top + target.height / 2;
+  const targetScale = centerAvatar ? Math.min(1.75, Math.max(.9, centerAvatar.width / Math.max(startAvatar.width, 1))) : scale;
+  const targetX = targetCenterX - (startAvatar.left + startAvatar.width / 2);
+  const targetY = targetCenterY - (startAvatar.top + startAvatar.height / 2);
   const distance = Math.hypot(targetX, targetY) || 1;
   const curve = Math.min(96, Math.max(34, distance * .16));
   const midX = targetX * .52 + (-targetY / distance) * curve;
@@ -2732,8 +2768,8 @@ function animateNodeToCenter(button, options = {}) {
     if (clone.animate) {
       const animation = clone.animate([
         { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1, filter: 'blur(0) brightness(1)' },
-        { transform: `translate3d(${midX}px, ${midY}px, 0) scale(${scale})`, opacity: 1, filter: 'blur(0) brightness(1.18)', offset: .62 },
-        { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(1.24)`, opacity: .98, filter: 'blur(0) brightness(1.1)' }
+        { transform: `translate3d(${midX}px, ${midY}px, 0) scale(${Math.max(scale, targetScale * .92)})`, opacity: 1, filter: 'blur(0) brightness(1.18)', offset: .62 },
+        { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(${targetScale})`, opacity: .98, filter: 'blur(0) brightness(1.1)' }
       ], {
         duration,
         easing: 'cubic-bezier(.22, 1, .36, 1)',
@@ -3599,8 +3635,9 @@ app.addEventListener('click', async (event) => {
   if (action === 'remove-connection') {
     const button = event.target.closest('[data-request-id]');
     const requestId = button?.dataset.requestId;
+    const targetPersonId = button?.dataset.personId || '';
     const relationship = button?.dataset.relationship || '';
-    const removed = await withButtonPending(button, '削除中...', () => removeConnection(requestId, relationship));
+    const removed = await withButtonPending(button, '削除中...', () => removeConnection(requestId, relationship, targetPersonId));
     if (removed) {
       state.overlay = null;
       showToast('つながりを削除しました');
