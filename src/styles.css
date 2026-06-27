@@ -3599,14 +3599,23 @@ body {
   stroke-width: .48;
   stroke-linecap: round;
   opacity: .34;
-  animation: none;
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  animation: drawCosmicLine .58s cubic-bezier(.22, 1, .36, 1) forwards;
   transform-box: fill-box;
   transform-origin: center;
   filter: none;
 }
 
 .map-screen .lines .line-flow {
-  display: none;
+  display: block;
+  stroke-width: .72;
+  stroke-linecap: round;
+  stroke-dasharray: 1 16;
+  opacity: .86;
+  filter: drop-shadow(0 0 5px currentColor);
+  animation: cosmicLinePulse 2.4s linear infinite;
+  mix-blend-mode: screen;
 }
 
 .map-screen .lines .line-base:nth-of-type(2n) { animation-delay: -.7s; }
@@ -3630,8 +3639,69 @@ body {
   to { stroke-dashoffset: -34; }
 }
 
+.map-interactive-panel.is-switching-center .lines,
+.map-interactive-panel.is-switching-center .map-node:not(.map-node-fly) {
+  opacity: .22;
+  transition: opacity .18s ease;
+}
+
+.map-interactive-panel.is-arriving-center .center-node .avatar {
+  animation: centerStarArrive .34s cubic-bezier(.22, 1, .36, 1);
+}
+
+@keyframes drawCosmicLine {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes cosmicLinePulse {
+  from {
+    stroke-dashoffset: 30;
+    opacity: .16;
+  }
+  38% {
+    opacity: .86;
+  }
+  to {
+    stroke-dashoffset: -30;
+    opacity: .16;
+  }
+}
+
+@keyframes centerStarArrive {
+  0% {
+    transform: scale(.96);
+    filter: brightness(1);
+  }
+  54% {
+    transform: scale(1.07);
+    filter: brightness(1.22);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
 .line-token {
-  display: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--token-color) 58%, rgba(255,255,255,.9));
+  color: #fff;
+  font-size: 8px;
+  font-weight: 900;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--token-color) 72%, transparent);
+  animation: lineTokenTravel 3.2s cubic-bezier(.22, 1, .36, 1) infinite;
+  animation-delay: var(--token-delay, 0s);
 }
 
 @keyframes lineTokenTravel {
@@ -3742,6 +3812,35 @@ body {
   font-family: var(--font-display);
   will-change: transform, opacity;
   filter: drop-shadow(0 16px 32px rgba(0,0,0,.28));
+}
+
+.map-node-fly .shooting-trail {
+  position: absolute;
+  right: calc(100% - 12px);
+  top: 29px;
+  width: 92px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255,255,255,0), color-mix(in srgb, var(--trail-color) 58%, rgba(255,255,255,.2)), rgba(255,255,255,.92));
+  filter: blur(1.5px);
+  opacity: .8;
+  transform-origin: right center;
+  animation: shootingTrailFade .64s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes shootingTrailFade {
+  0% {
+    opacity: 0;
+    transform: scaleX(.35);
+  }
+  22% {
+    opacity: .86;
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1.2);
+  }
 }
 
 .map-node-fly .avatar {

@@ -259,21 +259,19 @@ function render() {
 
 async function renderMapTransition(update) {
   if (typeof update !== 'function') return render();
-  if (!document.startViewTransition || state.screen !== 'map') {
-    update();
-    render();
-    return;
-  }
-  document.documentElement.classList.add('map-view-transition');
-  const transition = document.startViewTransition(() => {
-    update();
-    render();
+  document.querySelector('.map-interactive-panel')?.classList.add('is-switching-center');
+  await wait(130);
+  update();
+  render();
+  requestAnimationFrame(() => {
+    document.querySelector('.map-interactive-panel')?.classList.add('is-arriving-center');
   });
-  try {
-    await transition.finished;
-  } finally {
-    document.documentElement.classList.remove('map-view-transition');
-  }
+  await wait(360);
+  document.querySelector('.map-interactive-panel')?.classList.remove('is-switching-center', 'is-arriving-center');
+}
+
+function wait(ms = 0) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 function loadUser() {
@@ -988,21 +986,59 @@ async function updateConnectionRequestStatus(requestId, result) {
   return true;
 }
 
-async function updateConnectionRelationship(requestId, relationship) {
+async function findRelatedConnectionRequestId(personId = '') {
+  if (!authState.client || !authState.user || !personId) return '';
+  const { data, error } = await authState.client
+    .from(CONNECTION_REQUEST_TABLE)
+    .select('id')
+    .eq('status', 'accepted')
+    .or(`and(requester_id.eq.${authState.user.id},recipient_id.eq.${personId}),and(requester_id.eq.${personId},recipient_id.eq.${authState.user.id})`)
+    .order('updated_at', { ascending: false })
+    .limit(1);
+  if (error) {
+    console.warn('Related connection lookup failed', error);
+    return '';
+  }
+  return data?.[0]?.id || '';
+}
+
+async function updateConnectionRelationship(requestId, relationship, personId = '') {
   if (!authState.client || !authState.user) return false;
   const cleanRelationship = relationshipFromValue(relationship);
-  if (!requestId || !cleanRelationship) return false;
-  const { error } = await authState.client
+  const resolvedRequestId = requestId || await findRelatedConnectionRequestId(personId);
+  if (!resolvedRequestId || !cleanRelationship) {
+    showToast('つながり情報を再読み込みしてください');
+    return false;
+  }
+  const { data: updatedRows, error } = await authState.client
     .from(CONNECTION_REQUEST_TABLE)
     .update({ message: cleanRelationship, updated_at: new Date().toISOString() })
-    .eq('id', requestId)
-    .eq('status', 'accepted');
+    .eq('id', resolvedRequestId)
+    .eq('status', 'accepted')
+    .select('id');
   if (error) {
     console.warn('Connection relationship update failed', error);
     showToast('関係の変更設定を確認してください');
     return false;
   }
+  if (!updatedRows?.length && personId && requestId) {
+    const fallbackRequestId = await findRelatedConnectionRequestId(personId);
+    if (fallbackRequestId && fallbackRequestId !== requestId) {
+      return updateConnectionRelationship(fallbackRequestId, cleanRelationship, personId);
+    }
+  }
+  if (!updatedRows?.length) {
+    showToast('つながり情報を再読み込みしてください');
+    return false;
+  }
   await loadAcceptedConnections({ silent: true });
+  if (personId && state.mapCenterConnections[state.mapCenter]) {
+    Object.values(state.mapCenterConnections).forEach((rows) => {
+      rows.forEach((person) => {
+        if (person.id === personId) person.tag = cleanRelationship;
+      });
+    });
+  }
   return true;
 }
 
@@ -2046,7 +2082,7 @@ function personModalContent(person) {
         ${relationshipTypes().map((type) => `<label><input type="radio" name="manageRelationshipType" value="${escapeHtml(type)}" ${person.tag === type ? 'checked' : ''}>${type === '恋人' ? icon('heart', 15) : escapeHtml(type)}</label>`).join('')}
       </fieldset>
       <div class="connection-manage-actions">
-        <button data-action="update-relationship" data-request-id="${escapeHtml(person.requestId)}">関係を保存</button>
+        <button data-action="update-relationship" data-request-id="${escapeHtml(person.requestId || '')}" data-person-id="${escapeHtml(person.id || '')}">関係を保存</button>
         <button class="danger-button" data-action="remove-connection" data-request-id="${escapeHtml(person.requestId)}" data-relationship="${escapeHtml(person.tag || '')}">つながりを削除</button>
       </div>
     ` : ''}
@@ -2648,15 +2684,32 @@ async function withButtonPending(button, label, task) {
 
 function animateNodeToCenter(button, options = {}) {
   if (!button) return Promise.resolve();
-  const duration = options.duration || 360;
-  const scale = options.scale || 1.08;
+  const duration = options.duration || 620;
+  const scale = options.scale || 1.12;
+  const color = options.color || button.closest('.map-canvas')?.querySelector(`[data-line-node="${cssEscape(button.dataset.mapNode || '')}"]`)?.getAttribute('stroke') || '#9cc8ff';
   const start = button.getBoundingClientRect();
   const workspace = button.closest('[data-map-workspace]') || document.querySelector('.map-interactive-panel') || document.body;
   const target = workspace.getBoundingClientRect();
   const targetX = target.left + target.width / 2 - (start.left + start.width / 2);
   const targetY = target.top + target.height / 2 - (start.top + start.height / 2);
+  const distance = Math.hypot(targetX, targetY) || 1;
+  const curve = Math.min(96, Math.max(34, distance * .16));
+  const midX = targetX * .52 + (-targetY / distance) * curve;
+  const midY = targetY * .52 + (targetX / distance) * curve;
+  if (button.animate) {
+    button.animate([
+      { transform: 'translate(-50%, -29px) scale(1)', filter: 'brightness(1)' },
+      { transform: 'translate(-50%, -29px) scale(1.11)', filter: 'brightness(1.16)' },
+      { transform: 'translate(-50%, -29px) scale(1)', filter: 'brightness(1)' }
+    ], {
+      duration: 170,
+      easing: 'cubic-bezier(.22, 1, .36, 1)'
+    });
+  }
+  document.querySelector('.map-interactive-panel')?.classList.add('is-switching-center');
   const clone = button.cloneNode(true);
   clone.classList.add('map-node-fly');
+  clone.style.setProperty('--trail-color', color);
   clone.style.position = 'fixed';
   clone.style.left = `${start.left}px`;
   clone.style.top = `${start.top}px`;
@@ -2666,18 +2719,21 @@ function animateNodeToCenter(button, options = {}) {
   clone.style.transform = 'translate3d(0, 0, 0) scale(1)';
   clone.style.zIndex = '9999';
   clone.style.pointerEvents = 'none';
+  clone.insertAdjacentHTML('afterbegin', '<span class="shooting-trail" aria-hidden="true"></span>');
   document.body.appendChild(clone);
   button.style.visibility = 'hidden';
   return new Promise((resolve) => {
     const cleanup = () => {
       button.style.visibility = '';
       clone.remove();
+      document.querySelector('.map-interactive-panel')?.classList.remove('is-switching-center');
       resolve();
     };
     if (clone.animate) {
       const animation = clone.animate([
-        { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1, filter: 'blur(0)' },
-        { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(${scale})`, opacity: .96, filter: 'blur(0)' }
+        { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1, filter: 'blur(0) brightness(1)' },
+        { transform: `translate3d(${midX}px, ${midY}px, 0) scale(${scale})`, opacity: 1, filter: 'blur(0) brightness(1.18)', offset: .62 },
+        { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(1.24)`, opacity: .98, filter: 'blur(0) brightness(1.1)' }
       ], {
         duration,
         easing: 'cubic-bezier(.22, 1, .36, 1)',
@@ -3442,7 +3498,7 @@ app.addEventListener('click', async (event) => {
     const visibleNode = mapVisibleNodes().find((node) => node.id === centerId);
     const node = visibleNode || personByIdOrName(centerId);
     if (state.mapCenter !== 'you' && centerId === authState.user?.id) {
-      await animateNodeToCenter(mapNodeButton, { duration: 260, scale: 1.06 });
+      await animateNodeToCenter(mapNodeButton, { duration: 620, scale: 1.12, color: relationshipColor('あなた') });
       await renderMapTransition(() => {
         state.mapCenter = 'you';
         state.filter = 'すべて';
@@ -3454,7 +3510,7 @@ app.addEventListener('click', async (event) => {
     }
     if (mapNodeButton.dataset.centerable === 'true') {
       const connectionsPromise = loadMapCenterConnections(centerId, { silent: true });
-      await animateNodeToCenter(mapNodeButton, { duration: 280, scale: 1.06 });
+      await animateNodeToCenter(mapNodeButton, { duration: 640, scale: 1.12, color: relationshipColor(node?.tag || '紹介') });
       await connectionsPromise;
       await renderMapTransition(() => {
         state.mapCenter = centerId;
@@ -3530,8 +3586,9 @@ app.addEventListener('click', async (event) => {
   if (action === 'update-relationship') {
     const saveButton = event.target.closest('[data-action]');
     const requestId = event.target.closest('[data-request-id]')?.dataset.requestId;
+    const targetPersonId = event.target.closest('[data-person-id]')?.dataset.personId || '';
     const relationship = event.target.closest('.modal-sheet')?.querySelector('input[name="manageRelationshipType"]:checked')?.value || '';
-    const updated = await withButtonPending(saveButton, '保存中...', () => updateConnectionRelationship(requestId, relationship));
+    const updated = await withButtonPending(saveButton, '保存中...', () => updateConnectionRelationship(requestId, relationship, targetPersonId));
     if (updated) {
       state.overlay = null;
       showToast('関係を変更しました');
