@@ -1003,9 +1003,17 @@ async function findRelatedConnectionRequestId(personId = '') {
 }
 
 function directConnectionForPerson(person = {}) {
-  const key = personIdentityKey(person);
-  if (!key) return null;
-  return connectionRowsData().find((connection) => personIdentityKey(connection) === key) || null;
+  const personId = String(person.id || '').trim();
+  const personHandle = String(person.handle || '').trim().toLowerCase();
+  const personName = String(person.name || '').trim().toLowerCase();
+  return connectionRowsData().find((connection) => {
+    const connectionId = String(connection.id || '').trim();
+    const connectionHandle = String(connection.handle || '').trim().toLowerCase();
+    const connectionName = String(connection.name || '').trim().toLowerCase();
+    return (personId && connectionId && personId === connectionId)
+      || (personHandle && connectionHandle && personHandle === connectionHandle)
+      || (personName && connectionName && personName === connectionName && !personHandle);
+  }) || null;
 }
 
 async function updateConnectionRelationship(requestId, relationship, personId = '') {
@@ -1055,7 +1063,7 @@ async function removeConnection(requestId, relationship, personId = '') {
     showToast('つながり情報を再読み込みしてください');
     return false;
   }
-  const { data: removedRows, error } = await authState.client
+  const removalResult = await authState.client
     .from(CONNECTION_REQUEST_TABLE)
     .update({
       status: 'removed',
@@ -1065,6 +1073,22 @@ async function removeConnection(requestId, relationship, personId = '') {
     .eq('id', resolvedRequestId)
     .eq('status', 'accepted')
     .select('id');
+  let removedRows = removalResult.data;
+  let error = removalResult.error;
+  if (error && (error.code === '23514' || String(error.message || '').includes('connection_requests_status_check'))) {
+    const fallbackResult = await authState.client
+      .from(CONNECTION_REQUEST_TABLE)
+      .update({
+        status: 'rejected',
+        message: removalPayload(authState.user.id, relationship),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', resolvedRequestId)
+      .eq('status', 'accepted')
+      .select('id');
+    removedRows = fallbackResult.data;
+    error = fallbackResult.error;
+  }
   if (error) {
     console.warn('Connection removal failed', error);
     showToast('つながり削除の設定を確認してください');
@@ -2093,10 +2117,11 @@ function personModalContent(person) {
       : initialsAvatar(name, 70);
   const desc = person?.desc || '登録したプロフィール情報を確認できます。';
   const identity = person?.handle ? `@${person.handle}` : desc;
-  const directConnection = person?.readOnly ? null : directConnectionForPerson(person);
-  const editableConnection = Boolean(directConnection?.requestId || person?.requestId) && !person?.readOnly;
+  const directConnection = directConnectionForPerson(person);
+  const editableConnection = Boolean(directConnection?.requestId || (!person?.readOnly && person?.requestId));
   const editableRequestId = directConnection?.requestId || person?.requestId || '';
   const editableTag = directConnection?.tag || person?.tag || '';
+  const editablePersonId = directConnection?.id || person?.id || '';
   return `
     <header class="person-modal-header">
       <div class="modal-avatar">${avatarHtml}</div>
@@ -2112,8 +2137,8 @@ function personModalContent(person) {
         ${relationshipTypes().map((type) => `<label><input type="radio" name="manageRelationshipType" value="${escapeHtml(type)}" ${editableTag === type ? 'checked' : ''}>${type === '恋人' ? icon('heart', 15) : escapeHtml(type)}</label>`).join('')}
       </fieldset>
       <div class="connection-manage-actions">
-        <button data-action="update-relationship" data-request-id="${escapeHtml(editableRequestId)}" data-person-id="${escapeHtml(person.id || '')}">関係を保存</button>
-        <button class="danger-button" data-action="remove-connection" data-request-id="${escapeHtml(editableRequestId)}" data-person-id="${escapeHtml(person.id || '')}" data-relationship="${escapeHtml(editableTag)}">つながりを削除</button>
+        <button data-action="update-relationship" data-request-id="${escapeHtml(editableRequestId)}" data-person-id="${escapeHtml(editablePersonId)}">関係を保存</button>
+        <button class="danger-button" data-action="remove-connection" data-request-id="${escapeHtml(editableRequestId)}" data-person-id="${escapeHtml(editablePersonId)}" data-relationship="${escapeHtml(editableTag)}">つながりを削除</button>
       </div>
     ` : ''}
     <button data-close>閉じる</button>
