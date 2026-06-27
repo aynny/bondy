@@ -651,12 +651,31 @@ button.is-saving::before {
   gap: 0;
 }
 
+.education-field {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.education-field-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 0;
+  align-items: center;
+  gap: 0;
+}
+
 .company-field.has-company .company-field-control {
   grid-template-columns: minmax(0, 1fr) 34px;
   gap: 7px;
 }
 
-.company-clear-button {
+.education-field.has-school .education-field-control {
+  grid-template-columns: minmax(0, 1fr) 34px;
+  gap: 7px;
+}
+
+.company-clear-button,
+.school-clear-button {
   width: 34px;
   height: 34px;
   display: none;
@@ -668,6 +687,10 @@ button.is-saving::before {
 }
 
 .company-field.has-company .company-clear-button {
+  display: grid;
+}
+
+.education-field.has-school .school-clear-button {
   display: grid;
 }
 

@@ -515,12 +515,38 @@ async function sendConnectionRequest(targetId, message = '') {
     showToast('自分には申請できません');
     return false;
   }
+  const cleanMessage = relationshipFromValue(message) || '紹介';
+  const { data: existingRows, error: existingError } = await authState.client
+    .from(CONNECTION_REQUEST_TABLE)
+    .select('id,status')
+    .or(`and(requester_id.eq.${authState.user.id},recipient_id.eq.${targetId}),and(requester_id.eq.${targetId},recipient_id.eq.${authState.user.id})`)
+    .in('status', ['pending', 'accepted'])
+    .limit(1);
+  if (existingError) {
+    console.warn('Connection duplicate check failed', existingError);
+  }
+  const existing = existingRows?.[0];
+  if (existing?.status === 'accepted') {
+    showToast('すでにつながっています');
+    return false;
+  }
+  if (existing?.status === 'pending') {
+    const { error: updateError } = await authState.client
+      .from(CONNECTION_REQUEST_TABLE)
+      .update({ message: cleanMessage, updated_at: new Date().toISOString() })
+      .eq('id', existing.id);
+    if (!updateError) {
+      showToast('申請を更新しました');
+      return true;
+    }
+    console.warn('Connection request update failed', updateError);
+  }
   const { error } = await authState.client
     .from(CONNECTION_REQUEST_TABLE)
     .insert({
       requester_id: authState.user.id,
       recipient_id: targetId,
-      message: relationshipFromValue(message) || '紹介',
+      message: cleanMessage,
       status: 'pending'
     });
   if (error) {
@@ -529,7 +555,7 @@ async function sendConnectionRequest(targetId, message = '') {
         .from(CONNECTION_REQUEST_TABLE)
         .update({
           status: 'pending',
-          message: relationshipFromValue(message) || '紹介',
+          message: cleanMessage,
           updated_at: new Date().toISOString()
         })
         .eq('requester_id', authState.user.id)
@@ -612,6 +638,58 @@ function relationshipTypes() {
 function relationshipFromValue(value) {
   const cleanValue = String(value || '').trim();
   return relationshipTypes().includes(cleanValue) ? cleanValue : '';
+}
+
+function personIdentityKey(person = {}) {
+  const id = String(person.id || '').trim();
+  if (id) return `id:${id}`;
+  const handle = String(person.handle || '').trim().toLowerCase();
+  if (handle) return `handle:${handle}`;
+  const name = String(person.name || '').trim().toLowerCase();
+  return name ? `name:${name}` : '';
+}
+
+function mergePersonRecord(base = {}, next = {}) {
+  const mergedTags = [...new Set([
+    ...(Array.isArray(base.tags) ? base.tags : [base.tag]).filter(Boolean),
+    ...(Array.isArray(next.tags) ? next.tags : [next.tag]).filter(Boolean)
+  ])];
+  return {
+    ...next,
+    ...base,
+    id: base.id || next.id,
+    requestId: base.requestId || next.requestId,
+    requesterId: base.requesterId || next.requesterId,
+    recipientId: base.recipientId || next.recipientId,
+    name: base.name || next.name,
+    handle: base.handle || next.handle,
+    photo: base.photo || next.photo,
+    desc: base.desc || next.desc,
+    time: base.time || next.time,
+    tag: base.tag || next.tag,
+    tags: mergedTags
+  };
+}
+
+function uniquePeopleByIdentity(people = []) {
+  const byKey = new Map();
+  const unique = [];
+  people.forEach((person) => {
+    const key = personIdentityKey(person);
+    if (!key) {
+      unique.push(person);
+      return;
+    }
+    const existing = byKey.get(key);
+    if (existing) {
+      const merged = mergePersonRecord(existing, person);
+      Object.assign(existing, merged);
+      return;
+    }
+    byKey.set(key, person);
+    unique.push(person);
+  });
+  return unique;
 }
 
 function removalPayload(userId, relationship) {
@@ -757,7 +835,7 @@ async function loadAcceptedConnections(options = {}) {
       (profiles || []).forEach((row) => profilesById.set(row.id, profileFromRemoteRow(row)));
     }
   }
-  state.connections = (data || []).map((row) => connectionPersonFromRow(row, profilesById));
+  state.connections = uniquePeopleByIdentity((data || []).map((row) => connectionPersonFromRow(row, profilesById)));
   render();
   return true;
 }
@@ -808,7 +886,7 @@ async function loadMapCenterConnections(centerId, options = {}) {
       requestId: '',
       readOnly: true
     }));
-  const bestRows = rpcRows && rpcRows.length > rows.length ? rpcRows : rows;
+  const bestRows = uniquePeopleByIdentity(rpcRows && rpcRows.length > rows.length ? rpcRows : rows);
   state.mapCenterConnections[centerId] = bestRows;
   return bestRows;
 }
@@ -821,7 +899,7 @@ async function loadMapCenterConnectionsViaRpc(centerId, options = {}) {
       return null;
     }
     console.log('map center rows', data);
-    const rows = (data || []).map((item) => {
+    const rows = uniquePeopleByIdentity((data || []).map((item) => {
       const profile = normalizeUser(item.profile || item);
       const personId = item.connected_user_id || item.other_id || item.user_id || item.profile_id || item.id;
       const isSelf = personId === authState.user?.id;
@@ -840,7 +918,7 @@ async function loadMapCenterConnectionsViaRpc(centerId, options = {}) {
         ...privacySafeProfile(profile),
         readOnly: true
       };
-    }).filter((person) => person.id);
+    }).filter((person) => person.id));
     console.log('map center otherIds', rows.map((person) => person.id));
     console.log('map center profiles', rows);
     state.mapCenterConnections[centerId] = rows;
@@ -2137,9 +2215,9 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
     <section class="form-section profile-input-section">
       <h2>学歴</h2>
       <p class="form-section-note">学校を分けて入れると、つながりの共通点が見つけやすくなります。</p>
-      ${educationEditRow('高校', '<input name="highSchool" value="' + escapeHtml(user.highSchool) + '" placeholder="例：東京都立 Bondy 高校">', 'highSchoolPublic', user.highSchoolPublic, 'highSchoolCurrent', user.highSchoolCurrent)}
+      ${educationEditRow('高校', educationTextField('highSchool', user.highSchool, '例：東京都立 Bondy 高校'), 'highSchoolPublic', user.highSchoolPublic, 'highSchoolCurrent', user.highSchoolCurrent)}
       ${educationEditRow('大学', universityField('university', user.university || user.school, false, false), 'universityPublic', user.universityPublic, 'universityCurrent', user.universityCurrent)}
-      ${educationEditRow('専門学校', '<input name="vocationalSchool" value="' + escapeHtml(user.vocationalSchool) + '" placeholder="例：Bondy デザイン専門学校">', 'vocationalSchoolPublic', user.vocationalSchoolPublic, 'vocationalSchoolCurrent', user.vocationalSchoolCurrent)}
+      ${educationEditRow('専門学校', educationTextField('vocationalSchool', user.vocationalSchool, '例：Bondy デザイン専門学校'), 'vocationalSchoolPublic', user.vocationalSchoolPublic, 'vocationalSchoolCurrent', user.vocationalSchoolCurrent)}
     </section>
     <section class="form-section profile-input-section">
       <h2>現在の仕事</h2>
@@ -2234,12 +2312,26 @@ function careerVisibilityField(index, isPublic) {
 function universityField(name, value = '', showLabel = true, required = true) {
   const label = value || '学校名を検索して選択';
   return `
-    <label class="university-field">${showLabel ? '学校' : ''}
+    <label class="university-field education-field ${value ? 'has-school' : ''}">${showLabel ? '学校' : ''}
       <input type="hidden" name="${name}" value="${escapeHtml(value)}" ${required ? 'required' : ''}>
-      <button type="button" class="university-select" data-university-open>
-        <span>${escapeHtml(label)}</span>
-        ${icon('chevronDown', 18)}
-      </button>
+      <div class="education-field-control">
+        <button type="button" class="university-select" data-university-open>
+          <span>${escapeHtml(label)}</span>
+          ${icon('chevronDown', 18)}
+        </button>
+        <button type="button" class="school-clear-button" data-school-clear aria-label="学校を削除">${icon('x', 16)}</button>
+      </div>
+    </label>
+  `;
+}
+
+function educationTextField(name, value = '', placeholder = '') {
+  return `
+    <label class="education-field ${value ? 'has-school' : ''}">
+      <div class="education-field-control">
+        <input name="${name}" value="${escapeHtml(value)}" placeholder="${escapeHtml(placeholder)}">
+        <button type="button" class="school-clear-button" data-school-clear aria-label="学校を削除">${icon('x', 16)}</button>
+      </div>
     </label>
   `;
 }
@@ -2391,7 +2483,7 @@ function mapFilterOption(filter) {
 }
 
 function connectionRowsData() {
-  return state.connections || [];
+  return uniquePeopleByIdentity(state.connections || []);
 }
 
 function mapNodeData() {
@@ -3172,6 +3264,7 @@ app.addEventListener('click', async (event) => {
   const locationButton = event.target.closest('[data-location-open]');
   const companyButton = event.target.closest('[data-company-open]');
   const companyClearButton = event.target.closest('[data-company-clear]');
+  const schoolClearButton = event.target.closest('[data-school-clear]');
   const snsRegisterButton = event.target.closest('[data-sns-register]');
   const careerAddButton = event.target.closest('[data-career-add]');
   const careerRemoveButton = event.target.closest('[data-career-remove]');
@@ -3213,6 +3306,10 @@ app.addEventListener('click', async (event) => {
   }
   if (companyClearButton) {
     clearCompanyField(companyClearButton.closest('.company-field'));
+    return;
+  }
+  if (schoolClearButton) {
+    clearEducationField(schoolClearButton.closest('.education-field'));
     return;
   }
   if (companyButton) {
@@ -3554,6 +3651,10 @@ app.addEventListener('input', (event) => {
     return;
   }
   const connectionSearch = event.target.closest('[data-connection-search]');
+  const educationInput = event.target.closest('.education-field input');
+  if (educationInput) {
+    educationInput.closest('.education-field')?.classList.toggle('has-school', Boolean(educationInput.value.trim()));
+  }
   if (!connectionSearch) return;
   state.connectionQuery = connectionSearch.value;
   const list = document.querySelector('.connections-list');
@@ -3646,6 +3747,7 @@ function openOptionPicker(trigger, config) {
         : escapeHtml(cleanValue);
     }
     field.classList.toggle('has-company', Boolean(cleanValue));
+    field.classList.toggle('has-school', Boolean(cleanValue));
     root.remove();
   };
 
@@ -3675,6 +3777,18 @@ function clearCompanyField(field) {
   const label = field.querySelector('.company-select span');
   if (label) label.innerHTML = '<b>企業を選択または入力</b>';
   field.classList.remove('has-company');
+}
+
+function clearEducationField(field) {
+  if (!field) return;
+  const input = field.querySelector('input');
+  if (input) {
+    input.value = '';
+    input.setAttribute('value', '');
+  }
+  const label = field.querySelector('.university-select span');
+  if (label) label.textContent = '学校名を検索して選択';
+  field.classList.remove('has-school');
 }
 
 function refreshCareerNumbers() {
