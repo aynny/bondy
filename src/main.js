@@ -504,6 +504,28 @@ async function findProfileByIdOrHandle(value) {
   return found;
 }
 
+async function isHandleAvailable(handle) {
+  const cleanHandle = String(handle || '').trim().replace(/^@/, '');
+  if (!cleanHandle) return false;
+  if (!authState.client || !authState.user) return true;
+  const { data, error } = await authState.client
+    .from(REMOTE_PROFILE_TABLE)
+    .select('id')
+    .ilike('handle', cleanHandle)
+    .neq('id', authState.user.id)
+    .limit(1);
+  if (error) {
+    console.warn('Handle availability check failed', error);
+    showToast('IDの確認に失敗しました。少し時間を置いてください');
+    return false;
+  }
+  if (data?.length) {
+    showToast('そのIDはすでに使われています');
+    return false;
+  }
+  return true;
+}
+
 async function sendConnectionRequest(targetId, message = '') {
   if (!authState.client || !authState.user) {
     showToast('ログインすると申請できます');
@@ -4030,7 +4052,12 @@ app.addEventListener('submit', async (event) => {
       showToast('名前・ID・学校または会社を入力してください');
       return;
     }
-    await withButtonPending(event.submitter, '登録中...', () => saveUser(user));
+    const saved = await withButtonPending(event.submitter, '登録中...', async () => {
+      if (!await isHandleAvailable(user.handle)) return false;
+      await saveUser(user);
+      return true;
+    });
+    if (!saved) return;
     state.pendingProfilePhotoFile = null;
     state.pendingProfilePhotoPreview = '';
     localStorage.removeItem(SIGNUP_PENDING_KEY);
@@ -4043,10 +4070,16 @@ app.addEventListener('submit', async (event) => {
     const photo = formData.get('photo');
     const current = currentUser();
     const nextPhoto = state.pendingProfilePhotoFile ? await uploadProfilePhoto(state.pendingProfilePhotoFile) : photo && photo.size ? await uploadProfilePhoto(photo) : current.photo;
-    await withButtonPending(event.submitter, '保存中...', () => saveUser({
+    const draftUser = {
       ...profileDataFromForm(formData, current),
       photo: nextPhoto,
-    }));
+    };
+    const saved = await withButtonPending(event.submitter, '保存中...', async () => {
+      if (!await isHandleAvailable(draftUser.handle)) return false;
+      await saveUser(draftUser);
+      return true;
+    });
+    if (!saved) return;
     state.pendingProfilePhotoFile = null;
     state.pendingProfilePhotoPreview = '';
     state.overlay = null;
