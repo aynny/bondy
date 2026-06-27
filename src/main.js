@@ -1020,36 +1020,45 @@ async function updateConnectionRelationship(requestId, relationship, personId = 
   if (!authState.client || !authState.user) return false;
   const cleanRelationship = relationshipFromValue(relationship);
   const resolvedRequestId = requestId || await findRelatedConnectionRequestId(personId);
-  if (!resolvedRequestId || !cleanRelationship) {
+  if (!cleanRelationship || (!resolvedRequestId && !personId)) {
     showToast('つながり情報を再読み込みしてください');
     return false;
   }
-  const { data: updatedRows, error } = await authState.client
-    .from(CONNECTION_REQUEST_TABLE)
-    .update({ message: cleanRelationship, updated_at: new Date().toISOString() })
-    .eq('id', resolvedRequestId)
-    .eq('status', 'accepted')
-    .select('id');
-  if (error) {
-    console.warn('Connection relationship update failed', error);
-    showToast('関係の変更設定を確認してください');
-    return false;
-  }
-  if (!updatedRows?.length && personId && requestId) {
-    const fallbackRequestId = await findRelatedConnectionRequestId(personId);
-    if (fallbackRequestId && fallbackRequestId !== requestId) {
-      return updateConnectionRelationship(fallbackRequestId, cleanRelationship, personId);
+  let saved = false;
+  if (resolvedRequestId) {
+    const { error } = await authState.client
+      .from(CONNECTION_REQUEST_TABLE)
+      .update({ message: cleanRelationship, updated_at: new Date().toISOString() })
+      .eq('id', resolvedRequestId)
+      .eq('status', 'accepted');
+    if (error) {
+      console.warn('Connection relationship update failed', error);
+      showToast('関係の変更設定を確認してください');
+      return false;
     }
+    saved = true;
   }
-  if (!updatedRows?.length) {
-    showToast('つながり情報を再読み込みしてください');
-    return false;
+  if (personId) {
+    const { error: pairError } = await authState.client
+      .from(CONNECTION_REQUEST_TABLE)
+      .update({ message: cleanRelationship, updated_at: new Date().toISOString() })
+      .eq('status', 'accepted')
+      .or(`and(requester_id.eq.${authState.user.id},recipient_id.eq.${personId}),and(requester_id.eq.${personId},recipient_id.eq.${authState.user.id})`);
+    if (pairError && !saved) {
+      console.warn('Connection relationship pair update failed', pairError);
+      showToast('関係の変更設定を確認してください');
+      return false;
+    }
+    saved = true;
   }
+  state.connections.forEach((person) => {
+    if (person.requestId === resolvedRequestId || person.id === personId) person.tag = cleanRelationship;
+  });
   await loadAcceptedConnections({ silent: true });
-  if (personId && state.mapCenterConnections[state.mapCenter]) {
+  if (personId) {
     Object.values(state.mapCenterConnections).forEach((rows) => {
       rows.forEach((person) => {
-        if (person.id === personId) person.tag = cleanRelationship;
+        if (person.requestId === resolvedRequestId || person.id === personId) person.tag = cleanRelationship;
       });
     });
   }
