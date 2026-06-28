@@ -259,15 +259,8 @@ function render() {
 
 async function renderMapTransition(update) {
   if (typeof update !== 'function') return render();
-  document.querySelector('.map-interactive-panel')?.classList.add('is-switching-center');
-  await wait(130);
   update();
   render();
-  requestAnimationFrame(() => {
-    document.querySelector('.map-interactive-panel')?.classList.add('is-arriving-center');
-  });
-  await wait(360);
-  document.querySelector('.map-interactive-panel')?.classList.remove('is-switching-center', 'is-arriving-center');
 }
 
 function wait(ms = 0) {
@@ -2107,6 +2100,14 @@ function profileDataFromForm(formData, current = {}) {
   };
 }
 
+function missingRequiredProfileFields(user = {}) {
+  const missing = [];
+  if (!String(user.name || '').trim()) missing.push('名前');
+  if (!String(user.handle || '').trim()) missing.push('ユーザーID');
+  if (!(user.school || user.company || normalizeCareers(user).length)) missing.push('学校または会社');
+  return missing;
+}
+
 function statusBar() {
   return '';
 }
@@ -2330,20 +2331,20 @@ function profileFormFields(user = normalizeUser({}), mode = 'register') {
   return `
     <section class="form-section">
       <h2>基本情報</h2>
-      <label>名前<input name="name" required value="${escapeHtml(user.name)}" placeholder="あなたの名前"></label>
-      <label>ユーザーID<input name="handle" required value="${escapeHtml(user.handle)}" placeholder="好きなID"></label>
+      <label><span class="field-label">名前<span class="required-mark">＊</span></span><input name="name" required value="${escapeHtml(user.name)}" placeholder="あなたの名前"></label>
+      <label><span class="field-label">ユーザーID<span class="required-mark">＊</span></span><input name="handle" required value="${escapeHtml(user.handle)}" placeholder="好きなID"></label>
       ${profileEditRow('所在地', locationField('location', user.location, false), visibilityField('locationPublic', '所在地', user.locationPublic))}
       ${profileEditRow('誕生日', '<input name="birthday" type="date" value="' + escapeHtml(user.birthday) + '">', visibilityField('birthdayPublic', '誕生日', user.birthdayPublic))}
     </section>
     <section class="form-section profile-input-section">
-      <h2>学歴</h2>
-      <p class="form-section-note">学校を分けて入れると、つながりの共通点が見つけやすくなります。</p>
+      <h2>学歴 <span class="required-chip">学校または会社 必須</span></h2>
+      <p class="form-section-note">学校または会社のどちらかを入力してください。学校を分けて入れると、つながりの共通点が見つけやすくなります。</p>
       ${educationEditRow('高校', educationTextField('highSchool', user.highSchool, '例：東京都立 Bondy 高校'), 'highSchoolPublic', user.highSchoolPublic, 'highSchoolCurrent', user.highSchoolCurrent)}
       ${educationEditRow('大学', universityField('university', user.university || user.school, false, false), 'universityPublic', user.universityPublic, 'universityCurrent', user.universityCurrent)}
       ${educationEditRow('専門学校', educationTextField('vocationalSchool', user.vocationalSchool, '例：Bondy デザイン専門学校'), 'vocationalSchoolPublic', user.vocationalSchoolPublic, 'vocationalSchoolCurrent', user.vocationalSchoolCurrent)}
     </section>
     <section class="form-section profile-input-section">
-      <h2>現在の仕事</h2>
+      <h2>現在の仕事 <span class="required-chip">学校または会社 必須</span></h2>
       <p class="form-section-note">いまの仕事や所属している会社を入力できます。</p>
       <div class="career-edit-list current-career-list">
         ${careerEditCard(currentCareer, 0, 'current')}
@@ -2769,81 +2770,30 @@ async function withButtonPending(button, label, task) {
   }
 }
 
-function animateNodeToCenter(button, options = {}) {
+function animateNodePress(button, options = {}) {
   if (!button) return Promise.resolve();
-  const duration = options.duration || 620;
+  const duration = options.pressDuration || 170;
   const scale = options.scale || 1.12;
-  const color = options.color || button.closest('.map-canvas')?.querySelector(`[data-line-node="${cssEscape(button.dataset.mapNode || '')}"]`)?.getAttribute('stroke') || '#9cc8ff';
-  const start = button.getBoundingClientRect();
-  const startAvatar = button.querySelector('.avatar')?.getBoundingClientRect() || start;
-  const workspace = button.closest('[data-map-workspace]') || document.querySelector('.map-interactive-panel') || document.body;
-  const target = workspace.getBoundingClientRect();
-  const centerAvatar = workspace.querySelector('.center-node .avatar')?.getBoundingClientRect();
-  const targetCenterX = centerAvatar ? centerAvatar.left + centerAvatar.width / 2 : target.left + target.width / 2;
-  const targetCenterY = centerAvatar ? centerAvatar.top + centerAvatar.height / 2 : target.top + target.height / 2;
-  const targetScale = centerAvatar ? Math.min(1.75, Math.max(.9, centerAvatar.width / Math.max(startAvatar.width, 1))) : scale;
-  const targetX = targetCenterX - (startAvatar.left + startAvatar.width / 2);
-  const targetY = targetCenterY - (startAvatar.top + startAvatar.height / 2);
-  const distance = Math.hypot(targetX, targetY) || 1;
-  const curve = Math.min(96, Math.max(34, distance * .16));
-  const midX = targetX * .52 + (-targetY / distance) * curve;
-  const midY = targetY * .52 + (targetX / distance) * curve;
-  if (button.animate) {
-    button.animate([
-      { transform: 'translate(-50%, -29px) scale(1)', filter: 'brightness(1)' },
-      { transform: 'translate(-50%, -29px) scale(1.11)', filter: 'brightness(1.16)' },
-      { transform: 'translate(-50%, -29px) scale(1)', filter: 'brightness(1)' }
-    ], {
-      duration: 170,
-      easing: 'cubic-bezier(.22, 1, .36, 1)'
-    });
-  }
-  document.querySelector('.map-interactive-panel')?.classList.add('is-switching-center');
-  const clone = button.cloneNode(true);
-  clone.classList.add('map-node-fly');
-  clone.style.setProperty('--trail-color', color);
-  clone.style.position = 'fixed';
-  clone.style.left = `${start.left}px`;
-  clone.style.top = `${start.top}px`;
-  clone.style.width = `${start.width}px`;
-  clone.style.height = `${start.height}px`;
-  clone.style.margin = '0';
-  clone.style.transform = 'translate3d(0, 0, 0) scale(1)';
-  clone.style.zIndex = '9999';
-  clone.style.pointerEvents = 'none';
-  clone.insertAdjacentHTML('afterbegin', '<span class="shooting-trail" aria-hidden="true"></span>');
-  document.body.appendChild(clone);
-  button.style.visibility = 'hidden';
   return new Promise((resolve) => {
-    const cleanup = () => {
-      button.style.visibility = '';
-      clone.remove();
-      document.querySelector('.map-interactive-panel')?.classList.remove('is-switching-center');
-      resolve();
-    };
-    if (clone.animate) {
-      const animation = clone.animate([
-        { transform: 'translate3d(0, 0, 0) scale(1)', opacity: 1, filter: 'blur(0) brightness(1)' },
-        { transform: `translate3d(${midX}px, ${midY}px, 0) scale(${Math.max(scale, targetScale * .92)})`, opacity: 1, filter: 'blur(0) brightness(1.18)', offset: .62 },
-        { transform: `translate3d(${targetX}px, ${targetY}px, 0) scale(${targetScale})`, opacity: .98, filter: 'blur(0) brightness(1.1)' }
-      ], {
-        duration,
-        easing: 'cubic-bezier(.22, 1, .36, 1)',
-        fill: 'forwards'
-      });
-      animation.onfinish = cleanup;
-      animation.oncancel = cleanup;
+    if (!button.animate) {
+      window.setTimeout(resolve, duration);
       return;
     }
-    clone.style.transition = `transform ${duration}ms cubic-bezier(.22, 1, .36, 1), opacity ${duration}ms ease`;
-    requestAnimationFrame(() => {
-      clone.style.transform = `translate3d(${targetX}px, ${targetY}px, 0) scale(${scale})`;
-      clone.style.opacity = '.96';
+    const animation = button.animate([
+      { transform: 'translate(-50%, -29px) scale(1)', filter: 'brightness(1)' },
+      { transform: `translate(-50%, -29px) scale(${scale})`, filter: 'brightness(1.14)' },
+      { transform: 'translate(-50%, -29px) scale(1)', filter: 'brightness(1)' }
+    ], {
+      duration,
+      easing: 'cubic-bezier(.22, 1, .36, 1)'
     });
-    window.setTimeout(() => {
-      cleanup();
-    }, duration + 30);
+    animation.onfinish = resolve;
+    animation.oncancel = resolve;
   });
+}
+
+function animateNodeToCenter(button, options = {}) {
+  return animateNodePress(button, options);
 }
 
 function mapList() {
@@ -4048,8 +3998,9 @@ app.addEventListener('submit', async (event) => {
       email: authState.user?.email || current.email || '',
       photo: state.pendingProfilePhotoFile ? await uploadProfilePhoto(state.pendingProfilePhotoFile) : photo && photo.size ? await uploadProfilePhoto(photo) : current.photo
     };
-    if (!user.name || !user.handle || !(user.school || user.company || normalizeCareers(user).length)) {
-      showToast('名前・ID・学校または会社を入力してください');
+    const missing = missingRequiredProfileFields(user);
+    if (missing.length) {
+      showToast(`必須項目を入力してください：${missing.join('、')}`);
       return;
     }
     const saved = await withButtonPending(event.submitter, '登録中...', async () => {
@@ -4074,6 +4025,11 @@ app.addEventListener('submit', async (event) => {
       ...profileDataFromForm(formData, current),
       photo: nextPhoto,
     };
+    const missing = missingRequiredProfileFields(draftUser);
+    if (missing.length) {
+      showToast(`必須項目を入力してください：${missing.join('、')}`);
+      return;
+    }
     const saved = await withButtonPending(event.submitter, '保存中...', async () => {
       if (!await isHandleAvailable(draftUser.handle)) return false;
       await saveUser(draftUser);

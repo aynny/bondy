@@ -347,6 +347,29 @@ button.is-saving::before {
   font-size: 12px;
   font-weight: 800;
 }
+.field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.required-mark {
+  color: #d64242;
+  font-size: 13px;
+  line-height: 1;
+}
+.required-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff2f2;
+  color: #b72e2e;
+  font-size: 10px;
+  font-weight: 900;
+  vertical-align: middle;
+}
 .register-form input,
 .sns-fieldset input {
   width: 100%;
