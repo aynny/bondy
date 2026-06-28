@@ -2558,15 +2558,15 @@ function mapScreen() {
         </button>
         ${state.mapFilterOpen ? `<div class="map-filter-menu">${mapFilters().map(mapFilterOption).join('')}</div>` : ''}
       </div>
+      <div class="map-search-shell">
+        <label class="map-search-box">
+          ${icon('search', 17)}
+          <input type="search" value="${escapeHtml(state.mapQuery)}" placeholder="検索" data-map-search autocomplete="off">
+        </label>
+        ${mapSearchResultsMarkup(searchResults)}
+      </div>
       <button class="map-fit-button" data-action="fit-map"><span>全体表示</span></button>
     </div>
-    <section class="map-search-shell">
-      <label class="map-search-box">
-        ${icon('search', 17)}
-        <input type="search" value="${escapeHtml(state.mapQuery)}" placeholder="名前・ID・プロフィールで検索" data-map-search autocomplete="off">
-      </label>
-      ${mapSearchResultsMarkup(searchResults)}
-    </section>
     <section class="map-interactive-panel">
       ${networkGraph(filtered)}
     </section>
@@ -3636,9 +3636,9 @@ app.addEventListener('click', async (event) => {
     if (state.mapCenter !== 'you' && centerId === authState.user?.id) {
       state.mapCenter = 'you';
       state.filter = 'すべて';
+      state.mapQuery = '';
       state.mapPan = { x: 0, y: 0 };
       state.zoom = 1;
-      state.toast = '自分を中心に戻しました';
       render();
       return;
     }
