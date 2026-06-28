@@ -2541,35 +2541,32 @@ function topHeader(title, extra = '') {
 }
 
 function mapScreen() {
-  const visibleNodes = mapVisibleNodes();
   const searchResults = mapSearchResults();
-  const filtered = state.filter === 'すべて'
-    ? visibleNodes
-    : visibleNodes.filter((node) => node.tag === state.filter);
-  const activeColor = relationshipColor(state.filter);
-  const activeTint = relationshipTint(state.filter);
   return `
-    <div class="map-filter-row">
-      <div class="map-brand-mark">B</div>
-      <div class="map-filter-stack">
-        <button class="all-filter ${state.mapFilterOpen ? 'is-open' : ''}" data-action="filter" style="--filter-color:${activeColor};--filter-bg:${activeTint}">
-          <span class="filter-label">${mapFilterLabel(state.filter)}</span>
-          ${icon('chevronDown', 18)}
-        </button>
-        ${state.mapFilterOpen ? `<div class="map-filter-menu">${mapFilters().map(mapFilterOption).join('')}</div>` : ''}
+    <header class="map-lux-header">
+      <h1>Bondy</h1>
+      <div class="map-lux-actions">
+        <button class="map-search-trigger" type="button" data-action="toggle-map-search" aria-label="検索">${icon('search', 34)}</button>
+        ${profileAvatar(46)}
       </div>
-      <div class="map-search-shell">
+    </header>
+    <aside class="map-category-sidebar">
+      ${mapFilters().map(mapSidebarButton).join('')}
+    </aside>
+    <section class="map-search-shell ${state.mapSearchOpen || state.mapQuery.trim() ? 'has-query' : ''}">
         <label class="map-search-box">
           ${icon('search', 17)}
-          <input type="search" value="${escapeHtml(state.mapQuery)}" placeholder="検索" data-map-search autocomplete="off">
+          <input type="search" value="${escapeHtml(state.mapQuery)}" placeholder="名前・ID・プロフィールで検索" data-map-search autocomplete="off">
         </label>
         ${mapSearchResultsMarkup(searchResults)}
-      </div>
-      <button class="map-fit-button" data-action="fit-map"><span>全体表示</span></button>
-    </div>
-    <section class="map-interactive-panel">
-      ${networkGraph(filtered)}
     </section>
+    <section class="map-interactive-panel">
+      ${networkGraph([])}
+    </section>
+    <div class="map-floating-buttons">
+      <button type="button" data-action="locate" aria-label="現在地">${icon('locate', 27)}</button>
+      <button type="button" data-action="fit-map" aria-label="拡大">${icon('plus', 30)}</button>
+    </div>
   `;
 }
 
@@ -2578,7 +2575,7 @@ function switchButton(label, ic) {
 }
 
 function chipIcon(filter) {
-  return icon({ 'すべて': 'users', '大学': 'grad', 'ビジネス': 'brief', '地元': 'home', '家族': 'users', 'イベント': 'flag', '恋人': 'heart' }[filter], 18);
+  return icon({ 'すべて': 'home', '大学': 'grad', 'ビジネス': 'brief', '地元': 'mapPin', '家族': 'users', 'イベント': 'flag', '恋人': 'heart' }[filter], 18);
 }
 
 function chipLabel(filter) {
@@ -2586,18 +2583,18 @@ function chipLabel(filter) {
 }
 
 function mapFilters() {
-  return ['すべて', '大学', 'ビジネス', '地元', '家族', 'イベント', '恋人'];
+  return ['すべて', '家族', '地元', '大学', 'イベント', 'ビジネス', '恋人'];
 }
 
 function relationshipColor(type) {
   return {
     'すべて': '#111111',
-    '大学': '#3b82f6',
-    'ビジネス': '#22c55e',
-    '地元': '#f59e0b',
-    '家族': '#ef476f',
-    'イベント': '#8b5cf6',
-    '恋人': '#ec4899',
+    '大学': '#8D63FF',
+    'ビジネス': '#4DA3FF',
+    '地元': '#55C34A',
+    '家族': '#FF5C5C',
+    'イベント': '#F4A623',
+    '恋人': '#FF72B6',
     'あなた': '#94a3b8',
     '紹介': '#111111'
   }[type] || '#111111';
@@ -2617,7 +2614,18 @@ function relationshipTint(type) {
 
 function mapFilterLabel(filter) {
   if (filter === '恋人') return '♡';
+  if (filter === '大学') return '学校';
   return filter === 'すべて' ? 'すべて' : escapeHtml(filter);
+}
+
+function mapSidebarButton(filter) {
+  const selected = state.filter === filter;
+  return `
+    <button class="map-side-button ${selected ? 'selected' : ''} ${filter === '恋人' ? 'heart-side-button' : ''}" type="button" data-filter="${escapeHtml(filter)}" style="--cat-color:${relationshipColor(filter)}">
+      ${chipIcon(filter)}
+      <span>${mapFilterLabel(filter)}</span>
+    </button>
+  `;
 }
 
 function mapFilterOption(filter) {
@@ -2703,36 +2711,60 @@ function mapNodeData() {
 }
 
 function networkGraph(nodes) {
-  const center = mapCenterProfile();
-  const emptyMessage = state.mapCenter === 'you'
-    ? 'まだつながりはありません<br>右上の＋から追加できます'
-    : 'この人のつながりはまだ表示できません';
-  const centerNode = state.mapCenter === 'you'
-    ? `<div class="center-node">${mapCenterAvatar(center)}<h3>${escapeHtml(center.name)}</h3><span>${escapeHtml(center.badge)}</span></div>`
-    : `<button class="center-node center-node-button" type="button" data-center-profile="${escapeHtml(state.mapCenter)}">${mapCenterAvatar(center)}<h3>${escapeHtml(center.name)}</h3><span>${escapeHtml(center.badge)}</span></button>`;
+  const categories = mapCategoryItems();
   return `
     <section class="network" data-map-workspace>
-      <div class="map-canvas" data-map-canvas style="${mapCanvasStyle()}">
-        <div class="orbit-field" aria-hidden="true">
-          <span class="orbit orbit-1"></span>
-          <span class="orbit orbit-2"></span>
-          <span class="orbit orbit-3"></span>
-          <span class="orbit orbit-4"></span>
-          <span class="orbit-spark spark-1"></span>
-          <span class="orbit-spark spark-2"></span>
-          <span class="orbit-spark spark-3"></span>
-          <span class="orbit-spark spark-4"></span>
-        </div>
-        <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none">
-          ${nodes.map((node, index) => mapConnectionLine(node, index)).join('')}
+      <div class="map-canvas" data-map-canvas style="transform:none">
+        <div class="diorama-rings" aria-hidden="true"></div>
+        <svg class="diorama-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          ${categories.map((item) => `<line x1="50" y1="50" x2="${item.lineX}" y2="${item.lineY}" />`).join('')}
         </svg>
-        ${nodes.map((node, index) => `<span class="line-token" data-token-node="${escapeHtml(node.id || node.name)}" style="--dx:${node.x - 50}%;--dy:${node.y - 50}%;--token-color:${node.color};--token-delay:${index * -0.28}s">${mapRelationshipMark(node.tag)}</span>`).join('')}
-        ${centerNode}
-        ${nodes.map((node) => `<button class="map-node ${node.centerable ? 'centerable' : 'profile-only'}" type="button" style="left:${node.x}%;top:${node.y}%" data-map-node="${escapeHtml(node.id || '')}" data-centerable="${node.centerable ? 'true' : 'false'}" data-person-id="${escapeHtml(node.id || '')}" data-person-name="${escapeHtml(node.name)}" data-person="${escapeHtml(node.name)}">${personAvatar(node, 54)}<b>${escapeHtml(node.name)}</b><em>${escapeHtml(relationshipLabel(node.tag))}</em></button>`).join('')}
-        ${nodes.length ? '' : `<div class="empty-map">${emptyMessage}</div>`}
+        <div class="diorama-center" aria-label="あなた">
+          <span class="tiny-person"><i></i></span>
+          <span class="center-pedestal"></span>
+          <b>あなた</b>
+        </div>
+        ${categories.map(categoryIsland).join('')}
       </div>
     </section>
   `;
+}
+
+function mapCategoryItems() {
+  return [
+    { key: 'family', filter: '家族', label: '家族', count: categoryCount('家族'), iconName: 'users', color: '#FF5C5C', x: 36, y: 25, lineX: 43, lineY: 39 },
+    { key: 'local', filter: '地元', label: '地元', count: categoryCount('地元'), iconName: 'mapPin', color: '#55C34A', x: 69, y: 24, lineX: 61, lineY: 39 },
+    { key: 'school', filter: '大学', label: '学校', count: categoryCount('大学'), iconName: 'grad', color: '#8D63FF', x: 84, y: 50, lineX: 70, lineY: 50 },
+    { key: 'business', filter: 'ビジネス', label: 'ビジネス', count: categoryCount('ビジネス'), iconName: 'brief', color: '#4DA3FF', x: 29, y: 67, lineX: 40, lineY: 58 },
+    { key: 'event', filter: 'イベント', label: 'イベント', count: categoryCount('イベント'), iconName: 'flag', color: '#F4A623', x: 71, y: 70, lineX: 60, lineY: 60 },
+    { key: 'heart', filter: '恋人', label: '♡', count: categoryCount('恋人'), iconName: 'heart', color: '#FF72B6', x: 48, y: 81, lineX: 50, lineY: 64 }
+  ];
+}
+
+function categoryCount(filter) {
+  return connectionRowsData().filter((person) => person.tag === filter).length;
+}
+
+function categoryIsland(item) {
+  return `
+    <button class="category-island category-${item.key} ${state.filter === item.filter ? 'is-selected' : ''}" type="button" data-filter="${escapeHtml(item.filter)}" style="--x:${item.x}%;--y:${item.y}%;--cat-color:${item.color}">
+      <span class="category-label">${icon(item.iconName, 23)}<span>${escapeHtml(item.label)}<small>${item.count}人</small></span></span>
+      <span class="island-stage" aria-hidden="true">
+        <span class="island-plate"></span>
+        <span class="mini-scene">${categoryScene(item.key)}</span>
+        <span class="neon-ring"></span>
+      </span>
+    </button>
+  `;
+}
+
+function categoryScene(key) {
+  if (key === 'heart') return '<i class="heart-monument"></i><i class="tree t1"></i><i class="tree t2"></i><i class="person-dot p1"></i>';
+  if (key === 'event') return '<i class="stage-roof"></i><i class="stage-screen"></i><i class="stage-step"></i><i class="flag-pole"></i><i class="tree t1"></i><i class="person-dot p1"></i><i class="person-dot p2"></i>';
+  if (key === 'business') return '<i class="tower tall"></i><i class="tower mid"></i><i class="tower low"></i><i class="tree t1"></i><i class="tree t2"></i>';
+  if (key === 'school') return '<i class="school-main"></i><i class="school-wing"></i><i class="clock-dot"></i><i class="tree t1"></i><i class="person-dot p1"></i>';
+  if (key === 'local') return '<i class="pin-mark"></i><i class="house h1"></i><i class="house h2"></i><i class="tower mid"></i><i class="tree t1"></i><i class="tree t2"></i>';
+  return '<i class="modern-house"></i><i class="garage"></i><i class="tree t1"></i><i class="tree t2"></i><i class="person-dot p1"></i>';
 }
 
 function mapConnectionLine(node, index) {
@@ -3679,6 +3711,14 @@ app.addEventListener('click', async (event) => {
     state.mapFilterOpen = !state.mapFilterOpen;
     state.overlay = null;
     render();
+    return;
+  }
+  if (action === 'toggle-map-search') {
+    state.mapSearchOpen = !state.mapSearchOpen;
+    render();
+    if (state.mapSearchOpen) {
+      requestAnimationFrame(() => document.querySelector('[data-map-search]')?.focus());
+    }
     return;
   }
   if (action === 'notifications') {
