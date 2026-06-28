@@ -2717,7 +2717,7 @@ function networkGraph(nodes) {
       <div class="map-canvas" data-map-canvas style="transform:none">
         <div class="diorama-rings" aria-hidden="true"></div>
         <svg class="diorama-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          ${categories.map((item) => `<line x1="50" y1="50" x2="${item.lineX}" y2="${item.lineY}" />`).join('')}
+          ${categories.map((item) => `<line x1="58" y1="48" x2="${item.lineX}" y2="${item.lineY}" />`).join('')}
         </svg>
         <div class="diorama-center" aria-label="あなた">
           <span class="tiny-person"><i></i></span>
@@ -2732,12 +2732,12 @@ function networkGraph(nodes) {
 
 function mapCategoryItems() {
   return [
-    { key: 'family', filter: '家族', label: '家族', count: categoryCount('家族'), iconName: 'users', color: '#FF5C5C', x: 36, y: 25, lineX: 43, lineY: 39 },
-    { key: 'local', filter: '地元', label: '地元', count: categoryCount('地元'), iconName: 'mapPin', color: '#55C34A', x: 69, y: 24, lineX: 61, lineY: 39 },
-    { key: 'school', filter: '大学', label: '学校', count: categoryCount('大学'), iconName: 'grad', color: '#8D63FF', x: 84, y: 50, lineX: 70, lineY: 50 },
-    { key: 'business', filter: 'ビジネス', label: 'ビジネス', count: categoryCount('ビジネス'), iconName: 'brief', color: '#4DA3FF', x: 29, y: 67, lineX: 40, lineY: 58 },
-    { key: 'event', filter: 'イベント', label: 'イベント', count: categoryCount('イベント'), iconName: 'flag', color: '#F4A623', x: 71, y: 70, lineX: 60, lineY: 60 },
-    { key: 'heart', filter: '恋人', label: '♡', count: categoryCount('恋人'), iconName: 'heart', color: '#FF72B6', x: 48, y: 81, lineX: 50, lineY: 64 }
+    { key: 'family', filter: '家族', label: '家族', count: 12, iconName: 'users', color: '#FF5C5C', image: './src/assets/map/family-cut.png', x: 39, y: 27, lineX: 45, lineY: 40 },
+    { key: 'local', filter: '地元', label: '地元', count: 23, iconName: 'mapPin', color: '#55C34A', image: './src/assets/map/local-cut.png', x: 69, y: 27, lineX: 61, lineY: 40 },
+    { key: 'school', filter: '大学', label: '学校', count: 28, iconName: 'grad', color: '#8D63FF', image: './src/assets/map/school-cut.png', x: 84, y: 49, lineX: 70, lineY: 50 },
+    { key: 'business', filter: 'ビジネス', label: 'ビジネス', count: 16, iconName: 'brief', color: '#4DA3FF', image: './src/assets/map/business-cut.png', x: 29, y: 64, lineX: 41, lineY: 59 },
+    { key: 'event', filter: 'イベント', label: 'イベント', count: 15, iconName: 'flag', color: '#F4A623', image: './src/assets/map/event-cut.png', x: 71, y: 68, lineX: 61, lineY: 60 },
+    { key: 'heart', filter: '恋人', label: '♡', count: 9, iconName: 'heart', color: '#FF72B6', image: './src/assets/map/heart-cut.png', x: 49, y: 78, lineX: 50, lineY: 64 }
   ];
 }
 
@@ -2748,23 +2748,19 @@ function categoryCount(filter) {
 function categoryIsland(item) {
   return `
     <button class="category-island category-${item.key} ${state.filter === item.filter ? 'is-selected' : ''}" type="button" data-filter="${escapeHtml(item.filter)}" style="--x:${item.x}%;--y:${item.y}%;--cat-color:${item.color}">
-      <span class="category-label">${icon(item.iconName, 23)}<span>${escapeHtml(item.label)}<small>${item.count}人</small></span></span>
+      ${categoryLabelMarkup(item)}
       <span class="island-stage" aria-hidden="true">
-        <span class="island-plate"></span>
-        <span class="mini-scene">${categoryScene(item.key)}</span>
-        <span class="neon-ring"></span>
+        <img class="diorama-art" src="${escapeHtml(item.image)}" alt="" loading="eager">
       </span>
     </button>
   `;
 }
 
-function categoryScene(key) {
-  if (key === 'heart') return '<i class="heart-monument"></i><i class="tree t1"></i><i class="tree t2"></i><i class="person-dot p1"></i>';
-  if (key === 'event') return '<i class="stage-roof"></i><i class="stage-screen"></i><i class="stage-step"></i><i class="flag-pole"></i><i class="tree t1"></i><i class="person-dot p1"></i><i class="person-dot p2"></i>';
-  if (key === 'business') return '<i class="tower tall"></i><i class="tower mid"></i><i class="tower low"></i><i class="tree t1"></i><i class="tree t2"></i>';
-  if (key === 'school') return '<i class="school-main"></i><i class="school-wing"></i><i class="clock-dot"></i><i class="tree t1"></i><i class="person-dot p1"></i>';
-  if (key === 'local') return '<i class="pin-mark"></i><i class="house h1"></i><i class="house h2"></i><i class="tower mid"></i><i class="tree t1"></i><i class="tree t2"></i>';
-  return '<i class="modern-house"></i><i class="garage"></i><i class="tree t1"></i><i class="tree t2"></i><i class="person-dot p1"></i>';
+function categoryLabelMarkup(item) {
+  if (item.key === 'heart') {
+    return `<span class="category-label category-label-compact">${icon(item.iconName, 23)}<span><small>${item.count}人</small></span></span>`;
+  }
+  return `<span class="category-label">${icon(item.iconName, 23)}<span>${escapeHtml(item.label)}<small>${item.count}人</small></span></span>`;
 }
 
 function mapConnectionLine(node, index) {

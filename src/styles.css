@@ -4480,6 +4480,7 @@ body {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
   background:
     radial-gradient(circle at 40% 44%, rgba(255,255,255,.95), rgba(255,255,255,0) 34%),
@@ -4492,6 +4493,7 @@ body {
   content: "";
   position: absolute;
   inset: -18% -20%;
+  z-index: 0;
   pointer-events: none;
   opacity: .33;
   background:
@@ -4503,7 +4505,7 @@ body {
 
 .map-lux-header {
   position: absolute;
-  z-index: 35;
+  z-index: 45;
   top: 29px;
   left: 31px;
   right: 30px;
@@ -4551,7 +4553,7 @@ body {
 
 .map-category-sidebar {
   position: absolute;
-  z-index: 34;
+  z-index: 46;
   top: 112px;
   left: 24px;
   width: 156px;
@@ -4648,7 +4650,7 @@ body {
 .map-interactive-panel {
   position: absolute;
   inset: 0;
-  z-index: 5;
+  z-index: 10;
   margin: 0;
   padding: 0;
   overflow: hidden;
@@ -4662,7 +4664,7 @@ body {
   position: absolute;
   inset: 0;
   height: 100%;
-  min-height: 0;
+  min-height: max(100svh, 932px);
   margin: 0;
   padding: 0;
   border: 0;
@@ -4675,7 +4677,8 @@ body {
   position: absolute;
   inset: 0;
   min-width: 0;
-  min-height: 0;
+  min-height: max(100svh, 932px);
+  height: 100%;
   transform-origin: 50% 50%;
   background: transparent;
 }
@@ -5164,7 +5167,7 @@ body {
 
 .map-floating-buttons {
   position: absolute;
-  z-index: 36;
+  z-index: 47;
   right: 31px;
   bottom: 184px;
   display: grid;
@@ -5193,7 +5196,7 @@ body {
 
 .map-screen .bottom-nav {
   position: absolute;
-  z-index: 42;
+  z-index: 48;
   left: 25px;
   right: 25px;
   bottom: 20px;
@@ -5320,4 +5323,503 @@ body {
     width: 58px;
     height: 58px;
   }
+}
+
+@media (max-width: 430px) {
+  .category-family .diorama-art { width: 178px !important; height: 124px !important; }
+  .category-local .diorama-art { width: 165px !important; height: 120px !important; }
+  .category-school .diorama-art { width: 154px !important; height: 112px !important; }
+  .category-business .diorama-art { width: 158px !important; height: 114px !important; }
+  .category-event .diorama-art { width: 178px !important; height: 122px !important; }
+  .category-heart .diorama-art { width: 158px !important; height: 114px !important; }
+}
+
+/* Pixel-focused diorama pass using the supplied category artwork */
+.map-screen {
+  background:
+    radial-gradient(circle at 52% 46%, rgba(255,255,255,.98) 0 10%, rgba(247,249,252,.82) 27%, rgba(240,244,249,.72) 52%, rgba(247,248,250,.98) 100%),
+    linear-gradient(140deg, rgba(255,255,255,.78), rgba(228,234,241,.38)),
+    #F7F8FA;
+}
+
+.map-screen::before {
+  background:
+    radial-gradient(circle at 50% 46%, rgba(255,255,255,.92), rgba(255,255,255,0) 28%),
+    linear-gradient(116deg, transparent 0 17%, rgba(180,190,202,.09) 18%, transparent 30% 100%),
+    linear-gradient(28deg, transparent 0 36%, rgba(180,190,202,.08) 37%, transparent 49% 100%),
+    linear-gradient(165deg, transparent 0 58%, rgba(180,190,202,.06) 59%, transparent 72% 100%);
+}
+
+.map-lux-header {
+  top: 40px;
+  left: 31px;
+  right: 33px;
+}
+
+.map-lux-header h1 {
+  font-size: 40px;
+  font-weight: 860;
+}
+
+.map-lux-actions {
+  gap: 24px;
+}
+
+.map-search-trigger svg {
+  width: 34px;
+  height: 34px;
+  stroke-width: 1.9;
+}
+
+.map-category-sidebar {
+  top: 133px;
+  left: 26px;
+  width: 154px;
+  gap: 12px;
+}
+
+.map-side-button {
+  height: 58px;
+  gap: 20px;
+  padding: 0 23px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255,255,255,.93);
+  box-shadow: 0 18px 34px rgba(27,40,59,.09), inset 0 1px 0 rgba(255,255,255,.98);
+  font-size: 19px;
+  letter-spacing: -.02em;
+}
+
+.map-side-button svg {
+  width: 27px;
+  height: 27px;
+}
+
+.map-side-button.selected {
+  background: linear-gradient(145deg, #1d314a 0%, #091a2c 100%);
+  box-shadow: 0 20px 38px rgba(8,24,43,.24), inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+.diorama-rings {
+  left: 52%;
+  top: 47%;
+  width: 370px;
+  background:
+    radial-gradient(circle, rgba(255,255,255,.96) 0 12%, rgba(255,255,255,.66) 13%, transparent 15%),
+    repeating-radial-gradient(circle, transparent 0 42px, rgba(217,224,233,.22) 43px 44px, transparent 45px 83px);
+  filter: blur(.2px);
+}
+
+.diorama-lines line {
+  stroke: rgba(255,255,255,.96);
+  stroke-width: 1.6;
+  filter: drop-shadow(0 0 5px #fff) drop-shadow(0 0 18px rgba(255,255,255,.95)) drop-shadow(0 0 28px rgba(197,214,235,.72));
+}
+
+.diorama-center {
+  left: 52%;
+  top: 47.6%;
+}
+
+.tiny-person {
+  width: 16px;
+  height: 31px;
+}
+
+.center-pedestal {
+  width: 70px;
+  height: 25px;
+  margin-top: -6px;
+  box-shadow: 0 18px 32px rgba(71,86,104,.22), inset 0 2px 0 #fff;
+}
+
+.diorama-center b {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+.category-island {
+  width: 238px;
+  height: 184px;
+  overflow: visible;
+}
+
+.island-stage {
+  width: 238px;
+  height: 184px;
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 26px 24px rgba(35,50,73,.14));
+}
+
+.diorama-art {
+  position: absolute;
+  left: 50%;
+  top: 51%;
+  width: 250px;
+  height: 178px;
+  max-width: none;
+  object-fit: cover;
+  object-position: center bottom;
+  transform: translate(-50%, -50%);
+  clip-path: inset(17% 0 0 0 round 4px);
+  mix-blend-mode: multiply;
+  filter: saturate(.92) contrast(1.04) brightness(1.03);
+  pointer-events: none;
+  user-select: none;
+}
+
+.category-family .diorama-art {
+  width: 268px;
+  height: 188px;
+  clip-path: inset(19% 0 0 0);
+}
+
+.category-local .diorama-art {
+  width: 246px;
+  height: 176px;
+  clip-path: inset(18% 0 0 0);
+}
+
+.category-school .diorama-art {
+  width: 230px;
+  height: 176px;
+  clip-path: inset(16% 0 0 0);
+}
+
+.category-business .diorama-art {
+  width: 238px;
+  height: 178px;
+  clip-path: inset(16% 0 0 0);
+}
+
+.category-event .diorama-art {
+  width: 270px;
+  height: 190px;
+  clip-path: inset(19% 0 0 0);
+}
+
+.category-heart .diorama-art {
+  width: 240px;
+  height: 176px;
+  clip-path: inset(16% 0 0 0);
+}
+
+.island-plate,
+.mini-scene,
+.neon-ring {
+  display: none;
+}
+
+.category-label {
+  min-width: 110px;
+  min-height: 56px;
+  padding: 10px 18px;
+  border-radius: 23px;
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 18px 34px rgba(25,39,59,.13), inset 0 1px 0 #fff;
+}
+
+.category-label svg {
+  width: 26px;
+  height: 26px;
+}
+
+.category-label span {
+  font-size: 18px;
+  line-height: 1.03;
+}
+
+.category-label small {
+  font-size: 15px;
+  font-weight: 760;
+}
+
+.category-label-compact {
+  min-width: 96px;
+  justify-content: center;
+}
+
+.category-label-compact span {
+  display: block;
+}
+
+.category-family .category-label {
+  top: -4px;
+  left: 47%;
+}
+
+.category-local .category-label {
+  top: -2px;
+  left: 55%;
+}
+
+.category-school .category-label {
+  top: 8px;
+  left: 67%;
+}
+
+.category-business .category-label {
+  bottom: 0;
+  left: 53%;
+}
+
+.category-event .category-label {
+  bottom: 2px;
+  left: 58%;
+}
+
+.category-heart .category-label {
+  bottom: 0;
+  left: 50%;
+}
+
+.category-family { --x: 39% !important; --y: 29% !important; }
+.category-local { --x: 70% !important; --y: 29% !important; }
+.category-school { --x: 84% !important; --y: 50% !important; }
+.category-business { --x: 29% !important; --y: 62% !important; }
+.category-event { --x: 71% !important; --y: 68% !important; }
+.category-heart { --x: 50% !important; --y: 78% !important; }
+
+.category-family .diorama-art,
+.category-local .diorama-art,
+.category-school .diorama-art,
+.category-business .diorama-art,
+.category-event .diorama-art,
+.category-heart .diorama-art {
+  clip-path: none;
+}
+
+.map-floating-buttons {
+  right: 29px;
+  bottom: 161px;
+  gap: 17px;
+}
+
+.map-floating-buttons button {
+  width: 62px;
+  height: 62px;
+}
+
+.map-screen .bottom-nav {
+  left: 28px;
+  right: 28px;
+  bottom: 18px;
+  height: 90px;
+  border-radius: 32px;
+  background: rgba(255,255,255,.94);
+}
+
+.map-screen .bottom-nav .active {
+  border-radius: 28px;
+  background: rgba(228,232,238,.84);
+}
+
+.map-screen .map-interactive-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  height: 100%;
+  min-height: max(100svh, 932px);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.map-screen .map-interactive-panel::before,
+.map-screen .map-interactive-panel::after {
+  display: none;
+}
+
+@media (max-width: 430px) {
+  .map-lux-header {
+    top: 39px;
+    left: 30px;
+    right: 28px;
+  }
+
+  .map-lux-header h1 {
+    font-size: 38px;
+  }
+
+  .map-category-sidebar {
+    top: 132px;
+    left: 22px;
+    width: 128px;
+    gap: 10px;
+  }
+
+  .map-side-button {
+    height: 52px;
+    gap: 13px;
+    padding: 0 17px;
+    font-size: 16px;
+  }
+
+  .map-side-button svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .category-island {
+    width: 154px;
+    height: 124px;
+  }
+
+  .island-stage {
+    width: 154px;
+    height: 124px;
+  }
+
+  .diorama-rings {
+    left: 58%;
+    top: 48%;
+    width: 330px;
+  }
+
+  .diorama-center {
+    left: 58%;
+    top: 48.2%;
+  }
+
+  .diorama-art {
+    width: 164px;
+    height: 118px;
+    object-fit: contain;
+    object-position: center center;
+    clip-path: none;
+    mix-blend-mode: normal;
+  }
+
+  .category-family .diorama-art { width: 178px; height: 124px; }
+  .category-local .diorama-art { width: 165px; height: 120px; }
+  .category-school .diorama-art { width: 154px; height: 112px; }
+  .category-business .diorama-art { width: 158px; height: 114px; }
+  .category-event .diorama-art { width: 178px; height: 122px; }
+  .category-heart .diorama-art { width: 158px; height: 114px; }
+
+  .category-label {
+    min-width: 82px;
+    min-height: 42px;
+    gap: 7px;
+    padding: 7px 12px;
+    border-radius: 18px;
+  }
+
+  .category-label svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .category-label span {
+    font-size: 14px;
+  }
+
+  .category-label small {
+    font-size: 12px;
+  }
+
+  .category-label-compact {
+    min-width: 74px;
+  }
+
+  .category-family { --x: 57% !important; --y: 29% !important; }
+  .category-local { --x: 79% !important; --y: 30% !important; }
+  .category-school { --x: 82% !important; --y: 51% !important; }
+  .category-business { --x: 40% !important; --y: 63% !important; }
+  .category-event { --x: 74% !important; --y: 68% !important; }
+  .category-heart { --x: 58% !important; --y: 78% !important; }
+
+  .category-label {
+    min-width: 100px;
+    min-height: 52px;
+    padding: 9px 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .map-screen .map-lux-header {
+    top: 39px;
+    left: 30px;
+    right: 28px;
+  }
+
+  .map-screen .map-lux-header h1 {
+    font-size: 38px;
+  }
+
+  .map-screen .map-category-sidebar {
+    top: 132px;
+    left: 22px;
+    width: 154px;
+    gap: 10px;
+  }
+
+  .map-screen .map-side-button {
+    height: 52px;
+    gap: 15px;
+    padding: 0 18px;
+    font-size: 16px;
+    white-space: nowrap;
+  }
+
+  .map-screen .category-island {
+    width: 154px !important;
+    height: 124px !important;
+  }
+
+  .map-screen .island-stage {
+    width: 154px !important;
+    height: 124px !important;
+  }
+
+  .map-screen .diorama-rings {
+    left: 58%;
+    top: 48%;
+    width: 330px;
+  }
+
+  .map-screen .diorama-center {
+    left: 58%;
+    top: 48.2%;
+  }
+
+  .map-screen .category-family { --x: 57% !important; --y: 29% !important; }
+  .map-screen .category-local { --x: 79% !important; --y: 30% !important; }
+  .map-screen .category-school { --x: 82% !important; --y: 51% !important; }
+  .map-screen .category-business { --x: 40% !important; --y: 63% !important; }
+  .map-screen .category-event { --x: 74% !important; --y: 68% !important; }
+  .map-screen .category-heart { --x: 58% !important; --y: 78% !important; }
+
+  .map-screen .category-label {
+    min-width: 82px;
+    min-height: 42px;
+    gap: 7px;
+    padding: 7px 12px;
+    border-radius: 18px;
+  }
+
+  .map-screen .category-label svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .map-screen .category-label span {
+    font-size: 14px;
+  }
+
+  .map-screen .category-label small {
+    font-size: 12px;
+  }
+
+  .map-screen .category-family .diorama-art { width: 178px !important; height: 124px !important; }
+  .map-screen .category-local .diorama-art { width: 165px !important; height: 120px !important; }
+  .map-screen .category-school .diorama-art { width: 154px !important; height: 112px !important; }
+  .map-screen .category-business .diorama-art { width: 158px !important; height: 114px !important; }
+  .map-screen .category-event .diorama-art { width: 178px !important; height: 122px !important; }
+  .map-screen .category-heart .diorama-art { width: 158px !important; height: 114px !important; }
 }
