@@ -32,6 +32,7 @@ const state = {
   mapMode: 'マップ',
   filter: 'すべて',
   mapFilterOpen: false,
+  mapQuery: '',
   mapCenter: 'you',
   zoom: 1,
   mapPan: { x: 0, y: 0 },
@@ -904,6 +905,16 @@ async function loadMapCenterConnections(centerId, options = {}) {
   return bestRows;
 }
 
+async function warmMapSearchConnections() {
+  if (!authState.client || !authState.user) return;
+  const targets = connectionRowsData()
+    .map((person) => person.id)
+    .filter((id) => id && !state.mapCenterConnections[id])
+    .slice(0, 24);
+  if (!targets.length) return;
+  await Promise.allSettled(targets.map((id) => loadMapCenterConnections(id, { silent: true })));
+}
+
 async function loadMapCenterConnectionsViaRpc(centerId, options = {}) {
   try {
     const { data, error } = await authState.client.rpc('get_map_center_connections', { center_id: centerId });
@@ -1266,6 +1277,7 @@ async function finishAuthenticatedEntry(message = '') {
   await hydrateCompanyOptions();
   await loadIncomingRequests({ silent: true });
   await loadAcceptedConnections({ silent: true });
+  warmMapSearchConnections().then(() => state.screen === 'map' && render());
   await loadRemovalNotifications({ silent: true });
   await handleIncomingConnect();
   if (state.overlay?.type === 'connect-profile') return;
@@ -2530,6 +2542,7 @@ function topHeader(title, extra = '') {
 
 function mapScreen() {
   const visibleNodes = mapVisibleNodes();
+  const searchResults = mapSearchResults();
   const filtered = state.filter === 'すべて'
     ? visibleNodes
     : visibleNodes.filter((node) => node.tag === state.filter);
@@ -2547,6 +2560,13 @@ function mapScreen() {
       </div>
       <button class="map-fit-button" data-action="fit-map"><span>全体表示</span></button>
     </div>
+    <section class="map-search-shell">
+      <label class="map-search-box">
+        ${icon('search', 17)}
+        <input type="search" value="${escapeHtml(state.mapQuery)}" placeholder="名前・ID・プロフィールで検索" data-map-search autocomplete="off">
+      </label>
+      ${mapSearchResultsMarkup(searchResults)}
+    </section>
     <section class="map-interactive-panel">
       ${networkGraph(filtered)}
     </section>
@@ -2608,6 +2628,60 @@ function mapFilterOption(filter) {
 
 function connectionRowsData() {
   return uniquePeopleByIdentity(state.connections || []);
+}
+
+function mapSearchPeoplePool() {
+  return uniquePeopleByIdentity([
+    ...connectionRowsData(),
+    ...Object.values(state.mapCenterConnections || {}).flat()
+  ]).filter((person) => person.id && person.id !== authState.user?.id);
+}
+
+function personSearchText(person = {}) {
+  return [
+    person.name,
+    person.handle,
+    person.desc,
+    person.common,
+    person.tag,
+    person.school,
+    person.highSchool,
+    person.university,
+    person.vocationalSchool,
+    person.company,
+    person.companyRole,
+    person.companyName,
+    person.companyPeriod,
+    person.companyLocation,
+    person.location,
+    person.birthday,
+    careerSummary(person),
+    ...(careerItems(person, { respectPrivacy: true }) || []).flatMap((career) => [career.role, career.company, career.period, career.location])
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function mapSearchResults() {
+  const query = state.mapQuery.trim().toLowerCase();
+  if (!query) return [];
+  return mapSearchPeoplePool()
+    .filter((person) => personSearchText(person).includes(query))
+    .slice(0, 8);
+}
+
+function mapSearchResultsMarkup(results = mapSearchResults()) {
+  if (!state.mapQuery.trim()) return '';
+  return `<div class="map-search-results">${results.length ? results.map(mapSearchResultRow).join('') : '<p>見つかりませんでした</p>'}</div>`;
+}
+
+function mapSearchResultRow(person) {
+  const canCenter = connectionRowsData().some((connection) => connection.id === person.id);
+  return `
+    <button class="map-search-result" type="button" data-map-search-person="${escapeHtml(person.id)}" data-centerable="${canCenter ? 'true' : 'false'}">
+      ${personAvatar(person, 34)}
+      <span><b>${escapeHtml(person.name || person.handle || 'ユーザー')}</b><small>${escapeHtml(person.handle ? `@${person.handle}` : person.desc || relationshipLabel(person.tag))}</small></span>
+      <em>${canCenter ? '中心にする' : 'プロフィール'}</em>
+    </button>
+  `;
 }
 
 function mapNodeData() {
@@ -3377,6 +3451,7 @@ app.addEventListener('click', async (event) => {
   const request = event.target.closest('[data-request]');
   const centerProfileButton = event.target.closest('[data-center-profile]');
   const mapNodeButton = event.target.closest('[data-map-node]');
+  const mapSearchPersonButton = event.target.closest('[data-map-search-person]');
   const personClickIsAction = Boolean(event.target.closest('[data-action], .relationship-picker, .connection-manage-actions'));
   const personElement = personClickIsAction ? null : event.target.closest('[data-person], [data-person-id]');
   const person = personElement?.dataset.person;
@@ -3456,6 +3531,7 @@ app.addEventListener('click', async (event) => {
     go(nav);
     if (nav === 'intro') await loadIncomingRequests({ silent: true });
     if (nav === 'connections' || nav === 'map' || nav === 'profile') await loadAcceptedConnections({ silent: true });
+    if (nav === 'map') warmMapSearchConnections().then(() => state.screen === 'map' && render());
     if (nav === 'connections' || nav === 'map' || nav === 'profile') await loadRemovalNotifications({ silent: true });
     return;
   }
@@ -3532,6 +3608,23 @@ app.addEventListener('click', async (event) => {
     render();
     return;
   }
+  if (mapSearchPersonButton) {
+    const targetId = mapSearchPersonButton.dataset.mapSearchPerson;
+    const target = mapSearchPeoplePool().find((person) => person.id === targetId) || personByIdOrName(targetId);
+    if (mapSearchPersonButton.dataset.centerable === 'true') {
+      state.mapCenter = targetId;
+      state.filter = 'すべて';
+      state.mapQuery = '';
+      state.mapPan = { x: 0, y: 0 };
+      state.zoom = 1;
+      render();
+      loadMapCenterConnections(targetId, { silent: true }).then(() => render());
+      return;
+    }
+    state.overlay = personOverlayFromNode(target, target?.name || 'ユーザー');
+    render();
+    return;
+  }
   if (mapNodeButton) {
     if (mapInteraction.dragged) {
       mapInteraction.dragged = false;
@@ -3541,27 +3634,22 @@ app.addEventListener('click', async (event) => {
     const visibleNode = mapVisibleNodes().find((node) => node.id === centerId);
     const node = visibleNode || personByIdOrName(centerId);
     if (state.mapCenter !== 'you' && centerId === authState.user?.id) {
-      await animateNodeToCenter(mapNodeButton, { duration: 620, scale: 1.12, color: relationshipColor('あなた') });
-      await renderMapTransition(() => {
-        state.mapCenter = 'you';
-        state.filter = 'すべて';
-        state.mapPan = { x: 0, y: 0 };
-        state.zoom = 1;
-        state.toast = '自分を中心に戻しました';
-      });
+      state.mapCenter = 'you';
+      state.filter = 'すべて';
+      state.mapPan = { x: 0, y: 0 };
+      state.zoom = 1;
+      state.toast = '自分を中心に戻しました';
+      render();
       return;
     }
     if (mapNodeButton.dataset.centerable === 'true') {
-      const connectionsPromise = loadMapCenterConnections(centerId, { silent: true });
-      await animateNodeToCenter(mapNodeButton, { duration: 640, scale: 1.12, color: relationshipColor(node?.tag || '紹介') });
-      await connectionsPromise;
-      await renderMapTransition(() => {
-        state.mapCenter = centerId;
-        state.filter = 'すべて';
-        state.mapPan = { x: 0, y: 0 };
-        state.zoom = 1;
-        state.toast = `${node?.name || mapNodeButton.dataset.personName || 'ユーザー'}を中心にしました`;
-      });
+      state.mapCenter = centerId;
+      state.filter = 'すべて';
+      state.mapPan = { x: 0, y: 0 };
+      state.zoom = 1;
+      state.toast = `${node?.name || mapNodeButton.dataset.personName || 'ユーザー'}を中心にしました`;
+      render();
+      loadMapCenterConnections(centerId, { silent: true }).then(() => render());
       return;
     }
     state.overlay = personOverlayFromNode(node, mapNodeButton.dataset.personName || 'ユーザー');
@@ -3752,9 +3840,17 @@ app.addEventListener('input', (event) => {
     return;
   }
   const connectionSearch = event.target.closest('[data-connection-search]');
+  const mapSearch = event.target.closest('[data-map-search]');
   const educationInput = event.target.closest('.education-field input');
   if (educationInput) {
     educationInput.closest('.education-field')?.classList.toggle('has-school', Boolean(educationInput.value.trim()));
+  }
+  if (mapSearch) {
+    state.mapQuery = mapSearch.value;
+    const shell = mapSearch.closest('.map-search-shell');
+    shell?.querySelector('.map-search-results')?.remove();
+    if (state.mapQuery.trim()) shell?.insertAdjacentHTML('beforeend', mapSearchResultsMarkup());
+    return;
   }
   if (!connectionSearch) return;
   state.connectionQuery = connectionSearch.value;
