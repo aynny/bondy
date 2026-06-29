@@ -5823,3 +5823,471 @@ body {
   .map-screen .category-event .diorama-art { width: 178px !important; height: 122px !important; }
   .map-screen .category-heart .diorama-art { width: 158px !important; height: 114px !important; }
 }
+
+/* Final diorama map pass based on the supplied completed mockup */
+.map-screen {
+  min-height: max(100svh, 932px) !important;
+  padding-bottom: 0 !important;
+  overflow: hidden !important;
+  color: #05090f !important;
+  background:
+    radial-gradient(circle at 52% 47%, rgba(255,255,255,.98) 0 13%, rgba(248,250,253,.88) 31%, rgba(241,245,250,.72) 57%, rgba(248,249,252,.98) 100%),
+    linear-gradient(145deg, rgba(255,255,255,.88), rgba(230,235,243,.5)),
+    #f7f8fa !important;
+}
+
+.map-screen::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  opacity: .76 !important;
+  background:
+    radial-gradient(circle at 51% 48%, rgba(255,255,255,.98) 0 9%, rgba(255,255,255,.74) 10%, rgba(255,255,255,0) 29%),
+    linear-gradient(115deg, transparent 0 18%, rgba(184,194,207,.08) 18.6%, transparent 30%),
+    linear-gradient(26deg, transparent 0 37%, rgba(184,194,207,.07) 37.6%, transparent 49%),
+    radial-gradient(circle at 18% 82%, rgba(255,255,255,.75), rgba(255,255,255,0) 23%);
+}
+
+.map-screen::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: -12% -22% !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  opacity: .36 !important;
+  background:
+    radial-gradient(circle at 53% 49%, transparent 0 7.2%, rgba(222,228,237,.42) 7.35% 7.55%, transparent 7.7%),
+    radial-gradient(circle at 53% 49%, transparent 0 13%, rgba(222,228,237,.34) 13.15% 13.32%, transparent 13.5%),
+    radial-gradient(circle at 53% 49%, transparent 0 19.5%, rgba(222,228,237,.28) 19.65% 19.82%, transparent 20%),
+    radial-gradient(circle at 53% 49%, transparent 0 26%, rgba(222,228,237,.2) 26.15% 26.32%, transparent 26.5%);
+}
+
+.map-screen > .home-indicator {
+  display: none !important;
+}
+
+.map-ios-status {
+  position: absolute;
+  z-index: 70;
+  top: 20px;
+  left: 39px;
+  right: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #02060b;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 860;
+  letter-spacing: -.02em;
+  pointer-events: none;
+}
+
+.map-ios-icons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-ios-icons .cellular {
+  width: 22px;
+  height: 17px;
+  background:
+    linear-gradient(#000 0 0) 0 10px / 4px 7px no-repeat,
+    linear-gradient(#000 0 0) 6px 7px / 4px 10px no-repeat,
+    linear-gradient(#000 0 0) 12px 3px / 4px 14px no-repeat,
+    linear-gradient(#000 0 0) 18px 0 / 4px 17px no-repeat;
+  border-radius: 2px;
+}
+
+.map-ios-icons .wifi {
+  width: 22px;
+  height: 16px;
+}
+
+.map-ios-icons .battery {
+  position: relative;
+  width: 29px;
+  height: 14px;
+  display: inline-block;
+  border: 2px solid #111;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+}
+
+.map-ios-icons .battery::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 19px;
+  height: 4px;
+  border-radius: 2px;
+  background: #111;
+}
+
+.map-ios-icons .battery::after {
+  content: "";
+  position: absolute;
+  right: -5px;
+  top: 3px;
+  width: 3px;
+  height: 6px;
+  border-radius: 0 2px 2px 0;
+  background: #111;
+}
+
+.map-lux-header {
+  z-index: 60 !important;
+  top: 71px !important;
+  left: 22px !important;
+  right: 25px !important;
+}
+
+.map-lux-header h1 {
+  font-size: 32px !important;
+  line-height: 1 !important;
+  font-weight: 860 !important;
+  letter-spacing: -.035em !important;
+}
+
+.map-lux-actions {
+  gap: 22px !important;
+}
+
+.map-search-trigger {
+  width: 42px !important;
+  height: 42px !important;
+}
+
+.map-search-trigger svg {
+  width: 32px !important;
+  height: 32px !important;
+  stroke-width: 1.85 !important;
+}
+
+.map-lux-actions .avatar {
+  width: 44px !important;
+  height: 44px !important;
+  box-shadow: 0 12px 25px rgba(17,24,39,.12) !important;
+}
+
+.map-category-sidebar {
+  z-index: 62 !important;
+  top: 127px !important;
+  left: 14px !important;
+  width: 103px !important;
+  gap: 10px !important;
+}
+
+.map-side-button {
+  height: 69px !important;
+  gap: 13px !important;
+  padding: 0 22px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.96) !important;
+  color: #05080d !important;
+  box-shadow: 0 19px 35px rgba(20,31,49,.1), inset 0 1px 0 rgba(255,255,255,.98) !important;
+  font-size: 17px !important;
+  font-weight: 780 !important;
+  letter-spacing: -.035em !important;
+  backdrop-filter: blur(18px) !important;
+}
+
+.map-side-button svg {
+  width: 26px !important;
+  height: 26px !important;
+  stroke-width: 2.05 !important;
+}
+
+.map-side-button.selected {
+  background: linear-gradient(145deg, #1e334e 0%, #071a2d 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 21px 42px rgba(7,22,39,.29), inset 0 1px 0 rgba(255,255,255,.15) !important;
+}
+
+.map-side-button.selected svg {
+  color: #fff !important;
+}
+
+.heart-side-button span::after {
+  content: "" !important;
+  font-size: 0 !important;
+}
+
+.heart-side-button span {
+  display: none !important;
+}
+
+.map-interactive-panel,
+.map-screen .network,
+.map-screen .map-canvas {
+  inset: 0 !important;
+  min-height: max(100svh, 932px) !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+
+.diorama-rings {
+  z-index: 1 !important;
+  left: 51% !important;
+  top: 51.3% !important;
+  width: 365px !important;
+  opacity: .92 !important;
+  background:
+    radial-gradient(circle, rgba(255,255,255,1) 0 11%, rgba(255,255,255,.62) 12%, transparent 14%),
+    repeating-radial-gradient(circle, transparent 0 38px, rgba(219,225,234,.26) 39px 40px, transparent 41px 78px) !important;
+  filter: blur(.08px) !important;
+}
+
+.diorama-lines {
+  z-index: 2 !important;
+}
+
+.diorama-lines line {
+  stroke: rgba(255,255,255,.97) !important;
+  stroke-width: 1.7 !important;
+  filter:
+    drop-shadow(0 0 4px rgba(255,255,255,1))
+    drop-shadow(0 0 15px rgba(255,255,255,.95))
+    drop-shadow(0 0 27px rgba(208,222,240,.72)) !important;
+  animation: finalDioramaBeam 3.1s ease-in-out infinite !important;
+}
+
+@keyframes finalDioramaBeam {
+  0%, 100% { opacity: .5; stroke-width: 1.25; }
+  50% { opacity: 1; stroke-width: 1.95; }
+}
+
+.diorama-center {
+  z-index: 12 !important;
+  left: 51% !important;
+  top: 51.2% !important;
+  width: 82px !important;
+  gap: 0 !important;
+}
+
+.tiny-person {
+  width: 14px !important;
+  height: 29px !important;
+  border-radius: 9px 9px 5px 5px !important;
+}
+
+.tiny-person::before {
+  width: 11px !important;
+  height: 11px !important;
+  top: -7px !important;
+}
+
+.center-pedestal {
+  width: 61px !important;
+  height: 22px !important;
+  margin-top: -5px !important;
+  background: linear-gradient(180deg, #fff, #e9eef5) !important;
+  box-shadow: 0 19px 34px rgba(71,86,104,.18), inset 0 2px 0 #fff !important;
+}
+
+.diorama-center b {
+  margin-top: 1px !important;
+  font-size: 17px !important;
+  line-height: 1 !important;
+  font-weight: 860 !important;
+}
+
+.category-island {
+  z-index: 14 !important;
+  width: 186px !important;
+  height: 142px !important;
+  overflow: visible !important;
+}
+
+.island-stage {
+  width: 186px !important;
+  height: 142px !important;
+  overflow: visible !important;
+  filter: drop-shadow(0 25px 22px rgba(28,42,60,.13)) !important;
+}
+
+.diorama-art {
+  left: 50% !important;
+  top: 52% !important;
+  width: 209px !important;
+  height: 120px !important;
+  object-fit: contain !important;
+  object-position: center bottom !important;
+  transform: translate(-50%, -50%) !important;
+  clip-path: none !important;
+  mix-blend-mode: screen !important;
+  filter: saturate(1.05) contrast(1.02) brightness(1.07) !important;
+}
+
+.category-family .diorama-art {
+  width: 215px !important;
+  height: 123px !important;
+}
+
+.category-local .diorama-art {
+  width: 203px !important;
+  height: 119px !important;
+}
+
+.category-school .diorama-art {
+  width: 200px !important;
+  height: 118px !important;
+}
+
+.category-business .diorama-art {
+  width: 205px !important;
+  height: 119px !important;
+}
+
+.category-event .diorama-art {
+  width: 210px !important;
+  height: 122px !important;
+}
+
+.category-heart .diorama-art {
+  width: 205px !important;
+  height: 120px !important;
+}
+
+.category-label {
+  z-index: 8 !important;
+  min-width: 78px !important;
+  min-height: 43px !important;
+  gap: 7px !important;
+  padding: 7px 13px !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.96) !important;
+  box-shadow: 0 16px 31px rgba(25,39,59,.12), inset 0 1px 0 #fff !important;
+}
+
+.category-label svg {
+  width: 21px !important;
+  height: 21px !important;
+  stroke-width: 2.15 !important;
+}
+
+.category-label span {
+  font-size: 13px !important;
+  line-height: .98 !important;
+  font-weight: 840 !important;
+}
+
+.category-label small {
+  font-size: 12px !important;
+  line-height: 1.05 !important;
+  font-weight: 760 !important;
+}
+
+.category-label-compact {
+  min-width: 76px !important;
+  justify-content: center !important;
+}
+
+.category-family .category-label {
+  top: 0 !important;
+  left: 51% !important;
+}
+
+.category-local .category-label {
+  top: 0 !important;
+  left: 54% !important;
+}
+
+.category-school .category-label {
+  top: 5px !important;
+  left: 75% !important;
+}
+
+.category-business .category-label {
+  bottom: -2px !important;
+  left: 51% !important;
+}
+
+.category-event .category-label {
+  bottom: 2px !important;
+  left: 61% !important;
+}
+
+.category-heart .category-label {
+  bottom: -3px !important;
+  left: 50% !important;
+}
+
+.map-screen .category-family { --x: 40% !important; --y: 35% !important; }
+.map-screen .category-local { --x: 71% !important; --y: 35% !important; }
+.map-screen .category-school { --x: 83% !important; --y: 53% !important; }
+.map-screen .category-business { --x: 28% !important; --y: 66% !important; }
+.map-screen .category-event { --x: 71% !important; --y: 68.5% !important; }
+.map-screen .category-heart { --x: 50% !important; --y: 78% !important; }
+
+.map-floating-buttons {
+  z-index: 64 !important;
+  right: 24px !important;
+  bottom: 182px !important;
+  gap: 16px !important;
+}
+
+.map-floating-buttons button {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 50% !important;
+  box-shadow: 0 20px 40px rgba(20,33,54,.14), inset 0 1px 0 rgba(255,255,255,1) !important;
+}
+
+.map-floating-buttons button:first-child {
+  background: linear-gradient(145deg, #1e334e, #071a2d) !important;
+  color: #fff !important;
+}
+
+.map-screen .bottom-nav {
+  z-index: 66 !important;
+  left: 16px !important;
+  right: 16px !important;
+  bottom: 53px !important;
+  height: 85px !important;
+  padding: 6px 20px !important;
+  border: 0 !important;
+  border-radius: 31px !important;
+  background: rgba(255,255,255,.96) !important;
+  box-shadow: 0 25px 54px rgba(22,34,55,.13), inset 0 1px 0 rgba(255,255,255,1) !important;
+  backdrop-filter: blur(18px) !important;
+  transform: none !important;
+}
+
+.map-screen .bottom-nav button {
+  height: 73px !important;
+  border-radius: 28px !important;
+  color: #3e4247 !important;
+  font-size: 13px !important;
+  font-weight: 720 !important;
+  gap: 5px !important;
+}
+
+.map-screen .bottom-nav button svg {
+  width: 28px !important;
+  height: 28px !important;
+}
+
+.map-screen .bottom-nav .active {
+  background: rgba(229,233,239,.88) !important;
+  color: #13233c !important;
+}
+
+.map-ios-home {
+  position: absolute;
+  z-index: 72;
+  left: 50%;
+  bottom: 18px;
+  width: 142px;
+  height: 5px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  background: #000;
+  pointer-events: none;
+}
