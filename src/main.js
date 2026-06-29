@@ -2757,58 +2757,30 @@ function categoryIsland(item) {
 }
 
 function categoryDioramaMarkup(key) {
-  const building = (name, extras = '') => `<i class="model-building ${name}">${extras}</i>`;
-  const windows = '<span></span><span></span><span></span><span></span>';
-  const trees = '<i class="model-tree tree-a"></i><i class="model-tree tree-b"></i>';
-  const people = '<i class="model-person person-a"></i><i class="model-person person-b"></i>';
-  const scenes = {
-    family: `
-      <span class="generated-diorama model-family">
-        <i class="model-platform"></i><i class="model-ring"></i>${trees}${people}
-        ${building('house-main', '<span class="roof"></span><span class="glass"></span><span class="door"></span>')}
-        ${building('house-side', '<span class="glass"></span>')}
-        <i class="model-car"></i>
-      </span>
-    `,
-    local: `
-      <span class="generated-diorama model-local">
-        <i class="model-platform"></i><i class="model-ring"></i>${trees}${people}
-        ${building('tower tower-a', windows)}
-        ${building('house-mini house-one', '<span class="roof"></span><span class="door"></span>')}
-        ${building('house-mini house-two', '<span class="roof"></span><span class="door"></span>')}
-        <i class="model-pin"></i>
-      </span>
-    `,
-    school: `
-      <span class="generated-diorama model-school">
-        <i class="model-platform"></i><i class="model-ring"></i>${trees}${people}
-        ${building('school-main', windows + '<span class="clock"></span><span class="door"></span>')}
-        <i class="model-flag"></i>
-      </span>
-    `,
-    business: `
-      <span class="generated-diorama model-business">
-        <i class="model-platform"></i><i class="model-ring"></i>${trees}${people}
-        ${building('tower tower-a', windows)}
-        ${building('tower tower-b', windows)}
-        ${building('tower tower-c', windows)}
-      </span>
-    `,
-    event: `
-      <span class="generated-diorama model-event">
-        <i class="model-platform"></i><i class="model-ring"></i>${trees}${people}
-        <i class="model-stage"><span></span></i>
-        <i class="model-truss truss-left"></i><i class="model-truss truss-right"></i><i class="model-truss truss-top"></i>
-      </span>
-    `,
-    heart: `
-      <span class="generated-diorama model-heart">
-        <i class="model-platform"></i><i class="model-ring"></i>${trees}${people}
-        <i class="model-heart-shape"></i><i class="model-bench"></i>
-      </span>
-    `
-  };
-  return scenes[key] || scenes.family;
+  const iconName = {
+    family: 'users',
+    local: 'mapPin',
+    school: 'grad',
+    business: 'brief',
+    event: 'flag',
+    heart: 'heart'
+  }[key] || 'users';
+  return `
+    <span class="premium-category-object premium-${key}">
+      <i class="premium-shadow"></i>
+      <i class="premium-orbit orbit-back"></i>
+      <i class="premium-plinth">
+        <i class="premium-plinth-top"></i>
+        <i class="premium-plinth-face"></i>
+        <i class="premium-core-glow"></i>
+      </i>
+      <span class="premium-symbol">${icon(iconName, 34)}</span>
+      <i class="premium-orbit orbit-front"></i>
+      <i class="premium-spark spark-a"></i>
+      <i class="premium-spark spark-b"></i>
+      <i class="premium-spark spark-c"></i>
+    </span>
+  `;
 }
 
 function categoryLabelMarkup(item) {
