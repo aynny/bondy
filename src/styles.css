@@ -6207,3 +6207,82 @@ body {
   background: rgba(229,233,239,.88) !important;
   color: #13233c !important;
 }
+
+/* Clean illustration and dimensional connection pass */
+.map-screen::after {
+  display: none !important;
+}
+
+.map-screen .heart-side-button {
+  width: 58px !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+.map-screen .heart-side-button svg {
+  margin: 0 !important;
+}
+
+.diorama-rings {
+  width: 310px !important;
+  opacity: .86 !important;
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(255,255,255,1) 0 13%, rgba(255,255,255,.82) 14%, rgba(255,255,255,.35) 27%, rgba(255,255,255,0) 57%) !important;
+  filter: blur(.2px) drop-shadow(0 0 36px rgba(255,255,255,.92)) !important;
+}
+
+.diorama-lines line {
+  stroke: rgba(255,255,255,.98) !important;
+  stroke-width: 2.55 !important;
+  filter:
+    drop-shadow(0 0 2px rgba(255,255,255,1))
+    drop-shadow(0 0 11px rgba(255,255,255,.98))
+    drop-shadow(0 0 24px rgba(205,222,245,.86))
+    drop-shadow(0 10px 15px rgba(144,158,176,.18)) !important;
+  animation: finalDioramaBeam 2.7s ease-in-out infinite !important;
+}
+
+@keyframes finalDioramaBeam {
+  0%, 100% { opacity: .62; stroke-width: 2.1; }
+  50% { opacity: 1; stroke-width: 3; }
+}
+
+.diorama-art {
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  filter:
+    saturate(1.05)
+    contrast(1.04)
+    brightness(1.02)
+    drop-shadow(0 22px 17px rgba(31,45,64,.14)) !important;
+}
+
+.category-family .diorama-art {
+  width: 224px !important;
+  height: 132px !important;
+}
+
+.category-local .diorama-art {
+  width: 204px !important;
+  height: 140px !important;
+}
+
+.category-school .diorama-art {
+  width: 185px !important;
+  height: 124px !important;
+}
+
+.category-business .diorama-art {
+  width: 185px !important;
+  height: 120px !important;
+}
+
+.category-event .diorama-art {
+  width: 219px !important;
+  height: 132px !important;
+}
+
+.category-heart .diorama-art {
+  width: 205px !important;
+  height: 128px !important;
+}
