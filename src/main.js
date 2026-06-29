@@ -2732,12 +2732,12 @@ function networkGraph(nodes) {
 
 function mapCategoryItems() {
   return [
-    { key: 'family', filter: '家族', label: '家族', count: 12, iconName: 'users', color: '#FF5C5C', x: 39, y: 34, lineX: 48, lineY: 45 },
-    { key: 'local', filter: '地元', label: '地元', count: 23, iconName: 'mapPin', color: '#55C34A', x: 69, y: 34, lineX: 61, lineY: 45 },
-    { key: 'school', filter: '大学', label: '学校', count: 28, iconName: 'grad', color: '#8D63FF', x: 84, y: 53, lineX: 68, lineY: 50 },
-    { key: 'business', filter: 'ビジネス', label: 'ビジネス', count: 16, iconName: 'brief', color: '#4DA3FF', x: 29, y: 65, lineX: 43, lineY: 58 },
-    { key: 'event', filter: 'イベント', label: 'イベント', count: 15, iconName: 'flag', color: '#F4A623', x: 71, y: 68, lineX: 62, lineY: 59 },
-    { key: 'heart', filter: '恋人', label: '♡', count: 9, iconName: 'heart', color: '#FF72B6', x: 50, y: 77, lineX: 52, lineY: 62 }
+    { key: 'family', filter: '家族', label: '家族', count: 12, iconName: 'users', color: '#A66567', x: 45, y: 34, lineX: 49, lineY: 45 },
+    { key: 'local', filter: '地元', label: '地元', count: 23, iconName: 'mapPin', color: '#718165', x: 68, y: 34, lineX: 60, lineY: 45 },
+    { key: 'school', filter: '大学', label: '学校', count: 28, iconName: 'grad', color: '#7B739C', x: 76, y: 52, lineX: 66, lineY: 50 },
+    { key: 'business', filter: 'ビジネス', label: 'ビジネス', count: 16, iconName: 'brief', color: '#466F8D', x: 30, y: 65, lineX: 43, lineY: 58 },
+    { key: 'event', filter: 'イベント', label: 'イベント', count: 15, iconName: 'flag', color: '#A77B48', x: 68, y: 68, lineX: 61, lineY: 59 },
+    { key: 'heart', filter: '恋人', label: '♡', count: 9, iconName: 'heart', color: '#A96D88', x: 50, y: 77, lineX: 52, lineY: 62 }
   ];
 }
 

@@ -6948,3 +6948,205 @@ body {
 .category-business .category-label { bottom: -3px !important; left: 51% !important; }
 .category-event .category-label { bottom: 0 !important; left: 62% !important; }
 .category-heart .category-label { bottom: -3px !important; left: 50% !important; }
+
+/* App-grade separated map composition: fixed atmosphere + independent heavy nodes */
+.map-screen {
+  background:
+    radial-gradient(circle at 52% 48%, rgba(255,255,255,.98) 0 11%, rgba(241,244,248,.94) 30%, rgba(224,230,238,.86) 67%, rgba(246,248,251,.98) 100%),
+    linear-gradient(145deg, #f8f9fb 0%, #e8edf4 46%, #f6f7f9 100%) !important;
+}
+
+.map-screen::before {
+  opacity: 1 !important;
+  background:
+    linear-gradient(90deg, rgba(13,24,38,.055), rgba(13,24,38,0) 14%, rgba(13,24,38,0) 86%, rgba(13,24,38,.055)),
+    radial-gradient(circle at 50% 48%, rgba(255,255,255,.94) 0 16%, rgba(255,255,255,.5) 28%, rgba(255,255,255,0) 48%),
+    radial-gradient(circle at 12% 15%, rgba(255,255,255,.68), rgba(255,255,255,0) 24%),
+    radial-gradient(circle at 88% 78%, rgba(214,222,233,.42), rgba(214,222,233,0) 28%) !important;
+}
+
+.map-screen::after {
+  display: none !important;
+}
+
+.map-interactive-panel,
+.map-screen .network,
+.map-screen .map-canvas {
+  background: transparent !important;
+}
+
+.map-screen .map-canvas {
+  transform: none !important;
+}
+
+.diorama-rings {
+  width: 225px !important;
+  height: 160px !important;
+  opacity: .4 !important;
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.96) 0 20%, rgba(255,255,255,.28) 34%, rgba(255,255,255,0) 64%) !important;
+  filter: blur(.25px) drop-shadow(0 0 30px rgba(255,255,255,.9)) !important;
+}
+
+.diorama-lines {
+  z-index: 3 !important;
+}
+
+.diorama-lines line {
+  stroke: rgba(255,255,255,.96) !important;
+  stroke-width: 2.55 !important;
+  stroke-linecap: round !important;
+  filter:
+    drop-shadow(0 0 4px rgba(255,255,255,.98))
+    drop-shadow(0 0 18px rgba(255,255,255,.78))
+    drop-shadow(0 18px 22px rgba(94,108,128,.16)) !important;
+  animation: finalDioramaBeam 3.8s ease-in-out infinite !important;
+}
+
+@keyframes finalDioramaBeam {
+  0%, 100% { opacity: .58; stroke-width: 2.25; }
+  50% { opacity: .9; stroke-width: 2.85; }
+}
+
+.category-island {
+  width: 140px !important;
+  height: 112px !important;
+  isolation: isolate !important;
+  contain: layout style !important;
+}
+
+.island-stage {
+  width: 140px !important;
+  height: 112px !important;
+  filter:
+    drop-shadow(0 28px 25px rgba(12,20,33,.2))
+    drop-shadow(0 4px 6px rgba(255,255,255,.9)) !important;
+}
+
+.premium-category-object {
+  width: 126px !important;
+  height: 96px !important;
+  filter: saturate(.76) contrast(1.03) !important;
+}
+
+.category-island:active .premium-category-object,
+.category-island.is-selected .premium-category-object {
+  transform: translate(-50%, -53%) scale(1.025) !important;
+}
+
+.premium-shadow {
+  left: 12px !important;
+  right: 12px !important;
+  bottom: 5px !important;
+  height: 30px !important;
+  background: radial-gradient(ellipse, rgba(7,13,22,.32), rgba(7,13,22,0) 68%) !important;
+  filter: blur(10px) !important;
+}
+
+.premium-plinth {
+  left: 13px !important;
+  right: 13px !important;
+  bottom: 16px !important;
+  height: 52px !important;
+  background:
+    radial-gradient(ellipse at 48% 17%, #ffffff 0 26%, #eceff4 56%, #c6ceda 100%) !important;
+  border: 1px solid rgba(255,255,255,.96) !important;
+  box-shadow:
+    inset 0 4px 0 rgba(255,255,255,1),
+    inset 0 -15px 19px rgba(79,91,108,.25),
+    0 22px 36px rgba(15,24,38,.22) !important;
+}
+
+.premium-plinth::before {
+  left: 12px !important;
+  right: 12px !important;
+  bottom: -7px !important;
+  height: 27px !important;
+  border-bottom: 4px solid color-mix(in srgb, var(--cat-color) 54%, #d6dce6) !important;
+  opacity: .68 !important;
+  filter:
+    drop-shadow(0 0 4px color-mix(in srgb, var(--cat-color) 35%, transparent))
+    drop-shadow(0 0 12px color-mix(in srgb, var(--cat-color) 20%, transparent)) !important;
+}
+
+.premium-plinth-top {
+  inset: 10px 18px 17px !important;
+  background:
+    radial-gradient(ellipse at 48% 28%, rgba(255,255,255,1), rgba(232,236,243,.96) 70%, rgba(195,205,218,.9)) !important;
+}
+
+.premium-plinth-face {
+  background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(72,84,101,.28)) !important;
+}
+
+.premium-core-glow {
+  opacity: .28 !important;
+  background: radial-gradient(circle, color-mix(in srgb, var(--cat-color) 20%, white) 0 8%, rgba(255,255,255,0) 65%) !important;
+}
+
+.premium-symbol {
+  top: 22px !important;
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 18px !important;
+  color: color-mix(in srgb, var(--cat-color) 62%, #edf2f7) !important;
+  background:
+    linear-gradient(145deg, #2a3443 0%, #121b28 58%, #07101c 100%) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.2),
+    inset 0 -8px 13px rgba(0,0,0,.24),
+    0 16px 23px rgba(5,12,22,.24),
+    0 0 13px color-mix(in srgb, var(--cat-color) 18%, transparent) !important;
+}
+
+.premium-symbol svg {
+  width: 28px !important;
+  height: 28px !important;
+}
+
+.premium-orbit {
+  left: 7px !important;
+  right: 7px !important;
+  bottom: 8px !important;
+  height: 45px !important;
+  border-color: color-mix(in srgb, var(--cat-color) 30%, #c9d0dc) !important;
+  opacity: .42 !important;
+}
+
+.orbit-back {
+  opacity: .16 !important;
+}
+
+.orbit-front {
+  border-top-color: transparent !important;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--cat-color) 22%, transparent)) !important;
+}
+
+.premium-spark {
+  width: 4px !important;
+  height: 4px !important;
+  opacity: .22 !important;
+  background: color-mix(in srgb, var(--cat-color) 42%, white) !important;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--cat-color) 32%, transparent) !important;
+}
+
+.category-label {
+  background: rgba(255,255,255,.92) !important;
+  border: 1px solid rgba(120,132,150,.1) !important;
+  box-shadow:
+    0 18px 30px rgba(11,19,31,.14),
+    inset 0 1px 0 rgba(255,255,255,1) !important;
+  color: #101722 !important;
+}
+
+.category-label svg {
+  color: color-mix(in srgb, var(--cat-color) 64%, #1c2635) !important;
+}
+
+.map-screen .category-family { --x: 45% !important; --y: 34% !important; }
+.map-screen .category-local { --x: 68% !important; --y: 34% !important; }
+.map-screen .category-school { --x: 76% !important; --y: 52% !important; }
+.map-screen .category-business { --x: 30% !important; --y: 65% !important; }
+.map-screen .category-event { --x: 68% !important; --y: 68% !important; }
+.map-screen .category-heart { --x: 50% !important; --y: 77% !important; }
