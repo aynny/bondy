@@ -2543,10 +2543,6 @@ function topHeader(title, extra = '') {
 function mapScreen() {
   const searchResults = mapSearchResults();
   return `
-    <div class="map-ios-status" aria-hidden="true">
-      <span>9:41</span>
-      <span class="map-ios-icons"><i class="cellular"></i><i class="wifi"></i><i class="battery"></i></span>
-    </div>
     <header class="map-lux-header">
       <h1>Bondy</h1>
       <div class="map-lux-actions">
@@ -2571,7 +2567,6 @@ function mapScreen() {
       <button type="button" data-action="locate" aria-label="現在地">${icon('locate', 27)}</button>
       <button type="button" data-action="fit-map" aria-label="拡大">${icon('plus', 30)}</button>
     </div>
-    <div class="map-ios-home" aria-hidden="true"></div>
   `;
 }
 
@@ -2737,12 +2732,12 @@ function networkGraph(nodes) {
 
 function mapCategoryItems() {
   return [
-    { key: 'family', filter: '家族', label: '家族', count: 12, iconName: 'users', color: '#FF5C5C', image: './src/assets/map-final/family.png', x: 39, y: 34, lineX: 48, lineY: 45 },
-    { key: 'local', filter: '地元', label: '地元', count: 23, iconName: 'mapPin', color: '#55C34A', image: './src/assets/map-final/local.png', x: 69, y: 34, lineX: 61, lineY: 45 },
-    { key: 'school', filter: '大学', label: '学校', count: 28, iconName: 'grad', color: '#8D63FF', image: './src/assets/map-final/school.png', x: 84, y: 53, lineX: 68, lineY: 50 },
-    { key: 'business', filter: 'ビジネス', label: 'ビジネス', count: 16, iconName: 'brief', color: '#4DA3FF', image: './src/assets/map-final/business.png', x: 29, y: 65, lineX: 43, lineY: 58 },
-    { key: 'event', filter: 'イベント', label: 'イベント', count: 15, iconName: 'flag', color: '#F4A623', image: './src/assets/map-final/event.png', x: 71, y: 68, lineX: 62, lineY: 59 },
-    { key: 'heart', filter: '恋人', label: '♡', count: 9, iconName: 'heart', color: '#FF72B6', image: './src/assets/map-final/heart.png', x: 50, y: 77, lineX: 52, lineY: 62 }
+    { key: 'family', filter: '家族', label: '家族', count: 12, iconName: 'users', color: '#FF5C5C', image: './src/assets/map/family-cut.png', x: 39, y: 34, lineX: 48, lineY: 45 },
+    { key: 'local', filter: '地元', label: '地元', count: 23, iconName: 'mapPin', color: '#55C34A', image: './src/assets/map/local-cut.png', x: 69, y: 34, lineX: 61, lineY: 45 },
+    { key: 'school', filter: '大学', label: '学校', count: 28, iconName: 'grad', color: '#8D63FF', image: './src/assets/map/school-cut.png', x: 84, y: 53, lineX: 68, lineY: 50 },
+    { key: 'business', filter: 'ビジネス', label: 'ビジネス', count: 16, iconName: 'brief', color: '#4DA3FF', image: './src/assets/map/business-cut.png', x: 29, y: 65, lineX: 43, lineY: 58 },
+    { key: 'event', filter: 'イベント', label: 'イベント', count: 15, iconName: 'flag', color: '#F4A623', image: './src/assets/map/event-cut.png', x: 71, y: 68, lineX: 62, lineY: 59 },
+    { key: 'heart', filter: '恋人', label: '♡', count: 9, iconName: 'heart', color: '#FF72B6', image: './src/assets/map/heart-cut.png', x: 50, y: 77, lineX: 52, lineY: 62 }
   ];
 }
 
