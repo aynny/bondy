@@ -2732,12 +2732,12 @@ function networkGraph(nodes) {
 
 function mapCategoryItems() {
   return [
-    { key: 'family', filter: '家族', label: '家族', count: 12, iconName: 'users', color: '#FF5C5C', image: './src/assets/map-clean/family.png', x: 39, y: 34, lineX: 48, lineY: 45 },
-    { key: 'local', filter: '地元', label: '地元', count: 23, iconName: 'mapPin', color: '#55C34A', image: './src/assets/map-clean/local.png', x: 69, y: 34, lineX: 61, lineY: 45 },
-    { key: 'school', filter: '大学', label: '学校', count: 28, iconName: 'grad', color: '#8D63FF', image: './src/assets/map-clean/school.png', x: 84, y: 53, lineX: 68, lineY: 50 },
-    { key: 'business', filter: 'ビジネス', label: 'ビジネス', count: 16, iconName: 'brief', color: '#4DA3FF', image: './src/assets/map-clean/business.png', x: 29, y: 65, lineX: 43, lineY: 58 },
-    { key: 'event', filter: 'イベント', label: 'イベント', count: 15, iconName: 'flag', color: '#F4A623', image: './src/assets/map-clean/event.png', x: 71, y: 68, lineX: 62, lineY: 59 },
-    { key: 'heart', filter: '恋人', label: '♡', count: 9, iconName: 'heart', color: '#FF72B6', image: './src/assets/map-clean/heart.png', x: 50, y: 77, lineX: 52, lineY: 62 }
+    { key: 'family', filter: '家族', label: '家族', count: 12, iconName: 'users', color: '#FF5C5C', x: 39, y: 34, lineX: 48, lineY: 45 },
+    { key: 'local', filter: '地元', label: '地元', count: 23, iconName: 'mapPin', color: '#55C34A', x: 69, y: 34, lineX: 61, lineY: 45 },
+    { key: 'school', filter: '大学', label: '学校', count: 28, iconName: 'grad', color: '#8D63FF', x: 84, y: 53, lineX: 68, lineY: 50 },
+    { key: 'business', filter: 'ビジネス', label: 'ビジネス', count: 16, iconName: 'brief', color: '#4DA3FF', x: 29, y: 65, lineX: 43, lineY: 58 },
+    { key: 'event', filter: 'イベント', label: 'イベント', count: 15, iconName: 'flag', color: '#F4A623', x: 71, y: 68, lineX: 62, lineY: 59 },
+    { key: 'heart', filter: '恋人', label: '♡', count: 9, iconName: 'heart', color: '#FF72B6', x: 50, y: 77, lineX: 52, lineY: 62 }
   ];
 }
 
@@ -2750,10 +2750,65 @@ function categoryIsland(item) {
     <button class="category-island category-${item.key} ${state.filter === item.filter ? 'is-selected' : ''}" type="button" data-filter="${escapeHtml(item.filter)}" style="--x:${item.x}%;--y:${item.y}%;--cat-color:${item.color}">
       ${categoryLabelMarkup(item)}
       <span class="island-stage" aria-hidden="true">
-        <img class="diorama-art" src="${escapeHtml(item.image)}" alt="" loading="eager">
+        ${categoryDioramaMarkup(item.key)}
       </span>
     </button>
   `;
+}
+
+function categoryDioramaMarkup(key) {
+  const building = (name, extras = '') => `<i class="model-building ${name}">${extras}</i>`;
+  const windows = '<span></span><span></span><span></span><span></span>';
+  const trees = '<i class="model-tree tree-a"></i><i class="model-tree tree-b"></i>';
+  const people = '<i class="model-person person-a"></i><i class="model-person person-b"></i>';
+  const scenes = {
+    family: `
+      <span class="generated-diorama model-family">
+        <i class="model-platform"></i><i class="model-ring"></i>${trees}${people}
+        ${building('house-main', '<span class="roof"></span><span class="glass"></span><span class="door"></span>')}
+        ${building('house-side', '<span class="glass"></span>')}
+        <i class="model-car"></i>
+      </span>
+    `,
+    local: `
+      <span class="generated-diorama model-local">
+        <i class="model-platform"></i><i class="model-ring"></i>${trees}${people}
+        ${building('tower tower-a', windows)}
+        ${building('house-mini house-one', '<span class="roof"></span><span class="door"></span>')}
+        ${building('house-mini house-two', '<span class="roof"></span><span class="door"></span>')}
+        <i class="model-pin"></i>
+      </span>
+    `,
+    school: `
+      <span class="generated-diorama model-school">
+        <i class="model-platform"></i><i class="model-ring"></i>${trees}${people}
+        ${building('school-main', windows + '<span class="clock"></span><span class="door"></span>')}
+        <i class="model-flag"></i>
+      </span>
+    `,
+    business: `
+      <span class="generated-diorama model-business">
+        <i class="model-platform"></i><i class="model-ring"></i>${trees}${people}
+        ${building('tower tower-a', windows)}
+        ${building('tower tower-b', windows)}
+        ${building('tower tower-c', windows)}
+      </span>
+    `,
+    event: `
+      <span class="generated-diorama model-event">
+        <i class="model-platform"></i><i class="model-ring"></i>${trees}${people}
+        <i class="model-stage"><span></span></i>
+        <i class="model-truss truss-left"></i><i class="model-truss truss-right"></i><i class="model-truss truss-top"></i>
+      </span>
+    `,
+    heart: `
+      <span class="generated-diorama model-heart">
+        <i class="model-platform"></i><i class="model-ring"></i>${trees}${people}
+        <i class="model-heart-shape"></i><i class="model-bench"></i>
+      </span>
+    `
+  };
+  return scenes[key] || scenes.family;
 }
 
 function categoryLabelMarkup(item) {
