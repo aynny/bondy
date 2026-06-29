@@ -2564,8 +2564,11 @@ function mapScreen() {
       ${networkGraph([])}
     </section>
     <div class="map-floating-buttons">
-      <button type="button" data-action="locate" aria-label="現在地">${icon('locate', 27)}</button>
-      <button type="button" data-action="fit-map" aria-label="拡大">${icon('plus', 30)}</button>
+      <button type="button" data-action="scan-qr" aria-label="QR交換">${icon('qr', 23)}<span>QR交換</span></button>
+      <button type="button" data-action="toggle-map-search" aria-label="検索">${icon('search', 24)}<span>検索</span></button>
+      <button class="primary-map-action" type="button" data-action="add" aria-label="追加">${icon('plus', 31)}</button>
+      <button type="button" data-action="open-add-menu" aria-label="招待">${icon('userPlus', 23)}<span>招待</span></button>
+      <button type="button" data-action="share-profile" aria-label="名刺交換">${icon('document', 23)}<span>名刺交換</span></button>
     </div>
   `;
 }
@@ -2717,12 +2720,12 @@ function networkGraph(nodes) {
       <div class="map-canvas" data-map-canvas style="transform:none">
         <div class="diorama-rings" aria-hidden="true"></div>
         <svg class="diorama-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          ${categories.map((item) => `<line x1="58" y1="48" x2="${item.lineX}" y2="${item.lineY}" />`).join('')}
+          ${categories.map((item) => `<line x1="50" y1="47" x2="${item.lineX}" y2="${item.lineY}" />`).join('')}
         </svg>
         <div class="diorama-center" aria-label="あなた">
-          <span class="tiny-person"><i></i></span>
-          <span class="center-pedestal"></span>
+          <span class="center-avatar-ring">${profileAvatar(104)}</span>
           <b>あなた</b>
+          <span class="center-connection-pill"><i></i>つながり ${mapTotalCount()}人</span>
         </div>
         ${categories.map(categoryIsland).join('')}
       </div>
@@ -2732,12 +2735,12 @@ function networkGraph(nodes) {
 
 function mapCategoryItems() {
   return [
-    { key: 'family', filter: '家族', label: '家族', count: categoryCount('家族'), iconName: 'users', color: '#F2554B', x: 36, y: 28, lineX: 48, lineY: 43, orbitX: 5, orbitY: -4, orbitDelay: -0.2 },
-    { key: 'local', filter: '地元', label: '地元', count: categoryCount('地元'), iconName: 'mapPin', color: '#3DB85F', x: 67, y: 28, lineX: 59, lineY: 43, orbitX: -5, orbitY: 4, orbitDelay: -1.8 },
-    { key: 'school', filter: '大学', label: '学校', count: categoryCount('大学'), iconName: 'grad', color: '#8A55FF', x: 75, y: 47, lineX: 66, lineY: 49, orbitX: -4, orbitY: -5, orbitDelay: -3.4 },
-    { key: 'business', filter: 'ビジネス', label: 'ビジネス', count: categoryCount('ビジネス'), iconName: 'brief', color: '#278FE8', x: 28, y: 59, lineX: 42, lineY: 56, orbitX: 5, orbitY: 4, orbitDelay: -5 },
-    { key: 'event', filter: 'イベント', label: 'イベント', count: categoryCount('イベント'), iconName: 'flag', color: '#F0A023', x: 67, y: 62, lineX: 61, lineY: 58, orbitX: -5, orbitY: 3, orbitDelay: -6.6 },
-    { key: 'heart', filter: '恋人', label: '♡', count: categoryCount('恋人'), iconName: 'heart', color: '#F25B9D', x: 49, y: 72, lineX: 52, lineY: 61, orbitX: 4, orbitY: -4, orbitDelay: -8.2 }
+    { key: 'family', filter: '家族', label: '家族', fallbackCount: 15, iconName: 'users', color: '#F06292', x: 29, y: 25, lineX: 37, lineY: 35 },
+    { key: 'local', filter: '地元', label: '地元', fallbackCount: 32, iconName: 'mapPin', color: '#20C997', x: 70, y: 25, lineX: 62, lineY: 35 },
+    { key: 'business', filter: 'ビジネス', label: 'ビジネス', fallbackCount: 78, iconName: 'brief', color: '#2BA7E8', x: 22, y: 48, lineX: 36, lineY: 48 },
+    { key: 'school', filter: '大学', label: '学校', fallbackCount: 48, iconName: 'grad', color: '#A35BEE', x: 78, y: 48, lineX: 64, lineY: 48 },
+    { key: 'heart', filter: '恋人', label: '♡', fallbackCount: 8, iconName: 'heart', color: '#F55F9F', x: 31, y: 70, lineX: 40, lineY: 60 },
+    { key: 'event', filter: 'イベント', label: 'イベント', fallbackCount: 25, iconName: 'flag', color: '#F6A623', x: 66, y: 70, lineX: 60, lineY: 60 }
   ];
 }
 
@@ -2745,15 +2748,54 @@ function categoryCount(filter) {
   return connectionRowsData().filter((person) => person.tag === filter).length;
 }
 
+function displayCategoryCount(filter, fallback = 0) {
+  const totalConnections = connectionRowsData().length;
+  const count = categoryCount(filter);
+  return totalConnections ? count : fallback;
+}
+
+function mapTotalCount() {
+  const total = connectionRowsData().length;
+  return total || 243;
+}
+
 function categoryIsland(item) {
+  const count = displayCategoryCount(item.filter, item.fallbackCount);
   return `
-    <button class="category-island category-${item.key} ${state.filter === item.filter ? 'is-selected' : ''}" type="button" data-filter="${escapeHtml(item.filter)}" style="--x:${item.x}%;--y:${item.y}%;--cat-color:${item.color};--orbit-x:${item.orbitX || 0}px;--orbit-y:${item.orbitY || 0}px;--orbit-delay:${item.orbitDelay || 0}s">
-      ${categoryLabelMarkup(item)}
-      <span class="island-stage" aria-hidden="true">
-        ${categoryDioramaMarkup(item.key)}
+    <button class="category-island category-${item.key} ${state.filter === item.filter ? 'is-selected' : ''}" type="button" data-filter="${escapeHtml(item.filter)}" style="--x:${item.x}%;--y:${item.y}%;--cat-color:${item.color}">
+      <span class="category-card-glow" aria-hidden="true"></span>
+      <span class="category-card">
+        <span class="category-card-main">
+          <span class="category-card-icon">${icon(item.iconName, 31)}</span>
+          <span class="category-card-copy">
+            <b>${escapeHtml(item.label)}</b>
+            <strong>${count}人</strong>
+          </span>
+        </span>
+        <span class="category-card-bottom">
+          <span class="category-face-stack">${categoryFaceStack(item.filter)}</span>
+          <span class="category-arrow">${icon('chevronRight', 18)}</span>
+        </span>
       </span>
     </button>
   `;
+}
+
+function categoryFaceStack(filter) {
+  const faces = connectionRowsData().filter((person) => person.tag === filter).slice(0, 3);
+  const fallback = [
+    { avatar: 'man1', name: 'A' },
+    { avatar: 'woman1', name: 'B' },
+    { avatar: 'woman2', name: 'C' }
+  ];
+  return (faces.length ? faces : fallback).slice(0, 3).map((person, index) => {
+    const html = person.photo
+      ? `<span class="category-face"><img src="${escapeHtml(person.photo)}" alt=""></span>`
+      : person.avatar
+        ? `<span class="category-face">${avatar(person.avatar, 28)}</span>`
+        : personAvatar(person, 28).replace('class="avatar', 'class="category-face avatar');
+    return `<span class="category-face-wrap" style="--face-index:${index}">${html}</span>`;
+  }).join('');
 }
 
 function categoryDioramaMarkup(key) {
