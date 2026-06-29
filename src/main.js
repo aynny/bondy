@@ -2732,12 +2732,12 @@ function networkGraph(nodes) {
 
 function mapCategoryItems() {
   return [
-    { key: 'family', filter: '家族', label: '家族', count: 12, iconName: 'users', color: '#F2554B', x: 36, y: 28, lineX: 48, lineY: 43 },
-    { key: 'local', filter: '地元', label: '地元', count: 23, iconName: 'mapPin', color: '#3DB85F', x: 67, y: 28, lineX: 59, lineY: 43 },
-    { key: 'school', filter: '大学', label: '学校', count: 28, iconName: 'grad', color: '#8A55FF', x: 75, y: 47, lineX: 66, lineY: 49 },
-    { key: 'business', filter: 'ビジネス', label: 'ビジネス', count: 16, iconName: 'brief', color: '#278FE8', x: 28, y: 59, lineX: 42, lineY: 56 },
-    { key: 'event', filter: 'イベント', label: 'イベント', count: 15, iconName: 'flag', color: '#F0A023', x: 67, y: 62, lineX: 61, lineY: 58 },
-    { key: 'heart', filter: '恋人', label: '♡', count: 9, iconName: 'heart', color: '#F25B9D', x: 49, y: 72, lineX: 52, lineY: 61 }
+    { key: 'family', filter: '家族', label: '家族', count: categoryCount('家族'), iconName: 'users', color: '#F2554B', x: 36, y: 28, lineX: 48, lineY: 43, orbitX: 5, orbitY: -4, orbitDelay: -0.2 },
+    { key: 'local', filter: '地元', label: '地元', count: categoryCount('地元'), iconName: 'mapPin', color: '#3DB85F', x: 67, y: 28, lineX: 59, lineY: 43, orbitX: -5, orbitY: 4, orbitDelay: -1.8 },
+    { key: 'school', filter: '大学', label: '学校', count: categoryCount('大学'), iconName: 'grad', color: '#8A55FF', x: 75, y: 47, lineX: 66, lineY: 49, orbitX: -4, orbitY: -5, orbitDelay: -3.4 },
+    { key: 'business', filter: 'ビジネス', label: 'ビジネス', count: categoryCount('ビジネス'), iconName: 'brief', color: '#278FE8', x: 28, y: 59, lineX: 42, lineY: 56, orbitX: 5, orbitY: 4, orbitDelay: -5 },
+    { key: 'event', filter: 'イベント', label: 'イベント', count: categoryCount('イベント'), iconName: 'flag', color: '#F0A023', x: 67, y: 62, lineX: 61, lineY: 58, orbitX: -5, orbitY: 3, orbitDelay: -6.6 },
+    { key: 'heart', filter: '恋人', label: '♡', count: categoryCount('恋人'), iconName: 'heart', color: '#F25B9D', x: 49, y: 72, lineX: 52, lineY: 61, orbitX: 4, orbitY: -4, orbitDelay: -8.2 }
   ];
 }
 
@@ -2747,7 +2747,7 @@ function categoryCount(filter) {
 
 function categoryIsland(item) {
   return `
-    <button class="category-island category-${item.key} ${state.filter === item.filter ? 'is-selected' : ''}" type="button" data-filter="${escapeHtml(item.filter)}" style="--x:${item.x}%;--y:${item.y}%;--cat-color:${item.color}">
+    <button class="category-island category-${item.key} ${state.filter === item.filter ? 'is-selected' : ''}" type="button" data-filter="${escapeHtml(item.filter)}" style="--x:${item.x}%;--y:${item.y}%;--cat-color:${item.color};--orbit-x:${item.orbitX || 0}px;--orbit-y:${item.orbitY || 0}px;--orbit-delay:${item.orbitDelay || 0}s">
       ${categoryLabelMarkup(item)}
       <span class="island-stage" aria-hidden="true">
         ${categoryDioramaMarkup(item.key)}
