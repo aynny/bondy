@@ -7376,6 +7376,360 @@ body {
   }
 }
 
+/* Final stacking and alignment pass for map action sheets */
+.map-screen .map-floating-buttons,
+.map-screen .category-detail-actions {
+  top: auto !important;
+  right: 12px !important;
+  bottom: 104px !important;
+  transform: none !important;
+  align-items: center !important;
+  justify-items: center !important;
+  gap: 10px !important;
+  z-index: 78 !important;
+}
+
+.map-screen .map-floating-buttons button {
+  display: grid !important;
+  place-items: center !important;
+  width: 46px !important;
+  height: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center !important;
+}
+
+.map-screen .map-floating-buttons button svg {
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+.map-screen .map-floating-buttons .primary-map-action {
+  width: 56px !important;
+  height: 56px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.map-screen .modal-sheet {
+  z-index: 140 !important;
+  bottom: max(96px, calc(env(safe-area-inset-bottom) + 82px)) !important;
+  max-height: calc(100svh - 128px) !important;
+  overflow: auto !important;
+}
+
+.map-screen .scrim {
+  z-index: 139 !important;
+}
+
+.map-screen .category-detail-actions {
+  bottom: 186px !important;
+}
+
+@media (max-height: 760px) {
+  .map-screen .category-detail-actions {
+    bottom: 172px !important;
+  }
+}
+
+/* Category detail map opened from a relationship card */
+.category-detail-header {
+  position: absolute;
+  top: 34px;
+  left: 22px;
+  right: 22px;
+  z-index: 74;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.category-detail-header h1 {
+  margin: 0;
+  color: #06101f;
+  font-size: clamp(23px, 6vw, 31px);
+  font-weight: 880;
+  letter-spacing: -.055em;
+  line-height: 1;
+}
+
+.category-detail-back,
+.category-detail-header .map-search-trigger {
+  display: grid !important;
+  place-items: center !important;
+  width: 42px !important;
+  height: 42px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  color: #06101f !important;
+  box-shadow: none !important;
+}
+
+.category-detail-map {
+  position: absolute;
+  inset: 112px 0 166px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--cat-color) 12%, transparent), transparent 24%),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.98), rgba(247,248,252,.72) 48%, rgba(255,255,255,0) 74%);
+}
+
+.detail-orbits,
+.detail-lines {
+  position: absolute;
+  inset: -12% -18%;
+  width: 136%;
+  height: 124%;
+  pointer-events: none;
+}
+
+.detail-orbits {
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 0 19%, rgba(214,223,238,.58) 19.25% 19.65%, transparent 19.9%),
+    radial-gradient(ellipse at 50% 50%, transparent 0 36%, rgba(214,223,238,.46) 36.25% 36.55%, transparent 36.8%),
+    radial-gradient(ellipse at 50% 50%, transparent 0 52%, rgba(214,223,238,.38) 52.25% 52.5%, transparent 52.75%);
+  filter: drop-shadow(0 0 14px rgba(255,255,255,.94));
+}
+
+.detail-lines line {
+  stroke: rgba(255,255,255,.9);
+  stroke-width: .62;
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--cat-color) 20%, transparent));
+}
+
+.detail-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  transform: translate(-50%, -50%);
+  color: #050b15;
+}
+
+.detail-center-avatar {
+  display: grid;
+  place-items: center;
+  width: 124px;
+  height: 124px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.82);
+  box-shadow:
+    0 0 0 3px rgba(255,255,255,.94),
+    0 0 22px rgba(255,255,255,.96),
+    0 0 42px color-mix(in srgb, var(--cat-color) 14%, transparent);
+}
+
+.detail-center b {
+  font-size: 28px;
+  font-weight: 890;
+  letter-spacing: -.06em;
+}
+
+.detail-center > span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.78);
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 780;
+  box-shadow: 0 10px 24px rgba(15,23,42,.06);
+}
+
+.detail-center > span:last-child i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--cat-color);
+}
+
+.category-detail-node {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  z-index: 4;
+  width: 122px;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #111827;
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.category-detail-node .avatar {
+  margin-bottom: 4px;
+  border: 4px solid rgba(255,255,255,.96);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--cat-color) 28%, rgba(255,255,255,.82)),
+    0 0 22px color-mix(in srgb, var(--cat-color) 18%, transparent),
+    0 12px 22px rgba(20,30,48,.12);
+}
+
+.category-detail-node b {
+  font-size: 14px;
+  font-weight: 850;
+  letter-spacing: -.04em;
+}
+
+.category-detail-node small,
+.category-detail-node em {
+  max-width: 118px;
+  overflow: hidden;
+  color: #5f6875;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 680;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-detail-more {
+  position: absolute;
+  right: 20px;
+  top: 46%;
+  color: #6b7280;
+  font-size: 18px;
+  font-weight: 820;
+  letter-spacing: -.04em;
+}
+
+.category-detail-switcher {
+  position: fixed;
+  left: 18px;
+  right: 18px;
+  bottom: 96px;
+  z-index: 70;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0;
+  min-height: 74px;
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,.82);
+  border-radius: 30px;
+  background: rgba(255,255,255,.88);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.94),
+    0 22px 48px rgba(21,29,43,.1);
+  backdrop-filter: blur(20px) saturate(1.08);
+  -webkit-backdrop-filter: blur(20px) saturate(1.08);
+}
+
+.category-detail-switcher button {
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  min-width: 0;
+  min-height: 58px;
+  border: 0;
+  border-left: 1px solid rgba(16,24,40,.08);
+  background: transparent;
+  color: #07111f;
+  font-weight: 820;
+}
+
+.category-detail-switcher button:first-child {
+  border-left: 0;
+}
+
+.category-detail-switcher button svg {
+  color: var(--cat-color, #89909c);
+  stroke-width: 2.05;
+}
+
+.category-detail-switcher button span {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-detail-switcher button b {
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: -.04em;
+}
+
+.category-detail-switcher button.active {
+  border-left-color: transparent;
+  border-radius: 24px;
+  background: rgba(243,245,250,.92);
+  color: #10243d;
+}
+
+.category-detail-actions {
+  z-index: 78 !important;
+}
+
+.map-screen .map-floating-buttons button,
+.map-screen .map-floating-buttons .primary-map-action {
+  align-items: center !important;
+  justify-items: center !important;
+  margin-left: 0 !important;
+  line-height: 1 !important;
+}
+
+.map-screen .map-floating-buttons button svg {
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+.map-screen .map-floating-buttons .primary-map-action {
+  transform: none !important;
+}
+
+.map-screen .modal-sheet {
+  z-index: 140 !important;
+  max-height: calc(100svh - 124px) !important;
+  overflow: auto !important;
+}
+
+.map-screen .scrim {
+  z-index: 139 !important;
+}
+
+@media (max-width: 390px) {
+  .category-detail-map {
+    top: 104px;
+    bottom: 164px;
+  }
+
+  .category-detail-node {
+    width: 104px;
+  }
+
+  .category-detail-node .avatar {
+    --size: 50px !important;
+  }
+
+  .category-detail-switcher {
+    left: 12px;
+    right: 12px;
+    bottom: 88px;
+    min-height: 68px;
+    padding: 7px;
+  }
+
+  .category-detail-switcher button span {
+    font-size: 10px;
+  }
+}
+
 /* Glass orbit refinement: polished center figure and transparent category objects */
 .diorama-center {
   z-index: 18 !important;
@@ -8574,4 +8928,50 @@ body {
     bottom: 4px !important;
     height: 72px !important;
   }
+}
+
+/* Final stacking and alignment pass for map action sheets */
+.map-screen .map-floating-buttons,
+.map-screen .category-detail-actions {
+  top: auto !important;
+  right: 12px !important;
+  bottom: 104px !important;
+  transform: none !important;
+  align-items: center !important;
+  justify-items: center !important;
+  gap: 10px !important;
+  z-index: 78 !important;
+}
+
+.map-screen .map-floating-buttons button {
+  display: grid !important;
+  place-items: center !important;
+  width: 46px !important;
+  height: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center !important;
+}
+
+.map-screen .map-floating-buttons button svg {
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+.map-screen .map-floating-buttons .primary-map-action {
+  width: 56px !important;
+  height: 56px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.map-screen .modal-sheet {
+  z-index: 140 !important;
+  bottom: max(96px, calc(env(safe-area-inset-bottom) + 82px)) !important;
+  max-height: calc(100svh - 128px) !important;
+  overflow: auto !important;
+}
+
+.map-screen .scrim {
+  z-index: 139 !important;
 }

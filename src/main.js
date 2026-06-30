@@ -31,6 +31,7 @@ const state = {
   connectionQuery: '',
   mapMode: 'マップ',
   filter: 'すべて',
+  mapCategoryDetail: '',
   mapFilterOpen: false,
   mapQuery: '',
   mapCenter: 'you',
@@ -239,7 +240,9 @@ const icons = {
   qr: '<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/>',
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   chevronRight: '<path d="m9 18 6-6-6-6"/>',
+  chevronLeft: '<path d="m15 18-6-6 6-6"/>',
   chevronDown: '<path d="m6 9 6 6 6-6"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
   insta: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/>',
   linkedin: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6Z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>',
   github: '<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.4 3.4 0 0 0-.9-2.6c3-.3 6.1-1.5 6.1-6.6a5.1 5.1 0 0 0-1.4-3.6 4.8 4.8 0 0 0-.1-3.6s-1.1-.3-3.7 1.4a12.8 12.8 0 0 0-6.7 0C6.7 1.4 5.6 1.7 5.6 1.7a4.8 4.8 0 0 0-.1 3.6A5.1 5.1 0 0 0 4.1 9c0 5.1 3.1 6.3 6.1 6.6a3.4 3.4 0 0 0-.9 2.6V22"/>',
@@ -2541,6 +2544,7 @@ function topHeader(title, extra = '') {
 }
 
 function mapScreen() {
+  if (state.mapCategoryDetail) return mapCategoryDetailScreen(state.mapCategoryDetail);
   const searchResults = mapSearchResults();
   return `
     <header class="map-lux-header">
@@ -2556,7 +2560,7 @@ function mapScreen() {
     <section class="map-search-shell ${state.mapSearchOpen || state.mapQuery.trim() ? 'has-query' : ''}">
         <label class="map-search-box">
           ${icon('search', 17)}
-          <input type="search" value="${escapeHtml(state.mapQuery)}" placeholder="名前・ID・プロフィールで検索" data-map-search autocomplete="off">
+          <input type="search" value="${escapeHtml(state.mapQuery)}" placeholder="名前・ID・会社・学校などを入力" data-map-search autocomplete="off">
         </label>
         ${mapSearchResultsMarkup(searchResults)}
     </section>
@@ -2694,6 +2698,99 @@ function mapSearchResultRow(person) {
   `;
 }
 
+function mapCategoryDetailScreen(filter) {
+  const item = mapCategoryItems().find((category) => category.filter === filter) || mapCategoryItems()[0];
+  const people = categoryPeople(filter);
+  const searchResults = mapSearchResults();
+  const count = displayCategoryCount(filter, item.fallbackCount);
+  return `
+    <header class="category-detail-header">
+      <button class="category-detail-back" type="button" data-action="back-map-overview" aria-label="戻る">${icon('chevronLeft', 34)}</button>
+      <h1>${escapeHtml(item.label)}のつながり</h1>
+      <div class="map-lux-actions">
+        <button class="map-search-trigger" type="button" data-action="toggle-map-search" aria-label="検索">${icon('search', 34)}</button>
+        ${profileAvatar(46)}
+      </div>
+    </header>
+    <section class="map-search-shell ${state.mapSearchOpen || state.mapQuery.trim() ? 'has-query' : ''}">
+      <label class="map-search-box">
+        ${icon('search', 17)}
+        <input type="search" value="${escapeHtml(state.mapQuery)}" placeholder="名前・ID・会社・学校などを入力" data-map-search autocomplete="off">
+      </label>
+      ${mapSearchResultsMarkup(searchResults)}
+    </section>
+    <section class="category-detail-map" style="--cat-color:${item.color}">
+      <div class="detail-orbits" aria-hidden="true"></div>
+      <svg class="detail-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        ${categoryDetailNodes(people, item).map((node) => `<line x1="50" y1="50" x2="${node.x}" y2="${node.y}" />`).join('')}
+      </svg>
+      <div class="detail-center">
+        <span class="detail-center-avatar">${profileAvatar(112)}</span>
+        <b>あなた</b>
+        <span><i></i>${escapeHtml(item.label)}のつながり ${count}人</span>
+      </div>
+      ${categoryDetailNodes(people, item).map(categoryDetailNode).join('')}
+      ${categoryMoreNodes(people, item)}
+    </section>
+    <div class="map-floating-buttons category-detail-actions">
+      <button type="button" data-action="scan-qr" aria-label="QR交換">${icon('qr', 23)}<span>QR交換</span></button>
+      <button class="primary-map-action" type="button" data-action="add" aria-label="追加">${icon('plus', 31)}</button>
+      <button type="button" data-action="open-add-menu" aria-label="招待">${icon('userPlus', 23)}<span>招待</span></button>
+      <button type="button" data-action="share-profile" aria-label="名刺交換">${icon('document', 23)}<span>名刺交換</span></button>
+    </div>
+    <nav class="category-detail-switcher">
+      ${mapCategoryItems().map((category) => {
+        const active = category.filter === filter;
+        const categoryCountValue = displayCategoryCount(category.filter, category.fallbackCount);
+        return `<button class="${active ? 'active' : ''}" type="button" data-map-category-detail="${escapeHtml(category.filter)}" style="--cat-color:${category.color}">${icon(category.iconName, 24)}<span>${escapeHtml(category.label)}</span><b>${categoryCountValue}人</b></button>`;
+      }).join('')}
+      <button type="button" data-action="back-map-overview">${icon('grid', 24)}<span>すべて</span></button>
+    </nav>
+  `;
+}
+
+function categoryPeople(filter) {
+  return connectionRowsData().filter((person) => person.tag === filter);
+}
+
+function categoryDetailNodes(people, item) {
+  const fallback = [
+    { name: '田中 莉子', desc: '株式会社LayerX', companyRole: 'プロダクトマネージャー', avatar: 'woman1' },
+    { name: '佐藤 大輔', desc: 'Salesforce Japan', companyRole: 'ソリューションエンジニア', avatar: 'man1' },
+    { name: '山本 彩', desc: 'Google Japan', companyRole: 'マーケティング', avatar: 'woman2' },
+    { name: '鈴木 健太', desc: '株式会社SmartHR', companyRole: 'カスタマーサクセス', avatar: 'man2' },
+    { name: '中村 優太', desc: '株式会社リクルート', companyRole: '法人営業', avatar: 'man1' },
+    { name: '伊藤 美咲', desc: '株式会社メルカリ', companyRole: 'データアナリスト', avatar: 'woman1' }
+  ].map((person) => ({ ...person, tag: item.filter }));
+  const source = people.length ? people : fallback;
+  const positions = [
+    [50, 21], [74, 34], [72, 62], [50, 78], [28, 62], [26, 34]
+  ];
+  return source.slice(0, 6).map((person, index) => ({
+    ...person,
+    x: positions[index]?.[0] || 50,
+    y: positions[index]?.[1] || 50,
+    color: item.color
+  }));
+}
+
+function categoryDetailNode(person) {
+  return `
+    <button class="category-detail-node" type="button" data-person-id="${escapeHtml(person.id || person.name)}" style="--x:${person.x}%;--y:${person.y}%;--cat-color:${person.color}">
+      ${personAvatar(person, 58)}
+      <b>${escapeHtml(person.name || person.handle || 'ユーザー')}</b>
+      <small>${escapeHtml(person.desc || person.company || '')}</small>
+      <em>${escapeHtml(person.companyRole || person.companyName || relationshipLabel(person.tag))}</em>
+    </button>
+  `;
+}
+
+function categoryMoreNodes(people, item) {
+  const remaining = Math.max(0, displayCategoryCount(item.filter, item.fallbackCount) - 6);
+  if (!remaining) return '';
+  return `<span class="category-detail-more" style="--cat-color:${item.color}">+${remaining}人</span>`;
+}
+
 function mapNodeData() {
   const positions = [
     [50, 18], [74, 30], [80, 58], [68, 78], [50, 84], [30, 78],
@@ -2761,7 +2858,7 @@ function mapTotalCount() {
 function categoryIsland(item) {
   const count = displayCategoryCount(item.filter, item.fallbackCount);
   return `
-    <button class="category-island category-${item.key} ${state.filter === item.filter ? 'is-selected' : ''}" type="button" data-filter="${escapeHtml(item.filter)}" style="--x:${item.x}%;--y:${item.y}%;--cat-color:${item.color}">
+    <button class="category-island category-${item.key} ${state.filter === item.filter ? 'is-selected' : ''}" type="button" data-map-category-detail="${escapeHtml(item.filter)}" style="--x:${item.x}%;--y:${item.y}%;--cat-color:${item.color}">
       <span class="category-card-glow" aria-hidden="true"></span>
       <span class="category-card">
         <span class="category-card-main">
@@ -3541,6 +3638,7 @@ app.addEventListener('click', async (event) => {
   const tab = event.target.closest('[data-tab]')?.dataset.tab;
   const connectionFilter = event.target.closest('[data-connection-filter]')?.dataset.connectionFilter;
   const mode = event.target.closest('[data-mode]')?.dataset.mode;
+  const mapCategoryDetail = event.target.closest('[data-map-category-detail]')?.dataset.mapCategoryDetail;
   const filter = event.target.closest('[data-filter]')?.dataset.filter;
   const visibilityToggle = event.target.closest('[data-visibility-toggle]')?.dataset.visibilityToggle;
   const careerVisibility = event.target.closest('[data-career-visibility]')?.dataset.careerVisibility;
@@ -3624,6 +3722,7 @@ app.addEventListener('click', async (event) => {
     return;
   }
   if (nav) {
+    state.mapCategoryDetail = '';
     go(nav);
     if (nav === 'intro') await loadIncomingRequests({ silent: true });
     if (nav === 'connections' || nav === 'map' || nav === 'profile') await loadAcceptedConnections({ silent: true });
@@ -3640,6 +3739,16 @@ app.addEventListener('click', async (event) => {
   if (connectionFilter) {
     state.connectionFilter = connectionFilter;
     render();
+    return;
+  }
+  if (mapCategoryDetail) {
+    state.mapCategoryDetail = mapCategoryDetail;
+    state.filter = mapCategoryDetail;
+    state.mapSearchOpen = false;
+    state.mapQuery = '';
+    state.overlay = null;
+    render();
+    warmMapSearchConnections().then(() => state.screen === 'map' && render());
     return;
   }
   if (mode) {
@@ -3774,6 +3883,14 @@ app.addEventListener('click', async (event) => {
   if (action === 'filter' && state.screen === 'map') {
     state.mapFilterOpen = !state.mapFilterOpen;
     state.overlay = null;
+    render();
+    return;
+  }
+  if (action === 'back-map-overview') {
+    state.mapCategoryDetail = '';
+    state.filter = 'すべて';
+    state.mapSearchOpen = false;
+    state.mapQuery = '';
     render();
     return;
   }
