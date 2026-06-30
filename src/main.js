@@ -2565,7 +2565,6 @@ function mapScreen() {
     </section>
     <div class="map-floating-buttons">
       <button type="button" data-action="scan-qr" aria-label="QR交換">${icon('qr', 23)}<span>QR交換</span></button>
-      <button type="button" data-action="toggle-map-search" aria-label="検索">${icon('search', 24)}<span>検索</span></button>
       <button class="primary-map-action" type="button" data-action="add" aria-label="追加">${icon('plus', 31)}</button>
       <button type="button" data-action="open-add-menu" aria-label="招待">${icon('userPlus', 23)}<span>招待</span></button>
       <button type="button" data-action="share-profile" aria-label="名刺交換">${icon('document', 23)}<span>名刺交換</span></button>
