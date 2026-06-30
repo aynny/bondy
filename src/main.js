@@ -4417,6 +4417,7 @@ app.addEventListener('pointercancel', clearCropPointer);
 app.addEventListener('pointerdown', (event) => {
   const workspace = event.target.closest('[data-map-workspace]');
   if (!workspace || state.screen !== 'map') return;
+  if (event.target.closest('[data-map-category-detail], .category-island, .category-detail-switcher, .map-floating-buttons, .map-search-shell, .bottom-nav')) return;
   event.preventDefault();
   event.stopPropagation();
   const nodeButton = event.target.closest('[data-map-node]');
