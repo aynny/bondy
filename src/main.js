@@ -3781,6 +3781,9 @@ app.addEventListener('click', async (event) => {
     state.mapSearchOpen = !state.mapSearchOpen;
     render();
     if (state.mapSearchOpen) {
+      warmMapSearchConnections().then(() => {
+        if (state.screen === 'map' && (state.mapSearchOpen || state.mapQuery.trim())) render();
+      });
       requestAnimationFrame(() => document.querySelector('[data-map-search]')?.focus());
     }
     return;
