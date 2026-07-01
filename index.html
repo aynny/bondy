@@ -2,13 +2,22 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Bondy</title>
-    <link rel="stylesheet" href="./src/styles.css?v=136" />
   </head>
   <body>
     <div id="root"></div>
-    <script src="./src/config.js?v=136"></script>
-    <script type="module" src="./src/main.js?v=136"></script>
+    <script type="module">
+      const isDevServer = ['localhost', '127.0.0.1', '0.0.0.0'].includes(location.hostname) && location.port;
+      if (isDevServer) {
+        import('/src/main.tsx');
+      } else {
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = './dist/assets/index.css';
+        document.head.appendChild(css);
+        import('./dist/assets/' + 'main.js');
+      }
+    </script>
   </body>
 </html>
