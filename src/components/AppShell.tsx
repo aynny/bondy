@@ -3,7 +3,7 @@ import { Page, AppActions } from '../App';
 import { currentUser } from '../data/people';
 
 const pageTitles: Partial<Record<Page, string>> = {
-  ranking: 'つながりランキング',
+  ranking: 'つながり',
   detail: 'つながり詳細',
   meeting: '会った記録',
   score: 'スコア内訳',
