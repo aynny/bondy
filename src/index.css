@@ -1730,6 +1730,13 @@ button {
   letter-spacing: -0.03em;
 }
 
+.sns-register-card strong.registered {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #19a66b;
+}
+
 .sns-register-card span {
   width: 100%;
   display: grid;
@@ -1747,16 +1754,117 @@ button {
   font-size: 11px;
   font-weight: 950;
   font-style: normal;
+  background: #f4f5f7;
+  color: #8a92a0;
 }
 
-.sns-register-card b {
+.sns-register-card b.active,
+.sns-register-card i.active {
   color: #fff;
   background: #05080f;
 }
 
-.sns-register-card i {
-  color: #8a92a0;
-  background: #f4f5f7;
+.sns-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 160;
+  display: grid;
+  place-items: end center;
+  padding: 18px;
+  background: rgba(8, 12, 20, 0.2);
+  backdrop-filter: blur(18px);
+}
+
+.sns-editor-sheet {
+  width: min(430px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 28px 72px rgba(8, 14, 24, 0.22), inset 0 0 0 1px rgba(12, 29, 51, 0.08);
+}
+
+.sns-editor-sheet header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sns-editor-sheet header div {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.sns-editor-sheet header img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.sns-editor-sheet header h2 {
+  margin: 0;
+  color: #05080f;
+  font-size: 20px;
+  font-weight: 950;
+  letter-spacing: -0.05em;
+}
+
+.sns-editor-sheet header button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border-radius: 999px;
+  background: #f3f4f6;
+}
+
+.sns-editor-sheet > input {
+  width: 100%;
+  min-height: 54px;
+  border: 0;
+  outline: 0;
+  border-radius: 18px;
+  padding: 0 15px;
+  background: #f7f8fa;
+  color: #08111f;
+  font-size: 15px;
+  font-weight: 850;
+  box-shadow: inset 0 0 0 1px rgba(12, 29, 51, 0.08);
+}
+
+.sns-editor-privacy {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sns-editor-privacy button,
+.sns-save-button {
+  min-height: 46px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.sns-editor-privacy button {
+  color: #747b86;
+  background: #f5f6f8;
+}
+
+.sns-editor-privacy button.active,
+.sns-save-button {
+  color: #fff;
+  background: #05080f;
+}
+
+.sns-save-button {
+  min-height: 54px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.16);
 }
 
 .sns-feed {
@@ -2063,6 +2171,8 @@ button {
   color: #111827;
   font-style: normal;
   font-size: 28px;
+  padding: 16px;
+  box-sizing: border-box;
   box-shadow: 0 15px 30px rgba(17, 30, 49, 0.08), inset 0 0 0 1px rgba(14, 20, 31, 0.04);
 }
 
@@ -2274,17 +2384,33 @@ button {
 
 .profile-edit-title {
   display: grid;
-  grid-template-columns: 34px 1fr;
+  grid-template-columns: 34px 1fr auto;
   gap: 12px;
   align-items: start;
   padding: 4px 0 4px;
 }
 
-.profile-edit-title button {
+.profile-edit-title > button:first-child {
   width: 34px;
   height: 34px;
   display: grid;
   place-items: center;
+}
+
+.profile-edit-save-top {
+  min-width: 74px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: #fff;
+  background: #05080f;
+  font-size: 12px;
+  font-weight: 950;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.14);
 }
 
 .profile-edit-title h1 {
@@ -2493,6 +2619,68 @@ button {
   font-weight: 950;
 }
 
+.company-picker-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  background: #f7f8fb;
+  box-shadow: inset 0 0 0 1px rgba(15, 24, 38, 0.06);
+}
+
+.company-picker-panel label {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(15, 24, 38, 0.06);
+}
+
+.company-picker-panel label input {
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 14px;
+}
+
+.company-picker-panel > div {
+  max-height: 264px;
+  overflow: auto;
+  display: grid;
+  gap: 6px;
+  padding-right: 2px;
+}
+
+.company-picker-panel > div > button {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 6px 10px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.82);
+  text-align: left;
+  color: #101722;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.company-picker-panel .edit-company-logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+}
+
+.company-picker-panel .edit-company-logo img {
+  width: 30px;
+  height: 30px;
+}
+
 .period-grid {
   display: grid;
   grid-template-columns: 48px 1fr 1fr;
@@ -2575,55 +2763,95 @@ button {
   font-weight: 780;
 }
 
+.profile-edit-save-bottom {
+  min-height: 58px;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, #111, #050505);
+  font-size: 16px;
+  font-weight: 950;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.18);
+}
+
 @media (max-width: 520px) {
   .bond-detail-screen {
-    padding: 12px 18px 116px;
+    padding: 12px 16px 116px;
   }
 
   .bond-detail-hero {
-    grid-template-columns: 104px 1fr;
-    gap: 16px;
+    grid-template-columns: 96px minmax(0, 1fr) 78px;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 24px;
   }
 
   .bond-detail-avatar {
-    width: 104px;
-    height: 104px;
+    width: 96px;
+    height: 96px;
   }
 
   .bond-score-ring {
-    grid-column: 2;
+    grid-column: auto;
     justify-self: end;
-    width: 94px;
-    height: 94px;
-    margin-top: -82px;
-    border-width: 4px;
+    width: 76px;
+    height: 76px;
+    margin-top: 0;
+    border-width: 3px;
+    box-shadow: inset 0 0 0 5px rgba(255, 255, 255, 0.78);
   }
 
   .bond-score-ring strong {
-    font-size: 34px;
+    font-size: 28px;
   }
 
   .bond-score-ring span {
-    font-size: 11px;
+    margin-top: 4px;
+    font-size: 10px;
+  }
+
+  .bond-detail-copy p {
+    margin-bottom: 7px;
+    font-size: 12px;
   }
 
   .bond-detail-copy h2 {
-    font-size: 24px;
+    margin-bottom: 7px;
+    font-size: 22px;
   }
 
   .bond-detail-copy > span {
-    font-size: 13px;
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .bond-detail-tags {
+    gap: 6px;
+    margin-top: 9px;
+  }
+
+  .bond-detail-tags b {
+    min-height: 25px;
+    gap: 5px;
+    padding: 0 8px;
+    font-size: 10px;
   }
 
   .bond-detail-actions {
-    gap: 12px;
+    gap: 9px;
     padding: 0;
   }
 
   .bond-detail-actions button > svg,
   .bond-detail-actions button > i {
-    width: 50px;
-    height: 50px;
+    width: 48px;
+    height: 48px;
+    padding: 13px;
+  }
+
+  .bond-detail-actions button {
+    font-size: 12px;
+    gap: 8px;
   }
 
   .bond-score-card {

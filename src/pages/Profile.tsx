@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Briefcase, Calendar, ChevronDown, ChevronLeft, GraduationCap, MapPin, MoreHorizontal, Plus, QrCode, X } from 'lucide-react';
+import { Briefcase, Calendar, ChevronDown, ChevronLeft, GraduationCap, MapPin, MoreHorizontal, Plus, QrCode, Save, Search, X } from 'lucide-react';
 import { AppActions } from '../App';
 import { currentUser } from '../data/people';
 
@@ -13,7 +13,31 @@ const companyDomains: Record<string, string> = {
   'Fast Retailing': 'fastretailing.com',
   Apple: 'apple.com',
   Google: 'google.com',
+  Amazon: 'amazon.com',
+  Meta: 'meta.com',
+  Mercari: 'mercari.com',
+  SmartHR: 'smarthr.co.jp',
+  LayerX: 'layerx.co.jp',
+  Salesforce: 'salesforce.com',
+  CyberAgent: 'cyberagent.co.jp',
+  Recruit: 'recruit.co.jp',
+  Rakuten: 'rakuten.co.jp',
+  Sony: 'sony.com',
+  Nintendo: 'nintendo.com',
+  Toyota: 'toyota-global.com',
+  Honda: 'honda.com',
+  Panasonic: 'panasonic.com',
 };
+
+const featuredCompanies = [
+  'Microsoft', 'Apple', 'Google', 'Amazon', 'Meta', 'Tesla', 'Dior', 'Fast Retailing', 'Mercari', 'SmartHR',
+  'LayerX', 'Salesforce', 'CyberAgent', 'Recruit', 'Rakuten', 'Sony', 'Nintendo', 'Toyota', 'Honda', 'Panasonic',
+];
+
+const companyOptions = [
+  ...featuredCompanies,
+  ...Array.from({ length: 3980 }, (_, index) => `企業 ${String(index + 1).padStart(4, '0')}`),
+];
 
 type ProfileForm = {
   name: string;
@@ -44,7 +68,13 @@ const careers: Career[] = [
 
 function logoUrl(company: string) {
   const domain = companyDomains[company] || '';
-  if (!domain) return '';
+  if (!domain) {
+    const name = company.trim();
+    if (!name) return '';
+    const url = `https://img.logo.dev/name/${encodeURIComponent(name)}?token=${LOGO_DEV_TOKEN}&size=256&format=png&fallback=404&v=141`;
+    console.log('logo debug', company, '', url);
+    return url;
+  }
   const url = `https://img.logo.dev/${domain}?token=${LOGO_DEV_TOKEN}&size=256&format=png&fallback=404&v=140`;
   console.log('logo debug', company, domain, url);
   return url;
@@ -74,6 +104,9 @@ function VisibilityToggle() {
 
 export function Profile({ actions }: { actions: AppActions }) {
   const [editing, setEditing] = useState(false);
+  const [companyQuery, setCompanyQuery] = useState('');
+  const [companyPickerOpen, setCompanyPickerOpen] = useState(false);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [form, setForm] = useState<ProfileForm>({
     name: currentUser.name,
     handle: currentUser.handle.replace('@', ''),
@@ -89,7 +122,23 @@ export function Profile({ actions }: { actions: AppActions }) {
   });
 
   const update = (key: keyof ProfileForm, value: string) => {
+    setSaveState('idle');
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const companyMatches = companyOptions
+    .filter((company) => company.toLowerCase().includes(companyQuery.trim().toLowerCase()))
+    .slice(0, 36);
+
+  const chooseCompany = (company: string) => {
+    update('currentCompany', company);
+    setCompanyQuery('');
+    setCompanyPickerOpen(false);
+  };
+
+  const saveProfile = () => {
+    setSaveState('saving');
+    window.setTimeout(() => setSaveState('saved'), 520);
   };
 
   const info = [
@@ -108,6 +157,9 @@ export function Profile({ actions }: { actions: AppActions }) {
             <h1>プロフィール編集</h1>
             <p>登録時と同じ項目をまとめて編集できます。</p>
           </div>
+          <button className="profile-edit-save-top" onClick={saveProfile}>
+            <Save size={15} />{saveState === 'saving' ? '保存中' : saveState === 'saved' ? '保存済み' : '保存'}
+          </button>
         </header>
 
         <section className="edit-section-card">
@@ -157,8 +209,23 @@ export function Profile({ actions }: { actions: AppActions }) {
             <input value={form.currentRole} onChange={(event) => update('currentRole', event.target.value)} placeholder="職種・役割 例: Solution Engineer" />
             <div className="company-input-row">
               <CompanyLogo company={form.currentCompany} />
-              <button>{form.currentCompany || '企業を選択または入力'}<ChevronDown size={18} /></button>
+              <button onClick={() => setCompanyPickerOpen((prev) => !prev)}>
+                {form.currentCompany || '企業を選択または入力'}<ChevronDown size={18} />
+              </button>
             </div>
+            {companyPickerOpen && (
+              <div className="company-picker-panel">
+                <label><Search size={17} /><input value={companyQuery} onChange={(event) => setCompanyQuery(event.target.value)} placeholder="企業名を検索（約4,000社）" /></label>
+                <div>
+                  {companyMatches.map((company) => (
+                    <button key={company} onClick={() => chooseCompany(company)}>
+                      <CompanyLogo company={company} />
+                      <span>{company}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="period-grid">
               <span>開始</span>
               <select value={form.currentYear} onChange={(event) => update('currentYear', event.target.value)}>
@@ -197,6 +264,10 @@ export function Profile({ actions }: { actions: AppActions }) {
             ))}
           </div>
         </section>
+
+        <button className="profile-edit-save-bottom" onClick={saveProfile}>
+          {saveState === 'saving' ? '保存中...' : saveState === 'saved' ? '保存しました' : 'プロフィールを保存'}
+        </button>
       </div>
     );
   }
@@ -220,7 +291,7 @@ export function Profile({ actions }: { actions: AppActions }) {
           <button onClick={() => actions.go('qr')}>プロフィールを共有</button>
         </div>
         <div className="profile-stats">
-          <span><b>128</b>繋がり</span>
+          <span><b>128</b>つながり</span>
           <span><b>43</b>あった回数</span>
           <span><b>12</b>所属グループ</span>
         </div>
