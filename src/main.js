@@ -33,6 +33,7 @@ const state = {
   filter: 'すべて',
   mapCategoryDetail: '',
   mapFilterOpen: false,
+  mapActionsOpen: false,
   mapQuery: '',
   mapCenter: 'you',
   zoom: 1,
@@ -2551,6 +2552,7 @@ function mapScreen() {
       <h1>Bondy</h1>
       <div class="map-lux-actions">
         <button class="map-search-trigger" type="button" data-action="toggle-map-search" aria-label="検索">${icon('search', 34)}</button>
+        <button class="map-top-plus" type="button" data-action="toggle-map-actions" aria-label="追加">${icon('plus', 31)}</button>
         ${profileAvatar(46)}
       </div>
     </header>
@@ -2567,12 +2569,7 @@ function mapScreen() {
     <section class="map-interactive-panel">
       ${networkGraph([])}
     </section>
-    <div class="map-floating-buttons">
-      <button type="button" data-action="scan-qr" aria-label="QR交換">${icon('qr', 23)}<span>QR交換</span></button>
-      <button class="primary-map-action" type="button" data-action="add" aria-label="追加">${icon('plus', 31)}</button>
-      <button type="button" data-action="open-add-menu" aria-label="招待">${icon('userPlus', 23)}<span>招待</span></button>
-      <button type="button" data-action="share-profile" aria-label="名刺交換">${icon('document', 23)}<span>名刺交換</span></button>
-    </div>
+    ${mapActionMenu()}
   `;
 }
 
@@ -2709,6 +2706,7 @@ function mapCategoryDetailScreen(filter) {
       <h1>${escapeHtml(item.label)}のつながり</h1>
       <div class="map-lux-actions">
         <button class="map-search-trigger" type="button" data-action="toggle-map-search" aria-label="検索">${icon('search', 34)}</button>
+        <button class="map-top-plus" type="button" data-action="toggle-map-actions" aria-label="追加">${icon('plus', 31)}</button>
         ${profileAvatar(46)}
       </div>
     </header>
@@ -2732,20 +2730,17 @@ function mapCategoryDetailScreen(filter) {
       ${categoryDetailNodes(people, item).map(categoryDetailNode).join('')}
       ${categoryMoreNodes(people, item)}
     </section>
-    <div class="map-floating-buttons category-detail-actions">
-      <button type="button" data-action="scan-qr" aria-label="QR交換">${icon('qr', 23)}<span>QR交換</span></button>
-      <button class="primary-map-action" type="button" data-action="add" aria-label="追加">${icon('plus', 31)}</button>
-      <button type="button" data-action="open-add-menu" aria-label="招待">${icon('userPlus', 23)}<span>招待</span></button>
-      <button type="button" data-action="share-profile" aria-label="名刺交換">${icon('document', 23)}<span>名刺交換</span></button>
+    ${mapActionMenu('category-detail-actions')}
+  `;
+}
+
+function mapActionMenu(extraClass = '') {
+  return `
+    <div class="map-action-popover ${extraClass} ${state.mapActionsOpen ? 'open' : ''}" aria-hidden="${state.mapActionsOpen ? 'false' : 'true'}">
+      <button type="button" data-action="scan-qr" aria-label="QR交換">${icon('qr', 22)}<span>QR交換</span></button>
+      <button type="button" data-action="open-add-menu" aria-label="招待">${icon('userPlus', 22)}<span>招待</span></button>
+      <button type="button" data-action="share-profile" aria-label="名刺交換">${icon('document', 22)}<span>名刺交換</span></button>
     </div>
-    <nav class="category-detail-switcher">
-      ${mapCategoryItems().map((category) => {
-        const active = category.filter === filter;
-        const categoryCountValue = displayCategoryCount(category.filter, category.fallbackCount);
-        return `<button class="${active ? 'active' : ''}" type="button" data-map-category-detail="${escapeHtml(category.filter)}" style="--cat-color:${category.color}">${icon(category.iconName, 24)}<span>${escapeHtml(category.label)}</span><b>${categoryCountValue}人</b></button>`;
-      }).join('')}
-      <button type="button" data-action="back-map-overview">${icon('grid', 24)}<span>すべて</span></button>
-    </nav>
   `;
 }
 
@@ -2764,7 +2759,7 @@ function categoryDetailNodes(people, item) {
   ].map((person) => ({ ...person, tag: item.filter }));
   const source = people.length ? people : fallback;
   const positions = [
-    [50, 21], [74, 34], [72, 62], [50, 78], [28, 62], [26, 34]
+    [50, 18], [76, 35], [76, 65], [50, 82], [24, 65], [24, 35]
   ];
   return source.slice(0, 6).map((person, index) => ({
     ...person,
@@ -3723,6 +3718,7 @@ app.addEventListener('click', async (event) => {
   }
   if (nav) {
     state.mapCategoryDetail = '';
+    state.mapActionsOpen = false;
     go(nav);
     if (nav === 'intro') await loadIncomingRequests({ silent: true });
     if (nav === 'connections' || nav === 'map' || nav === 'profile') await loadAcceptedConnections({ silent: true });
@@ -3746,6 +3742,7 @@ app.addEventListener('click', async (event) => {
     state.filter = mapCategoryDetail;
     state.mapSearchOpen = false;
     state.mapQuery = '';
+    state.mapActionsOpen = false;
     state.overlay = null;
     render();
     warmMapSearchConnections().then(() => state.screen === 'map' && render());
@@ -3761,6 +3758,7 @@ app.addEventListener('click', async (event) => {
     state.filter = filter;
     state.overlay = null;
     state.mapFilterOpen = false;
+    state.mapActionsOpen = false;
     showToast(`${mapFilterLabel(filter)}で絞り込みました`);
     render();
     return;
@@ -3891,11 +3889,13 @@ app.addEventListener('click', async (event) => {
     state.filter = 'すべて';
     state.mapSearchOpen = false;
     state.mapQuery = '';
+    state.mapActionsOpen = false;
     render();
     return;
   }
   if (action === 'toggle-map-search') {
     state.mapSearchOpen = !state.mapSearchOpen;
+    state.mapActionsOpen = false;
     render();
     if (state.mapSearchOpen) {
       warmMapSearchConnections().then(() => {
@@ -3904,6 +3904,16 @@ app.addEventListener('click', async (event) => {
       requestAnimationFrame(() => document.querySelector('[data-map-search]')?.focus());
     }
     return;
+  }
+  if (action === 'toggle-map-actions') {
+    state.mapActionsOpen = !state.mapActionsOpen;
+    state.mapSearchOpen = false;
+    render();
+    return;
+  }
+  if (action === 'open-add-menu') {
+    state.mapActionsOpen = false;
+    return openOverlay('add');
   }
   if (action === 'notifications') {
     await loadRemovalNotifications({ silent: true });
@@ -3925,8 +3935,14 @@ app.addEventListener('click', async (event) => {
     state.overlay = null;
     return go('register', '最初から登録できます');
   }
-  if (['search', 'filter', 'add', 'display', 'share-profile', 'help-support', 'terms', 'privacy-policy', 'account-security', 'manage-connections', 'profile-visibility', 'privacy-settings', 'version-info'].includes(action)) return openOverlay(action);
-  if (action === 'scan-qr') return startQrScanner();
+  if (['search', 'filter', 'add', 'display', 'share-profile', 'help-support', 'terms', 'privacy-policy', 'account-security', 'manage-connections', 'profile-visibility', 'privacy-settings', 'version-info'].includes(action)) {
+    state.mapActionsOpen = false;
+    return openOverlay(action);
+  }
+  if (action === 'scan-qr') {
+    state.mapActionsOpen = false;
+    return startQrScanner();
+  }
   if (action === 'send-request') {
     const sendButton = event.target.closest('[data-action]');
     const targetId = event.target.closest('[data-target-id]')?.dataset.targetId;
@@ -4417,7 +4433,7 @@ app.addEventListener('pointercancel', clearCropPointer);
 app.addEventListener('pointerdown', (event) => {
   const workspace = event.target.closest('[data-map-workspace]');
   if (!workspace || state.screen !== 'map') return;
-  if (event.target.closest('[data-map-category-detail], .category-island, .category-detail-switcher, .map-floating-buttons, .map-search-shell, .bottom-nav')) return;
+  if (event.target.closest('[data-map-category-detail], .category-island, .category-detail-switcher, .map-floating-buttons, .map-action-popover, .map-search-shell, .bottom-nav')) return;
   event.preventDefault();
   event.stopPropagation();
   const nodeButton = event.target.closest('[data-map-node]');
