@@ -27,7 +27,7 @@ export function AppShell({ children, page, actions }: {
   actions: AppActions;
 }) {
   const isHome = page === 'home';
-  const hideHeader = page === 'ranking' || page === 'sns' || page === 'profile';
+  const hideHeader = page === 'ranking' || page === 'sns' || page === 'profile' || page === 'detail';
 
   return (
     <div className="min-h-screen bg-shell text-ink">

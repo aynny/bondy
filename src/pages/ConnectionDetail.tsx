@@ -1,38 +1,81 @@
-import { Bell, HeartHandshake, Link2, Network, NotebookPen } from 'lucide-react';
+import { Bell, BriefcaseBusiness, CalendarCheck2, ChevronLeft, Info, Instagram, MessageCircle, MoreHorizontal, Share2, UsersRound } from 'lucide-react';
 import { AppActions } from '../App';
 import { Person } from '../data/people';
 
+const historyItems = [
+  { date: '2024.07.02', time: '19:30', title: '名古屋駅 カフェ', color: '#ff5470', image: '/assets/map-final/local.png' },
+  { date: '2024.06.10', time: '13:15', title: '恵比寿 第３オフィスにて', color: '#ff8d4a', image: '/assets/map-final/business.png' },
+  { date: '2024.05.20', time: '18:45', title: '渋谷 イベント', color: '#ffbd45', image: '/assets/map-final/event.png' },
+  { date: '2024.04.15', time: '12:00', title: '新宿 ランチ', color: '#58cc87', image: '/assets/map-final/family.png' },
+  { date: '2024.03.01', time: '17:20', title: 'オンラインMTG', color: '#7a86ff', image: '/assets/map-final/school.png' },
+];
+
 export function ConnectionDetail({ person, actions }: { person: Person; actions: AppActions }) {
   return (
-    <div className="detail-page">
-      <section className="profile-hero">
-        <img src={person.avatar} alt={person.name} />
-        <div>
-          <h1>{person.name}</h1>
-          <p>{person.company} / {person.title}</p>
-          <small>{person.handle}</small>
-        </div>
-        <strong>{person.score}<span>とても強い</span></strong>
-      </section>
-      <div className="detail-action-grid">
-        <button onClick={() => actions.go('memo', person.id)}><NotebookPen size={17} />メモ</button>
-        <button onClick={() => actions.go('reminder', person.id)}><Bell size={17} />リマインド</button>
-        <button onClick={() => actions.go('sns', person.id)}><Link2 size={17} />SNS</button>
-        <button onClick={() => actions.go('common', person.id)}><Network size={17} />共通</button>
-      </div>
-      <section className="screen-card connection-history-card">
-        <h2>つながりの履歴</h2>
-        <div className="history-timeline">
-          {['名古屋駅 カフェで会った', '展示会ブースで再会', 'オンラインMTG', '紹介イベント'].map((item, index) => (
-          <div className="timeline-row refined" key={item}>
-            <span />
-            <p>{item}<small>2026.07.{String(index + 2).padStart(2, '0')} 19:30</small></p>
+    <div className="bond-detail-screen">
+      <header className="bond-detail-header">
+        <button onClick={actions.back} aria-label="戻る"><ChevronLeft size={28} /></button>
+        <h1>つながりの詳細</h1>
+        <button aria-label="その他"><MoreHorizontal size={27} /></button>
+      </header>
+
+      <section className="bond-detail-hero">
+        <img className="bond-detail-avatar" src={person.avatar} alt={person.name} />
+        <div className="bond-detail-copy">
+          <p>つながって1年2ヶ月</p>
+          <h2>{person.name}</h2>
+          <span>{person.company}　{person.title}</span>
+          <span>{person.location}</span>
+          <div className="bond-detail-tags">
+            <b><BriefcaseBusiness size={14} />ビジネス</b>
+            <b><UsersRound size={14} />大学の同級生</b>
           </div>
+        </div>
+        <div className="bond-score-ring">
+          <strong>{person.score}</strong>
+          <span>とても強い</span>
+        </div>
+      </section>
+
+      <div className="bond-detail-actions">
+        <button onClick={() => actions.go('memo', person.id)}><i>✎</i><span>メモ</span></button>
+        <button onClick={() => actions.go('reminder', person.id)}><Bell size={24} /><span>リマインド</span></button>
+        <button onClick={() => actions.go('sns', person.id)}><Instagram size={24} /><span>SNS</span></button>
+        <button><Share2 size={24} /><span>シェア</span></button>
+      </div>
+
+      <section className="bond-score-card">
+        <h3>つながりスコアの理由 <Info size={15} /></h3>
+        <div className="bond-score-metrics">
+          <div><CalendarCheck2 size={22} /><strong>{person.metCount}回</strong><span>会った回数</span></div>
+          <div><span className="metric-icon">◷</span><strong>2日前</strong><span>最後に会った</span></div>
+          <div><UsersRound size={22} /><strong>5人</strong><span>共通のつながり</span></div>
+          <div><MessageCircle size={22} /><strong>高い</strong><span>メッセージ頻度</span></div>
+        </div>
+        <div className="bond-score-bar"><span /></div>
+        <div className="bond-score-labels"><span>弱い</span><span>中</span><span>強い</span></div>
+      </section>
+
+      <section className="bond-history-section">
+        <div className="bond-section-title">
+          <h3>つながりの履歴</h3>
+          <button>すべて見る</button>
+        </div>
+        <div className="bond-history-list">
+          {historyItems.map((item) => (
+            <div className="bond-history-row" key={item.title}>
+              <span className="bond-history-dot" style={{ background: item.color }} />
+              <time>{item.date}</time>
+              <em>{item.time}</em>
+              <strong>{item.title}</strong>
+              <img src={item.image} alt="" />
+            </div>
           ))}
         </div>
       </section>
-      <button className="primary-button compact-record" onClick={() => actions.go('meeting', person.id)}>
-        <HeartHandshake size={18} />会った記録を追加
+
+      <button className="bond-message-button">
+        <MessageCircle size={21} />メッセージを送る
       </button>
     </div>
   );
