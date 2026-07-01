@@ -7504,6 +7504,190 @@ body {
 .category-detail-node { width: 104px !important; gap: 3px !important; }
 .category-detail-node .avatar { --size: 50px !important; }
 
+/* v134 final overrides */
+.map-screen .map-top-plus {
+  width: 46px !important;
+  height: 46px !important;
+  border: 0 !important;
+  background: #10213a !important;
+  color: #fff !important;
+  box-shadow:
+    0 0 0 1.5px rgba(255,255,255,.98),
+    0 0 0 3px rgba(159,171,188,.68),
+    inset 0 1px 0 rgba(255,255,255,.18),
+    0 14px 30px rgba(15,31,54,.18) !important;
+}
+
+.map-screen .map-top-plus svg {
+  display: block !important;
+  margin: 0 !important;
+  transform: none !important;
+  stroke-width: 2.55 !important;
+}
+
+.map-self-return {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.map-self-return .avatar {
+  --size: 46px !important;
+}
+
+.category-detail-map {
+  --detail-center-avatar-size: 82px;
+  --detail-node-avatar-size: 52px;
+}
+
+.detail-center {
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, calc(-1 * var(--detail-center-avatar-size) / 2)) !important;
+  gap: 4px !important;
+}
+
+.detail-center-avatar {
+  width: var(--detail-center-avatar-size) !important;
+  height: var(--detail-center-avatar-size) !important;
+}
+
+.detail-center-avatar .avatar {
+  --size: var(--detail-center-avatar-size) !important;
+}
+
+.detail-center b {
+  font-size: 18px !important;
+  line-height: 1.02 !important;
+  letter-spacing: -.06em !important;
+}
+
+.detail-center > span:last-child {
+  min-height: 32px !important;
+  padding: 0 17px !important;
+  font-size: 12px !important;
+  line-height: 32px !important;
+}
+
+.category-detail-node {
+  width: 88px !important;
+  transform: translate(-50%, calc(-1 * var(--detail-node-avatar-size) / 2)) !important;
+  gap: 5px !important;
+}
+
+.category-detail-node .avatar {
+  --size: var(--detail-node-avatar-size) !important;
+}
+
+.category-detail-node b {
+  font-size: 13px !important;
+  line-height: 1.08 !important;
+  letter-spacing: -.045em !important;
+}
+
+.category-detail-node small,
+.category-detail-node em {
+  display: none !important;
+}
+
+/* v134 detail map alignment and seamless action button polish */
+.map-screen .map-top-plus {
+  width: 46px !important;
+  height: 46px !important;
+  border: 0 !important;
+  background: #10213a !important;
+  color: #fff !important;
+  box-shadow:
+    0 0 0 1.5px rgba(255,255,255,.98),
+    0 0 0 3px rgba(159,171,188,.68),
+    inset 0 1px 0 rgba(255,255,255,.18),
+    0 14px 30px rgba(15,31,54,.18) !important;
+}
+
+.map-screen .map-top-plus svg {
+  display: block !important;
+  margin: 0 !important;
+  transform: none !important;
+  stroke-width: 2.55 !important;
+}
+
+.map-self-return {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.map-self-return .avatar {
+  --size: 46px !important;
+}
+
+.category-detail-map {
+  --detail-center-avatar-size: 82px;
+  --detail-node-avatar-size: 52px;
+}
+
+.detail-center {
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, calc(-1 * var(--detail-center-avatar-size) / 2)) !important;
+  gap: 4px !important;
+}
+
+.detail-center-avatar {
+  width: var(--detail-center-avatar-size) !important;
+  height: var(--detail-center-avatar-size) !important;
+}
+
+.detail-center-avatar .avatar {
+  --size: var(--detail-center-avatar-size) !important;
+}
+
+.detail-center b {
+  font-size: 18px !important;
+  line-height: 1.02 !important;
+  letter-spacing: -.06em !important;
+}
+
+.detail-center > span:last-child {
+  min-height: 32px !important;
+  padding: 0 17px !important;
+  font-size: 12px !important;
+  line-height: 32px !important;
+}
+
+.category-detail-node {
+  width: 88px !important;
+  transform: translate(-50%, calc(-1 * var(--detail-node-avatar-size) / 2)) !important;
+  gap: 5px !important;
+}
+
+.category-detail-node .avatar {
+  --size: var(--detail-node-avatar-size) !important;
+}
+
+.category-detail-node b {
+  font-size: 13px !important;
+  line-height: 1.08 !important;
+  letter-spacing: -.045em !important;
+}
+
+.category-detail-node small,
+.category-detail-node em {
+  display: none !important;
+}
+
 /* v133 detail map alignment fixes */
 .map-screen .map-top-plus {
   display: flex !important;

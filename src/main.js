@@ -2553,7 +2553,7 @@ function mapScreen() {
       <div class="map-lux-actions">
         <button class="map-search-trigger" type="button" data-action="toggle-map-search" aria-label="検索">${icon('search', 34)}</button>
         <button class="map-top-plus" type="button" data-action="toggle-map-actions" aria-label="追加">${icon('plus', 31)}</button>
-        ${profileAvatar(46)}
+        <button class="map-self-return" type="button" data-action="map-return-self" aria-label="自分に戻る">${profileAvatar(46)}</button>
       </div>
     </header>
     <aside class="map-category-sidebar">
@@ -2697,9 +2697,12 @@ function mapSearchResultRow(person) {
 
 function mapCategoryDetailScreen(filter) {
   const item = mapCategoryItems().find((category) => category.filter === filter) || mapCategoryItems()[0];
+  const center = mapCenterProfile();
+  const centerIsSelf = state.mapCenter === 'you' || center.id === authState.user?.id;
   const people = categoryPeople(filter);
   const searchResults = mapSearchResults();
-  const count = displayCategoryCount(filter, item.fallbackCount);
+  const count = centerIsSelf ? displayCategoryCount(filter, item.fallbackCount) : people.filter((person) => !person.isSelfReturn).length;
+  const nodes = categoryDetailNodes(people, item);
   return `
     <header class="category-detail-header">
       <button class="category-detail-back" type="button" data-action="back-map-overview" aria-label="戻る">${icon('chevronLeft', 34)}</button>
@@ -2707,7 +2710,7 @@ function mapCategoryDetailScreen(filter) {
       <div class="map-lux-actions">
         <button class="map-search-trigger" type="button" data-action="toggle-map-search" aria-label="検索">${icon('search', 34)}</button>
         <button class="map-top-plus" type="button" data-action="toggle-map-actions" aria-label="追加">${icon('plus', 31)}</button>
-        ${profileAvatar(46)}
+        <button class="map-self-return" type="button" data-action="map-return-self" aria-label="自分に戻る">${profileAvatar(46)}</button>
       </div>
     </header>
     <section class="map-search-shell ${state.mapSearchOpen || state.mapQuery.trim() ? 'has-query' : ''}">
@@ -2720,14 +2723,14 @@ function mapCategoryDetailScreen(filter) {
     <section class="category-detail-map" style="--cat-color:${item.color}">
       <div class="detail-orbits" aria-hidden="true"></div>
       <svg class="detail-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        ${categoryDetailNodes(people, item).map((node) => `<line x1="50" y1="50" x2="${node.x}" y2="${node.y}" />`).join('')}
+        ${nodes.map((node) => `<line x1="50" y1="50" x2="${node.x}" y2="${node.y}" />`).join('')}
       </svg>
       <div class="detail-center">
-        <span class="detail-center-avatar">${profileAvatar(112)}</span>
-        <b>あなた</b>
+        <span class="detail-center-avatar">${mapCenterAvatar(center, 112)}</span>
+        <b>${escapeHtml(centerIsSelf ? 'あなた' : center.name || 'ユーザー')}</b>
         <span><i></i>${escapeHtml(item.label)}のつながり ${count}人</span>
       </div>
-      ${categoryDetailNodes(people, item).map(categoryDetailNode).join('')}
+      ${nodes.map(categoryDetailNode).join('')}
       ${categoryMoreNodes(people, item)}
     </section>
     ${mapActionMenu('category-detail-actions')}
@@ -2745,7 +2748,31 @@ function mapActionMenu(extraClass = '') {
 }
 
 function categoryPeople(filter) {
-  return connectionRowsData().filter((person) => person.tag === filter);
+  const rows = state.mapCenter === 'you'
+    ? connectionRowsData()
+    : (state.mapCenterConnections[state.mapCenter] || []);
+  const centerId = mapCenterProfile().id;
+  let people = uniquePeopleByIdentity(rows)
+    .filter((person) => (person.id || person.name) !== centerId)
+    .filter((person) => relationshipTypeFor(person) === filter);
+  if (state.mapCenter !== 'you') {
+    const user = currentUser();
+    const selfNode = {
+      ...user,
+      id: authState.user?.id || 'you',
+      name: 'あなた',
+      tag: filter,
+      isSelfReturn: true
+    };
+    if (!people.some((person) => person.id === selfNode.id)) {
+      people = [selfNode, ...people];
+    }
+  }
+  return people;
+}
+
+function relationshipTypeFor(person = {}) {
+  return person.tag || person.relationship || person.type || person.connectionType || '紹介';
 }
 
 function categoryDetailNodes(people, item) {
@@ -2757,7 +2784,7 @@ function categoryDetailNodes(people, item) {
     { name: '中村 優太', desc: '株式会社リクルート', companyRole: '法人営業', avatar: 'man1' },
     { name: '伊藤 美咲', desc: '株式会社メルカリ', companyRole: 'データアナリスト', avatar: 'woman1' }
   ].map((person) => ({ ...person, tag: item.filter }));
-  const source = people.length ? people : fallback;
+  const source = people.length ? people : (state.mapCenter === 'you' ? fallback : []);
   const positions = [
     [50, 18], [76, 35], [76, 65], [50, 82], [24, 65], [24, 35]
   ];
@@ -2770,8 +2797,9 @@ function categoryDetailNodes(people, item) {
 }
 
 function categoryDetailNode(person) {
+  const identity = person.id || person.name || '';
   return `
-    <button class="category-detail-node" type="button" data-person-id="${escapeHtml(person.id || person.name)}" style="--x:${person.x}%;--y:${person.y}%;--cat-color:${person.color}">
+    <button class="category-detail-node" type="button" data-detail-center="${escapeHtml(identity)}" data-self-return="${person.isSelfReturn ? 'true' : 'false'}" data-person-id="${escapeHtml(identity)}" style="--x:${person.x}%;--y:${person.y}%;--cat-color:${person.color}">
       ${personAvatar(person, 58)}
       <b>${escapeHtml(person.name || person.handle || 'ユーザー')}</b>
       <small>${escapeHtml(person.desc || person.company || '')}</small>
@@ -2781,7 +2809,10 @@ function categoryDetailNode(person) {
 }
 
 function categoryMoreNodes(people, item) {
-  const remaining = Math.max(0, displayCategoryCount(item.filter, item.fallbackCount) - 6);
+  const total = state.mapCenter === 'you'
+    ? displayCategoryCount(item.filter, item.fallbackCount)
+    : people.filter((person) => !person.isSelfReturn).length;
+  const remaining = Math.max(0, total - 6);
   if (!remaining) return '';
   return `<span class="category-detail-more" style="--cat-color:${item.color}">+${remaining}人</span>`;
 }
@@ -2993,13 +3024,18 @@ function mapCenterProfile() {
   const user = currentUser();
   if (state.mapCenter === 'you') {
     return {
+      id: authState.user?.id || 'you',
       name: user.name || user.handle || 'あなた',
       badge: 'あなた',
-      avatar: 'user'
+      avatar: 'user',
+      photo: user.photo,
+      handle: user.handle
     };
   }
   const selected = personByIdOrName(state.mapCenter) || connectionRowsData()[0] || {};
   return {
+    ...selected,
+    id: selected.id || state.mapCenter,
     name: selected.name || 'ユーザー',
     badge: selected.tag || 'つながり',
     avatar: selected.avatar,
@@ -3007,10 +3043,10 @@ function mapCenterProfile() {
   };
 }
 
-function mapCenterAvatar(center = mapCenterProfile()) {
-  if (center.photo) return `<div class="avatar profile-avatar" style="--size:82px"><img src="${escapeHtml(center.photo)}" alt=""></div>`;
-  if (center.avatar === 'user') return profileAvatar(82);
-  return avatar(center.avatar, 82);
+function mapCenterAvatar(center = mapCenterProfile(), size = 82) {
+  if (center.photo) return `<div class="avatar profile-avatar" style="--size:${size}px"><img src="${escapeHtml(center.photo)}" alt=""></div>`;
+  if (center.avatar === 'user') return profileAvatar(size);
+  return avatar(center.avatar, size);
 }
 
 async function withButtonPending(button, label, task) {
@@ -3641,6 +3677,7 @@ app.addEventListener('click', async (event) => {
   const centerProfileButton = event.target.closest('[data-center-profile]');
   const mapNodeButton = event.target.closest('[data-map-node]');
   const mapSearchPersonButton = event.target.closest('[data-map-search-person]');
+  const detailCenterButton = event.target.closest('[data-detail-center]');
   const personClickIsAction = Boolean(event.target.closest('[data-action], .relationship-picker, .connection-manage-actions'));
   const personElement = personClickIsAction ? null : event.target.closest('[data-person], [data-person-id]');
   const person = personElement?.dataset.person;
@@ -3828,6 +3865,31 @@ app.addEventListener('click', async (event) => {
     render();
     return;
   }
+  if (detailCenterButton) {
+    const targetId = detailCenterButton.dataset.detailCenter;
+    if (detailCenterButton.dataset.selfReturn === 'true' || targetId === authState.user?.id) {
+      state.mapCenter = 'you';
+      state.mapPan = { x: 0, y: 0 };
+      state.zoom = 1;
+      state.mapActionsOpen = false;
+      render();
+      return;
+    }
+    const target = personByIdOrName(targetId);
+    if (target?.id) {
+      state.mapCenter = target.id;
+      state.mapPan = { x: 0, y: 0 };
+      state.zoom = 1;
+      state.mapActionsOpen = false;
+      state.toast = `${target.name || 'ユーザー'}を中心にしました`;
+      render();
+      loadMapCenterConnections(target.id, { silent: true }).then(() => render());
+      return;
+    }
+    state.overlay = personOverlayFromNode(target, target?.name || 'ユーザー');
+    render();
+    return;
+  }
   if (mapNodeButton) {
     if (mapInteraction.dragged) {
       mapInteraction.dragged = false;
@@ -3995,6 +4057,14 @@ app.addEventListener('click', async (event) => {
     state.zoom = 1;
     render();
     return showToast('あなたを中心に戻しました');
+  }
+  if (action === 'map-return-self') {
+    state.mapCenter = 'you';
+    state.mapPan = { x: 0, y: 0 };
+    state.zoom = 1;
+    state.mapActionsOpen = false;
+    render();
+    return;
   }
   if (action === 'fit-map') {
     state.mapPan = { x: 0, y: 0 };
@@ -4433,7 +4503,7 @@ app.addEventListener('pointercancel', clearCropPointer);
 app.addEventListener('pointerdown', (event) => {
   const workspace = event.target.closest('[data-map-workspace]');
   if (!workspace || state.screen !== 'map') return;
-  if (event.target.closest('[data-map-category-detail], .category-island, .category-detail-switcher, .map-floating-buttons, .map-action-popover, .map-search-shell, .bottom-nav')) return;
+  if (event.target.closest('[data-map-category-detail], .category-island, .category-detail-node, .category-detail-switcher, .map-floating-buttons, .map-action-popover, .map-search-shell, .map-self-return, .bottom-nav')) return;
   event.preventDefault();
   event.stopPropagation();
   const nodeButton = event.target.closest('[data-map-node]');
