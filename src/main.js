@@ -2699,10 +2699,12 @@ function mapSearchResultsMarkup(results = mapSearchResults()) {
 
 function mapSearchResultRow(person) {
   const context = person.relationContext || (connectionRowsData().some((connection) => connection.id === person.id) ? '自分のつながり' : '友達のつながり');
+  const name = person.name || person.handle || 'ユーザー';
+  const sub = person.handle ? `@${person.handle}` : person.desc || relationshipLabel(person.tag);
   return `
     <button class="map-search-result" type="button" data-map-search-person="${escapeHtml(person.id)}">
       ${personAvatar(person, 34)}
-      <span><b>${escapeHtml(person.name || person.handle || 'ユーザー')}</b><small>${escapeHtml(person.handle ? `@${person.handle}` : person.desc || relationshipLabel(person.tag))}</small></span>
+      <span><b>${escapeHtml(name)}</b><small>${escapeHtml(sub)}</small></span>
       <em>${escapeHtml(context)}</em>
     </button>
   `;
@@ -2850,6 +2852,8 @@ function mapNodeData() {
 
 function networkGraph(nodes) {
   const categories = mapCategoryItems();
+  const center = mapCenterProfile();
+  const centerIsSelf = state.mapCenter === 'you' || center.id === authState.user?.id;
   return `
     <section class="network" data-map-workspace>
       <div class="map-canvas" data-map-canvas style="transform:none">
@@ -2858,8 +2862,8 @@ function networkGraph(nodes) {
           ${categories.map((item) => `<line x1="50" y1="47" x2="${item.lineX}" y2="${item.lineY}" />`).join('')}
         </svg>
         <div class="diorama-center" aria-label="あなた">
-          <span class="center-avatar-ring">${profileAvatar(104)}</span>
-          <b>あなた</b>
+          <span class="center-avatar-ring">${mapCenterAvatar(center, 104)}</span>
+          <b>${escapeHtml(centerIsSelf ? 'あなた' : center.name || 'ユーザー')}</b>
           <span class="center-connection-pill"><i></i>つながり ${mapTotalCount()}人</span>
         </div>
         ${categories.map(categoryIsland).join('')}
@@ -2880,17 +2884,29 @@ function mapCategoryItems() {
 }
 
 function categoryCount(filter) {
-  return connectionRowsData().filter((person) => person.tag === filter).length;
+  const rows = state.mapCenter === 'you'
+    ? connectionRowsData()
+    : (state.mapCenterConnections[state.mapCenter] || []);
+  return uniquePeopleByIdentity(rows)
+    .filter((person) => (person.id || person.name) !== mapCenterProfile().id)
+    .filter((person) => relationshipTypeFor(person) === filter)
+    .length;
 }
 
 function displayCategoryCount(filter, fallback = 0) {
-  const totalConnections = connectionRowsData().length;
+  const totalConnections = state.mapCenter === 'you'
+    ? connectionRowsData().length
+    : (state.mapCenterConnections[state.mapCenter] || []).length;
   const count = categoryCount(filter);
+  if (state.mapCenter !== 'you') return count;
   return totalConnections ? count : fallback;
 }
 
 function mapTotalCount() {
-  const total = connectionRowsData().length;
+  const total = state.mapCenter === 'you'
+    ? connectionRowsData().length
+    : (state.mapCenterConnections[state.mapCenter] || []).filter((person) => person.id !== authState.user?.id).length;
+  if (state.mapCenter !== 'you') return total;
   return total || 243;
 }
 
@@ -2917,7 +2933,13 @@ function categoryIsland(item) {
 }
 
 function categoryFaceStack(filter) {
-  const faces = connectionRowsData().filter((person) => person.tag === filter).slice(0, 3);
+  const rows = state.mapCenter === 'you'
+    ? connectionRowsData()
+    : (state.mapCenterConnections[state.mapCenter] || []);
+  const faces = uniquePeopleByIdentity(rows)
+    .filter((person) => person.id !== mapCenterProfile().id)
+    .filter((person) => relationshipTypeFor(person) === filter)
+    .slice(0, 3);
   const fallback = [
     { avatar: 'man1', name: 'A' },
     { avatar: 'woman1', name: 'B' },
@@ -3866,6 +3888,7 @@ app.addEventListener('click', async (event) => {
     const target = mapSearchPeoplePool().find((person) => person.id === targetId) || personByIdOrName(targetId);
     state.overlay = personOverlayFromNode(target, target?.name || 'ユーザー');
     state.mapSearchOpen = false;
+    state.mapQuery = '';
     render();
     return;
   }
