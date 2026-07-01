@@ -43,12 +43,14 @@ export type Page =
 
 export type AppActions = {
   go: (page: Page, personId?: string) => void;
+  back: () => void;
   openPerson: (person: Person) => void;
   setCenter: (personId: string) => void;
 };
 
 export default function App() {
   const [page, setPage] = useState<Page>('home');
+  const [previousPage, setPreviousPage] = useState<Page>('home');
   const [selectedPersonId, setSelectedPersonId] = useState(currentUser.id);
   const [centerPersonId, setCenterPersonId] = useState(currentUser.id);
   const [modalPerson, setModalPerson] = useState<Person | null>(null);
@@ -59,7 +61,12 @@ export default function App() {
   const actions: AppActions = {
     go: (nextPage, personId) => {
       if (personId) setSelectedPersonId(personId);
+      setPreviousPage(page);
       setPage(nextPage);
+    },
+    back: () => {
+      setPage(previousPage);
+      setPreviousPage('home');
     },
     openPerson: setModalPerson,
     setCenter: (personId) => {

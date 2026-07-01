@@ -27,14 +27,15 @@ export function AppShell({ children, page, actions }: {
   actions: AppActions;
 }) {
   const isHome = page === 'home';
+  const hideHeader = page === 'ranking' || page === 'sns' || page === 'profile';
 
   return (
     <div className="min-h-screen bg-shell text-ink">
       <div className="phone-app">
-        <header className="app-header">
+        {!hideHeader && <header className="app-header">
           <div className="flex items-center gap-3">
             {!isHome && (
-              <button className="icon-button subtle" onClick={() => actions.go('home')} aria-label="戻る">
+              <button className="icon-button subtle" onClick={actions.back} aria-label="戻る">
                 <ChevronLeft size={24} />
               </button>
             )}
@@ -61,7 +62,7 @@ export function AppShell({ children, page, actions }: {
               <img src={currentUser.avatar} alt={currentUser.name} />
             </button>
           </div>
-        </header>
+        </header>}
         {children}
       </div>
     </div>
