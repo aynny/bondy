@@ -684,6 +684,7 @@ function mergePersonRecord(base = {}, next = {}) {
     photo: base.photo || next.photo,
     desc: base.desc || next.desc,
     time: base.time || next.time,
+    relationContext: base.relationContext || next.relationContext,
     tag: base.tag || next.tag,
     tags: mergedTags
   };
@@ -2176,6 +2177,7 @@ function personModalContent(person) {
       <div>
         <h2>${escapeHtml(name)}</h2>
         <p>${escapeHtml(identity)}</p>
+        ${person?.relationContext ? `<span class="person-relation-context">${escapeHtml(person.relationContext)}</span>` : ''}
       </div>
     </header>
     ${personProfileDetails(person)}
@@ -2240,7 +2242,8 @@ function personOverlayFromNode(node, fallbackName = 'ユーザー') {
     locationPublic: node?.locationPublic ?? true,
     birthdayPublic: node?.birthdayPublic ?? false,
     sns: node?.sns || {},
-    snsPublic: node?.snsPublic || {}
+    snsPublic: node?.snsPublic || {},
+    relationContext: node?.relationContext || ''
   };
 }
 
@@ -2642,10 +2645,20 @@ function connectionRowsData() {
 }
 
 function mapSearchPeoplePool() {
-  return uniquePeopleByIdentity([
-    ...connectionRowsData(),
-    ...Object.values(state.mapCenterConnections || {}).flat()
-  ]).filter((person) => person.id && person.id !== authState.user?.id);
+  const direct = connectionRowsData().map((person) => ({
+    ...person,
+    relationContext: '自分のつながり'
+  }));
+  const indirect = Object.entries(state.mapCenterConnections || {}).flatMap(([centerId, rows]) => {
+    const center = personByIdOrName(centerId);
+    const centerName = center?.name || '友達';
+    return (rows || []).map((person) => ({
+      ...person,
+      relationContext: person.id === authState.user?.id ? `${centerName}のつながり` : `${centerName}さんのつながり`
+    }));
+  });
+  return uniquePeopleByIdentity([...direct, ...indirect])
+    .filter((person) => person.id && person.id !== authState.user?.id);
 }
 
 function personSearchText(person = {}) {
@@ -2685,12 +2698,12 @@ function mapSearchResultsMarkup(results = mapSearchResults()) {
 }
 
 function mapSearchResultRow(person) {
-  const canCenter = connectionRowsData().some((connection) => connection.id === person.id);
+  const context = person.relationContext || (connectionRowsData().some((connection) => connection.id === person.id) ? '自分のつながり' : '友達のつながり');
   return `
-    <button class="map-search-result" type="button" data-map-search-person="${escapeHtml(person.id)}" data-centerable="${canCenter ? 'true' : 'false'}">
+    <button class="map-search-result" type="button" data-map-search-person="${escapeHtml(person.id)}">
       ${personAvatar(person, 34)}
       <span><b>${escapeHtml(person.name || person.handle || 'ユーザー')}</b><small>${escapeHtml(person.handle ? `@${person.handle}` : person.desc || relationshipLabel(person.tag))}</small></span>
-      <em>${canCenter ? '中心にする' : 'プロフィール'}</em>
+      <em>${escapeHtml(context)}</em>
     </button>
   `;
 }
@@ -2706,7 +2719,7 @@ function mapCategoryDetailScreen(filter) {
   return `
     <header class="category-detail-header">
       <button class="category-detail-back" type="button" data-action="back-map-overview" aria-label="戻る">${icon('chevronLeft', 34)}</button>
-      <h1>${escapeHtml(item.label)}のつながり</h1>
+      <h1>${escapeHtml(item.label)}</h1>
       <div class="map-lux-actions">
         <button class="map-search-trigger" type="button" data-action="toggle-map-search" aria-label="検索">${icon('search', 34)}</button>
         <button class="map-top-plus" type="button" data-action="toggle-map-actions" aria-label="追加">${icon('plus', 31)}</button>
@@ -2728,7 +2741,7 @@ function mapCategoryDetailScreen(filter) {
       <div class="detail-center">
         <span class="detail-center-avatar">${mapCenterAvatar(center, 112)}</span>
         <b>${escapeHtml(centerIsSelf ? 'あなた' : center.name || 'ユーザー')}</b>
-        <span><i></i>${escapeHtml(item.label)}のつながり ${count}人</span>
+        <span><i></i>${escapeHtml(item.label)} ${count}人</span>
       </div>
       ${nodes.map(categoryDetailNode).join('')}
       ${categoryMoreNodes(people, item)}
@@ -3851,17 +3864,8 @@ app.addEventListener('click', async (event) => {
   if (mapSearchPersonButton) {
     const targetId = mapSearchPersonButton.dataset.mapSearchPerson;
     const target = mapSearchPeoplePool().find((person) => person.id === targetId) || personByIdOrName(targetId);
-    if (mapSearchPersonButton.dataset.centerable === 'true') {
-      state.mapCenter = targetId;
-      state.filter = 'すべて';
-      state.mapQuery = '';
-      state.mapPan = { x: 0, y: 0 };
-      state.zoom = 1;
-      render();
-      loadMapCenterConnections(targetId, { silent: true }).then(() => render());
-      return;
-    }
     state.overlay = personOverlayFromNode(target, target?.name || 'ユーザー');
+    state.mapSearchOpen = false;
     render();
     return;
   }
