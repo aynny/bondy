@@ -86,6 +86,66 @@ const companyDomains: Record<string, string> = {
   Shopify: 'shopify.com',
   Notion: 'notion.so',
   OpenAI: 'openai.com',
+  Yahoo: 'yahoo.co.jp',
+  ZOZOTOWN: 'zozo.jp',
+  PayPay: 'paypay.ne.jp',
+  Mizuho: 'mizuhogroup.com',
+  SMBC: 'smbc.co.jp',
+  MUFG: 'mufg.jp',
+  Nomura: 'nomura.com',
+  Daiwa: 'daiwa-grp.jp',
+  Keyence: 'keyence.co.jp',
+  Murata: 'murata.com',
+  TDK: 'tdk.com',
+  Omron: 'omron.com',
+  Kyocera: 'kyocera.com',
+  Yamaha: 'yamaha.com',
+  BandaiNamco: 'bandainamco.co.jp',
+  Capcom: 'capcom.co.jp',
+  SquareEnix: 'square-enix.com',
+  Konami: 'konami.com',
+  Sega: 'sega.co.jp',
+  Casio: 'casio.com',
+  Ricoh: 'ricoh.com',
+  Sharp: 'global.sharp',
+  Fujifilm: 'fujifilm.com',
+  Olympus: 'olympus-global.com',
+  Terumo: 'terumo.com',
+  Eisai: 'eisai.com',
+  Takeda: 'takeda.com',
+  Astellas: 'astellas.com',
+  Otsuka: 'otsuka.com',
+  MitsubishiUFJ: 'mufg.jp',
+  Itochu: 'itochu.co.jp',
+  Marubeni: 'marubeni.com',
+  Mitsui: 'mitsui.com',
+  Sumitomo: 'sumitomocorp.com',
+  Nitori: 'nitori-net.jp',
+  Aeon: 'aeon.info',
+  MitsubishiEstate: 'mec.co.jp',
+  MitsuiFudosan: 'mitsuifudosan.co.jp',
+  NomuraRealEstate: 'nomura-re.co.jp',
+  Obayashi: 'obayashi.co.jp',
+  Kajima: 'kajima.co.jp',
+  Shimizu: 'shimz.co.jp',
+  Taisei: 'taisei.co.jp',
+  Yamato: 'yamato-hd.co.jp',
+  Sagawa: 'sagawa-exp.co.jp',
+  JapanPost: 'japanpost.jp',
+  Medley: 'medley.jp',
+  Ubie: 'ubie.life',
+  Visional: 'visional.inc',
+  Cybozu: 'cybozu.co.jp',
+  GMO: 'gmo.jp',
+  Mixi: 'mixi.co.jp',
+  Hatena: 'hatena.ne.jp',
+  BASE: 'binc.jp',
+  PLAID: 'plaid.co.jp',
+  Uzabase: 'uzabase.com',
+  Moneytree: 'moneytree.jp',
+  Aidemy: 'aidemy.co.jp',
+  PreferredNetworks: 'preferred.jp',
+  LayerXInc: 'layerx.co.jp',
 };
 
 const companyOptions = Object.keys(companyDomains);
@@ -120,12 +180,37 @@ type Career = {
   period: string;
 };
 
+type StoredProfile = {
+  form?: Partial<ProfileForm>;
+  photo?: string;
+  crop?: { zoom: number; x: number; y: number };
+  careerRows?: Career[];
+};
+
 const careers: Career[] = [
   { title: 'Women@Dior Mentee', company: 'Dior', period: '2024年2月 - 2025年4月' },
   { title: 'Sales Intern', company: 'Tesla', period: '2025年2月 - 2025年8月' },
   { title: 'Solution Engineer Intern', company: 'Microsoft', period: '2025年8月 - 2025年9月' },
   { title: 'Global Brand Intern', company: 'Fast Retailing', period: '2026年3月 - 2026年4月' },
 ];
+
+function readStoredProfile(): StoredProfile {
+  try {
+    const raw = window.localStorage.getItem('bondyProfile');
+    return raw ? JSON.parse(raw) as StoredProfile : {};
+  } catch {
+    return {};
+  }
+}
+
+function readStoredAccount() {
+  try {
+    const raw = window.localStorage.getItem('bondyAccount');
+    return raw ? JSON.parse(raw) as { name?: string; handle?: string } : {};
+  } catch {
+    return {};
+  }
+}
 
 function logoUrl(company: string) {
   const domain = companyDomains[company] || '';
@@ -144,6 +229,9 @@ function logoUrl(company: string) {
 function CompanyLogo({ company }: { company: string }) {
   const [failed, setFailed] = useState(false);
   const src = logoUrl(company);
+  if (!company.trim()) {
+    return <span className="edit-company-logo empty">+</span>;
+  }
   if (!src || failed) {
     return <span className="edit-company-logo fallback">{company.slice(0, 1).toUpperCase()}</span>;
   }
@@ -164,20 +252,22 @@ function VisibilityToggle() {
 }
 
 export function Profile({ actions }: { actions: AppActions }) {
+  const storedProfile = readStoredProfile();
+  const storedAccount = readStoredAccount();
   const [editing, setEditing] = useState(false);
   const [companyQuery, setCompanyQuery] = useState('');
   const [universityQuery, setUniversityQuery] = useState('');
   const [universityPickerOpen, setUniversityPickerOpen] = useState(false);
   const [companyPickerTarget, setCompanyPickerTarget] = useState<'current' | `career-${number}` | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
-  const [photo, setPhoto] = useState(currentUser.avatar);
+  const [photo, setPhoto] = useState(storedProfile.photo || currentUser.avatar);
   const [cropOpen, setCropOpen] = useState(false);
-  const [crop, setCrop] = useState({ zoom: 112, x: 50, y: 50 });
+  const [crop, setCrop] = useState(storedProfile.crop || { zoom: 112, x: 50, y: 50 });
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [careerRows, setCareerRows] = useState(careers);
+  const [careerRows, setCareerRows] = useState(storedProfile.careerRows?.length ? storedProfile.careerRows : careers);
   const [form, setForm] = useState<ProfileForm>({
-    name: currentUser.name,
-    handle: currentUser.handle.replace('@', ''),
+    name: storedProfile.form?.name || storedAccount.name || currentUser.name,
+    handle: storedProfile.form?.handle || storedAccount.handle || currentUser.handle.replace('@', ''),
     highSchool: '岐阜高校',
     university: currentUser.school,
     vocational: '',
@@ -187,6 +277,7 @@ export function Profile({ actions }: { actions: AppActions }) {
     currentMonth: '8',
     location: currentUser.location,
     birthday: '2026/06/25',
+    ...storedProfile.form,
   });
 
   const update = (key: keyof ProfileForm, value: string) => {
@@ -246,12 +337,24 @@ export function Profile({ actions }: { actions: AppActions }) {
 
   const saveProfile = () => {
     setSaveState('saving');
+    window.localStorage.setItem('bondyProfile', JSON.stringify({ form, photo, crop, careerRows }));
     window.setTimeout(() => setSaveState('saved'), 520);
+  };
+
+  const clearCurrentWork = () => {
+    setSaveState('idle');
+    setForm((prev) => ({
+      ...prev,
+      currentRole: '',
+      currentCompany: '',
+      currentYear: '',
+      currentMonth: '',
+    }));
   };
 
   const info = [
     { label: '学校', value: form.university, icon: GraduationCap },
-    { label: '会社', value: `${form.currentCompany} / ${form.currentRole}`, icon: Briefcase },
+    { label: '会社', value: [form.currentCompany, form.currentRole].filter(Boolean).join(' / ') || '未設定', icon: Briefcase },
     { label: '所在地', value: form.location, icon: MapPin },
     { label: '誕生日', value: form.birthday, icon: Calendar },
   ];
@@ -380,6 +483,9 @@ export function Profile({ actions }: { actions: AppActions }) {
               <button>現在</button>
             </div>
             <input value={form.location} onChange={(event) => update('location', event.target.value)} placeholder="場所 例: 日本 東京都 品川区" />
+            {(form.currentRole || form.currentCompany || form.currentYear || form.currentMonth) && (
+              <button className="clear-current-work-button" onClick={clearCurrentWork}>現在の仕事を削除</button>
+            )}
           </div>
         </section>
 
@@ -455,7 +561,7 @@ export function Profile({ actions }: { actions: AppActions }) {
           <MoreHorizontal size={23} />
         </button>
         <div className="profile-identity">
-          <img src={currentUser.avatar} alt={form.name} />
+          <img src={photo} alt={form.name} />
           <div>
             <h1>{form.name}</h1>
             <p>@{form.handle}</p>

@@ -9,6 +9,7 @@ import { CommonConnections } from './pages/CommonConnections';
 import { ConnectionDetail } from './pages/ConnectionDetail';
 import { ConnectionList } from './pages/ConnectionList';
 import { Discover } from './pages/Discover';
+import { AuthGate } from './pages/AuthGate';
 import { HomeMap } from './pages/HomeMap';
 import { MeetingRecord } from './pages/MeetingRecord';
 import { Memo } from './pages/Memo';
@@ -49,6 +50,7 @@ export type AppActions = {
 };
 
 export default function App() {
+  const [authenticated, setAuthenticated] = useState(() => window.localStorage.getItem('bondySession') === 'true');
   const [page, setPage] = useState<Page>('home');
   const [previousPage, setPreviousPage] = useState<Page>('home');
   const [selectedPersonId, setSelectedPersonId] = useState(currentUser.id);
@@ -115,6 +117,10 @@ export default function App() {
         return <HomeMap centerPerson={centerPerson} actions={actions} />;
     }
   };
+
+  if (!authenticated) {
+    return <AuthGate onAuthenticated={() => setAuthenticated(true)} />;
+  }
 
   return (
     <AppShell page={page} actions={actions}>

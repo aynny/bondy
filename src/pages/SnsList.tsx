@@ -12,16 +12,16 @@ type SocialAccount = {
 };
 
 const socialAccounts: SocialAccount[] = [
-  { label: 'Instagram', logo: '/assets/social/instagram.png', placeholder: 'Instagram ユーザー名またはURL' },
-  { label: 'X', logo: '/assets/social/x.png', placeholder: 'X ユーザー名またはURL' },
-  { label: 'Threads', logo: '/assets/social/threads.svg', placeholder: 'Threads ユーザー名またはURL' },
-  { label: 'TikTok', logo: '/assets/social/tiktok.png', placeholder: 'TikTok ユーザー名またはURL' },
-  { label: 'BeReal', logo: '/assets/social/bereal.png', placeholder: 'BeReal ユーザー名またはURL' },
-  { label: 'Setlog', logo: '/assets/social/setlog.webp', placeholder: 'Setlog ユーザー名またはURL' },
-  { label: 'Facebook', logo: '/assets/social/facebook.png', placeholder: 'Facebook URL' },
-  { label: 'YouTube', logo: '/assets/social/youtube.png', placeholder: 'YouTube チャンネルURL' },
-  { label: 'LinkedIn', logo: '/assets/social/linkedin.png', placeholder: 'LinkedIn URL' },
-  { label: 'note', logo: '/assets/social/note.svg', placeholder: 'note URL' },
+  { label: 'Instagram', logo: './assets/social/instagram.png', placeholder: 'Instagram ユーザー名またはURL' },
+  { label: 'X', logo: './assets/social/x.png', placeholder: 'X ユーザー名またはURL' },
+  { label: 'Threads', logo: './assets/social/threads.svg', placeholder: 'Threads ユーザー名またはURL' },
+  { label: 'TikTok', logo: './assets/social/tiktok.png', placeholder: 'TikTok ユーザー名またはURL' },
+  { label: 'BeReal', logo: './assets/social/bereal.png', placeholder: 'BeReal ユーザー名またはURL' },
+  { label: 'Setlog', logo: './assets/social/setlog.webp', placeholder: 'Setlog ユーザー名またはURL' },
+  { label: 'Facebook', logo: './assets/social/facebook.png', placeholder: 'Facebook URL' },
+  { label: 'YouTube', logo: './assets/social/youtube.png', placeholder: 'YouTube チャンネルURL' },
+  { label: 'LinkedIn', logo: './assets/social/linkedin.png', placeholder: 'LinkedIn URL' },
+  { label: 'note', logo: './assets/social/note.svg', placeholder: 'note URL' },
 ];
 
 export function SnsList({ actions }: { actions: AppActions }) {

@@ -1,13 +1,13 @@
-import { Bell, BriefcaseBusiness, CalendarCheck2, ChevronLeft, Info, Instagram, MessageCircle, MoreHorizontal, UsersRound } from 'lucide-react';
+import { Bell, BriefcaseBusiness, CalendarCheck2, ChevronLeft, Info, Instagram, MessageCircle, MoreHorizontal, PencilLine, UsersRound } from 'lucide-react';
 import { AppActions } from '../App';
 import { Person } from '../data/people';
 
 const historyItems = [
-  { date: '2024.07.02', time: '19:30', title: '名古屋駅 カフェ', color: '#ff5470', image: '/assets/avatars/profile.jpg' },
-  { date: '2024.06.10', time: '13:15', title: '恵比寿 第３オフィスにて', color: '#ff8d4a', image: '/assets/avatars/man1.jpg' },
-  { date: '2024.05.20', time: '18:45', title: '渋谷 イベント', color: '#ffbd45', image: '/assets/avatars/woman1.jpg' },
-  { date: '2024.04.15', time: '12:00', title: '新宿 ランチ', color: '#58cc87', image: '/assets/avatars/man2.jpg' },
-  { date: '2024.03.01', time: '17:20', title: 'オンラインMTG', color: '#7a86ff', image: '/assets/avatars/woman2.jpg' },
+  { date: '2024.07.02', time: '19:30', title: '名古屋駅 カフェ', color: '#ff5470', image: './assets/avatars/profile.jpg' },
+  { date: '2024.06.10', time: '13:15', title: '恵比寿 第３オフィスにて', color: '#ff8d4a', image: './assets/avatars/man1.jpg' },
+  { date: '2024.05.20', time: '18:45', title: '渋谷 イベント', color: '#ffbd45', image: './assets/avatars/woman1.jpg' },
+  { date: '2024.04.15', time: '12:00', title: '新宿 ランチ', color: '#58cc87', image: './assets/avatars/man2.jpg' },
+  { date: '2024.03.01', time: '17:20', title: 'オンラインMTG', color: '#7a86ff', image: './assets/avatars/woman2.jpg' },
 ];
 
 export function ConnectionDetail({ person, actions }: { person: Person; actions: AppActions }) {
@@ -38,7 +38,7 @@ export function ConnectionDetail({ person, actions }: { person: Person; actions:
       </section>
 
       <div className="bond-detail-actions">
-        <button onClick={() => actions.go('memo', person.id)}><i>✎</i><span>メモ</span></button>
+        <button onClick={() => actions.go('memo', person.id)}><PencilLine size={24} strokeWidth={1.9} /><span>メモ</span></button>
         <button onClick={() => actions.go('reminder', person.id)}><Bell size={24} /><span>リマインド</span></button>
         <button onClick={() => actions.go('sns', person.id)}><Instagram size={24} /><span>SNS</span></button>
         <button onClick={() => actions.go('common', person.id)}><UsersRound size={24} /><span>共通</span></button>

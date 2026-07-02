@@ -3055,3 +3055,274 @@ button {
     padding-inline: 14px;
   }
 }
+
+/* Auth, persistence and tightened mobile polish */
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 28px 20px;
+  color: #05080f;
+  background:
+    radial-gradient(circle at 50% 4%, rgba(255,255,255,0.95), rgba(245,247,251,0.92) 42%, #fff 100%);
+}
+
+.auth-card {
+  width: min(430px, 100%);
+  display: grid;
+  gap: 15px;
+  padding: 34px 24px 26px;
+  border-radius: 34px;
+  background: rgba(255,255,255,0.96);
+  box-shadow: 0 26px 70px rgba(15, 24, 38, 0.12), inset 0 0 0 1px rgba(15, 24, 38, 0.06);
+}
+
+.auth-logo {
+  font-size: 44px;
+  line-height: 0.95;
+  font-weight: 950;
+  letter-spacing: -0.08em;
+}
+
+.auth-card > p {
+  margin: -4px 0 4px;
+  color: #6f7784;
+  font-size: 14px;
+  font-weight: 820;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 999px;
+  background: #f3f5f8;
+}
+
+.auth-tabs button,
+.auth-submit {
+  min-height: 48px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.auth-tabs button {
+  color: #727b88;
+}
+
+.auth-tabs button.active,
+.auth-submit {
+  color: #fff;
+  background: #05080f;
+  box-shadow: 0 14px 28px rgba(5, 8, 15, 0.16);
+}
+
+.auth-card label {
+  display: grid;
+  gap: 8px;
+  color: #1d2530;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.auth-card label em {
+  color: #e6495f;
+  font-style: normal;
+}
+
+.auth-card input {
+  min-height: 54px;
+  border: 0;
+  outline: 0;
+  border-radius: 17px;
+  padding: 0 15px;
+  background: #f8f9fb;
+  color: #0a101a;
+  font-size: 15px;
+  font-weight: 850;
+  box-shadow: inset 0 0 0 1px rgba(15, 24, 38, 0.07);
+}
+
+.auth-message {
+  padding: 11px 13px;
+  border-radius: 14px;
+  color: #d33b51;
+  background: #fff1f3;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.sns-editor-overlay {
+  z-index: 1200;
+  place-items: center;
+  padding: 28px 18px 118px;
+}
+
+.sns-editor-sheet {
+  max-height: calc(100vh - 160px);
+  overflow: auto;
+}
+
+.bond-detail-hero {
+  grid-template-columns: 112px minmax(0, 1fr) 102px;
+  gap: 14px;
+}
+
+.bond-detail-avatar {
+  width: 112px;
+  height: 112px;
+}
+
+.bond-detail-copy p,
+.bond-detail-copy > span,
+.bond-detail-tags b,
+.bond-score-metrics strong,
+.bond-score-metrics span:not(.metric-icon) {
+  white-space: nowrap;
+}
+
+.bond-detail-copy p {
+  font-size: 13px;
+}
+
+.bond-detail-copy h2 {
+  font-size: 25px;
+}
+
+.bond-detail-copy > span {
+  font-size: 13px;
+}
+
+.bond-detail-tags {
+  flex-wrap: nowrap;
+}
+
+.bond-detail-tags b {
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.bond-detail-actions {
+  gap: 14px;
+}
+
+.bond-detail-actions button > svg,
+.bond-detail-actions button > i {
+  width: 54px;
+  height: 54px;
+  padding: 14px;
+}
+
+.bond-score-card {
+  padding: 22px 20px 20px;
+}
+
+.bond-score-metrics {
+  align-items: stretch;
+}
+
+.bond-score-metrics div {
+  min-height: 76px;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.bond-score-metrics strong {
+  font-size: 17px;
+}
+
+.bond-score-metrics span:not(.metric-icon) {
+  font-size: 11px;
+  line-height: 1.15;
+}
+
+.editable-with-clear {
+  grid-template-columns: minmax(0, 1fr) 42px;
+  align-items: center;
+}
+
+.editable-with-clear > button:last-child {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  align-self: center;
+}
+
+.edit-company-logo.empty {
+  color: #9aa2af;
+  background: #f7f8fa;
+}
+
+.clear-current-work-button {
+  min-height: 44px;
+  border-radius: 14px;
+  color: #d33b51;
+  background: #fff4f5;
+  font-size: 13px;
+  font-weight: 950;
+  box-shadow: inset 0 0 0 1px rgba(211, 59, 81, 0.1);
+}
+
+@media (max-width: 520px) {
+  .bond-detail-screen {
+    padding-inline: 12px;
+  }
+
+  .bond-detail-hero {
+    grid-template-columns: 74px minmax(0, 1fr) 68px;
+    gap: 8px;
+  }
+
+  .bond-detail-avatar {
+    width: 74px;
+    height: 74px;
+  }
+
+  .bond-detail-copy p {
+    font-size: 10px;
+    margin-bottom: 5px;
+  }
+
+  .bond-detail-copy h2 {
+    font-size: 19px;
+  }
+
+  .bond-detail-copy > span {
+    font-size: 10.5px;
+  }
+
+  .bond-detail-tags b {
+    min-height: 23px;
+    padding: 0 7px;
+    font-size: 9.5px;
+  }
+
+  .bond-score-ring {
+    width: 68px;
+    height: 68px;
+  }
+
+  .bond-score-card {
+    padding: 18px 12px 18px;
+  }
+
+  .bond-score-card h3 {
+    font-size: 16px;
+  }
+
+  .bond-score-metrics div {
+    min-height: 70px;
+  }
+
+  .bond-score-metrics strong {
+    font-size: 15px;
+  }
+
+  .bond-score-metrics span:not(.metric-icon) {
+    font-size: 9.5px;
+  }
+}
