@@ -98,10 +98,14 @@ export function SnsList({ actions }: { actions: AppActions }) {
 
       <section className="screen-card feed-card sns-feed">
         <h2>最近の投稿</h2>
-        <button onClick={() => actions.go('detail', people[0].id)}>
-          <img src={people[0].avatar} alt="" />
-          <span>{people[0].name}<small>今日のつながり記録を投稿しました。</small></span>
-        </button>
+        {people[0] ? (
+          <button onClick={() => actions.go('detail', people[0].id)}>
+            <img src={people[0].avatar} alt="" />
+            <span>{people[0].name}<small>今日のつながり記録を投稿しました。</small></span>
+          </button>
+        ) : (
+          <p className="empty-feed-note">SNSを登録すると、プロフィールから確認できます。</p>
+        )}
       </section>
 
       {active && (

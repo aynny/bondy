@@ -50,7 +50,7 @@ export type AppActions = {
 };
 
 export default function App() {
-  const [authenticated, setAuthenticated] = useState(() => window.localStorage.getItem('bondySession') === 'true');
+  const [authenticated, setAuthenticated] = useState(() => window.localStorage.getItem('bondySession') === 'supabase');
   const [page, setPage] = useState<Page>('home');
   const [previousPage, setPreviousPage] = useState<Page>('home');
   const [selectedPersonId, setSelectedPersonId] = useState(currentUser.id);
@@ -119,7 +119,10 @@ export default function App() {
   };
 
   if (!authenticated) {
-    return <AuthGate onAuthenticated={() => setAuthenticated(true)} />;
+    return <AuthGate onAuthenticated={(destination = 'home') => {
+      setAuthenticated(true);
+      setPage(destination === 'profile' ? 'profile' : 'home');
+    }} />;
   }
 
   return (

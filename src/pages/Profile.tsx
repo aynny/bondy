@@ -1,7 +1,8 @@
-import { ChangeEvent, useRef, useState } from 'react';
+import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { Briefcase, Calendar, Camera, ChevronDown, ChevronLeft, GraduationCap, MapPin, MoreHorizontal, Plus, QrCode, Search, X } from 'lucide-react';
 import { AppActions } from '../App';
 import { currentUser, people } from '../data/people';
+import { loadRemoteProfile, saveRemoteProfile } from '../lib/supabaseProfile';
 
 const LOGO_DEV_TOKEN = 'pk_HOeQqXbFRCG-0PJjNVf_Vw';
 
@@ -239,12 +240,7 @@ type StoredProfile = {
   visibility?: Partial<Record<VisibilityKey, VisibilityValue>>;
 };
 
-const careers: Career[] = [
-  { title: 'Women@Dior Mentee', company: 'Dior', startYear: '2024', startMonth: '2', endYear: '2025', endMonth: '4' },
-  { title: 'Sales Intern', company: 'Tesla', startYear: '2025', startMonth: '2', endYear: '2025', endMonth: '8' },
-  { title: 'Solution Engineer Intern', company: 'Microsoft', startYear: '2025', startMonth: '8', endYear: '2025', endMonth: '9' },
-  { title: 'Global Brand Intern', company: 'Fast Retailing', startYear: '2026', startMonth: '3', endYear: '2026', endMonth: '4' },
-];
+const careers: Career[] = [];
 
 const defaultVisibility: Record<VisibilityKey, VisibilityValue> = {
   location: 'public',
@@ -303,6 +299,11 @@ function CompanyLogo({ company }: { company: string }) {
   );
 }
 
+function Avatar({ src, name, className = '' }: { src?: string; name: string; className?: string }) {
+  if (src) return <img className={className} src={src} alt={name} />;
+  return <span className={`initial-avatar ${className}`}>{name.slice(0, 2).toUpperCase()}</span>;
+}
+
 function parseBirthday(value: string) {
   const [year = '2000', month = '1', day = '1'] = value.replace(/-/g, '/').split('/');
   return { year, month: String(Number(month) || 1), day: String(Number(day) || 1) };
@@ -358,17 +359,34 @@ export function Profile({ actions }: { actions: AppActions }) {
   const [form, setForm] = useState<ProfileForm>({
     name: storedProfile.form?.name || storedAccount.name || currentUser.name,
     handle: storedProfile.form?.handle || storedAccount.handle || currentUser.handle.replace('@', ''),
-    highSchool: '岐阜高校',
+    highSchool: '',
     university: currentUser.school,
     vocational: '',
     currentRole: currentUser.title,
     currentCompany: currentUser.company === '株式会社Mesh' ? 'Microsoft' : currentUser.company,
-    currentYear: '2025',
-    currentMonth: '8',
+    currentYear: '',
+    currentMonth: '',
     location: currentUser.location,
-    birthday: '2026/06/25',
+    birthday: '',
     ...storedProfile.form,
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    loadRemoteProfile().then((remote) => {
+      if (cancelled || !remote) return;
+      const profile = remote as StoredProfile;
+      window.localStorage.setItem('bondyProfile', JSON.stringify(profile));
+      if (profile.photo !== undefined) setPhoto(profile.photo || '');
+      if (profile.crop) setCrop(profile.crop);
+      if (profile.careerRows) setCareerRows(profile.careerRows.map(normalizeCareer));
+      if (profile.visibility) setVisibility({ ...defaultVisibility, ...profile.visibility });
+      if (profile.form) setForm((prev) => ({ ...prev, ...profile.form }));
+    }).catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const update = (key: keyof ProfileForm, value: string) => {
     setSaveState('idle');
@@ -427,7 +445,7 @@ export function Profile({ actions }: { actions: AppActions }) {
   };
 
   const addCareer = () => {
-    setCareerRows((prev) => [...prev, { title: '', company: 'Microsoft', startYear: '2025', startMonth: '1', endYear: '2025', endMonth: '12' }]);
+    setCareerRows((prev) => [...prev, { title: '', company: '', startYear: '', startMonth: '', endYear: '', endMonth: '' }]);
   };
 
   const removeCareer = (index: number) => {
@@ -451,8 +469,11 @@ export function Profile({ actions }: { actions: AppActions }) {
       return;
     }
     setSaveState('saving');
-    window.localStorage.setItem('bondyProfile', JSON.stringify({ form, photo, crop, careerRows, visibility }));
-    window.setTimeout(() => setSaveState('saved'), 520);
+    const profile = { form, photo, crop, careerRows, visibility };
+    window.localStorage.setItem('bondyProfile', JSON.stringify(profile));
+    saveRemoteProfile(profile, form.handle)
+      .catch(() => false)
+      .finally(() => window.setTimeout(() => setSaveState('saved'), 300));
   };
 
   const clearCurrentWork = () => {
@@ -487,11 +508,15 @@ export function Profile({ actions }: { actions: AppActions }) {
         <section className="edit-photo-card">
           <button className="edit-photo-button" onClick={() => fileInputRef.current?.click()}>
             <span className="edit-photo-preview">
-              <img
-                src={photo}
-                alt={form.name}
-                style={{ transform: `scale(${crop.zoom / 100})`, transformOrigin: `${crop.x}% ${crop.y}%` }}
-              />
+              {photo ? (
+                <img
+                  src={photo}
+                  alt={form.name}
+                  style={{ transform: `scale(${crop.zoom / 100})`, transformOrigin: `${crop.x}% ${crop.y}%` }}
+                />
+              ) : (
+                <b>{form.name.slice(0, 2).toUpperCase()}</b>
+              )}
             </span>
             <i><Camera size={18} />写真を変更</i>
           </button>
@@ -723,7 +748,7 @@ export function Profile({ actions }: { actions: AppActions }) {
           <MoreHorizontal size={23} />
         </button>
         <div className="profile-identity">
-          <img src={photo} alt={form.name} />
+          <Avatar src={photo} name={form.name} />
           <div>
             <h1>{form.name}</h1>
             <p>@{form.handle}</p>

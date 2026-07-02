@@ -1,6 +1,6 @@
 import { Bell, ChevronLeft, Plus, Search } from 'lucide-react';
 import { Page, AppActions } from '../App';
-import { currentUser } from '../data/people';
+import { getCurrentUser } from '../data/people';
 
 const pageTitles: Partial<Record<Page, string>> = {
   ranking: 'つながり',
@@ -28,6 +28,7 @@ export function AppShell({ children, page, actions }: {
 }) {
   const isHome = page === 'home';
   const hideHeader = page === 'ranking' || page === 'sns' || page === 'profile' || page === 'detail';
+  const user = getCurrentUser();
 
   return (
     <div className="min-h-screen bg-shell text-ink">
@@ -59,7 +60,7 @@ export function AppShell({ children, page, actions }: {
               </button>
             )}
             <button className="avatar-button" onClick={() => actions.go('profile')} aria-label="プロフィール">
-              <img src={currentUser.avatar} alt={currentUser.name} />
+              {user.avatar ? <img src={user.avatar} alt={user.name} /> : <span>{user.name.slice(0, 2).toUpperCase()}</span>}
             </button>
           </div>
         </header>}

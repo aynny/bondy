@@ -42,7 +42,7 @@ export function HomeMap({ centerPerson, actions }: { centerPerson: Person; actio
         <div className="search-popover">
           {searchResults.map((person) => (
             <button key={person.id} onClick={() => actions.openPerson(person)}>
-              <img src={person.avatar} alt={person.name} />
+              <Avatar person={person} />
               <span>
                 <strong>{person.name}</strong>
                 <small>{direct.some((item) => item.id === person.id) ? '自分のつながり' : `${centerPerson.name}のつながり`}</small>
@@ -75,7 +75,7 @@ export function HomeMap({ centerPerson, actions }: { centerPerson: Person; actio
         </svg>
         <div className="central-node">
           <div className="central-avatar">
-            <img src={centerPerson.avatar} alt={centerPerson.name} />
+            <Avatar person={centerPerson} />
           </div>
           <h1>{centerPerson.id === currentUser.id ? 'あなた' : centerPerson.name}</h1>
           <p><span />つながり {direct.length}人</p>
@@ -83,6 +83,13 @@ export function HomeMap({ centerPerson, actions }: { centerPerson: Person; actio
         {visible.map((person, index) => (
           <PersonNode key={person.id} person={person} index={index} actions={actions} />
         ))}
+        {visible.length === 0 && (
+          <div className="empty-map-state">
+            <strong>まだつながりがありません</strong>
+            <span>QR交換やID検索から、最初のつながりを追加できます。</span>
+            <button onClick={() => actions.go('new')}>つながりを追加</button>
+          </div>
+        )}
       </div>
 
       <ToolDock open={toolOpen} setOpen={setToolOpen} actions={actions} />
@@ -122,12 +129,17 @@ function PersonNode({ person, index, actions }: { person: Person; index: number;
       onDoubleClick={() => actions.setCenter(person.id)}
     >
       <span className="node-orb" style={{ width: size, height: size }}>
-        <img src={person.avatar} alt={person.name} />
+        <Avatar person={person} />
       </span>
       <strong>{person.name.split(' ')[0]}</strong>
       <small style={{ color: meta.color, background: meta.tint }}>{meta.label}</small>
     </motion.button>
   );
+}
+
+function Avatar({ person }: { person: Person }) {
+  if (person.avatar) return <img src={person.avatar} alt={person.name} />;
+  return <span>{person.name.slice(0, 2).toUpperCase()}</span>;
 }
 
 function ToolDock({ open, setOpen, actions }: {
