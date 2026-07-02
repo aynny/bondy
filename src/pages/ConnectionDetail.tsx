@@ -1,4 +1,4 @@
-import { Bell, BriefcaseBusiness, CalendarCheck2, ChevronLeft, Info, Instagram, MessageCircle, MoreHorizontal, PencilLine, UsersRound } from 'lucide-react';
+import { Bell, BriefcaseBusiness, CalendarCheck2, ChevronLeft, Clock3, Info, Instagram, MessageCircle, MoreHorizontal, PencilLine, UsersRound } from 'lucide-react';
 import { AppActions } from '../App';
 import { Person } from '../data/people';
 
@@ -48,7 +48,7 @@ export function ConnectionDetail({ person, actions }: { person: Person; actions:
         <h3>つながりスコアの理由 <Info size={15} /></h3>
         <div className="bond-score-metrics">
           <div><CalendarCheck2 size={22} /><strong>{person.metCount}回</strong><span>会った回数</span></div>
-          <div><span className="metric-icon">◷</span><strong>2日前</strong><span>最後に会った</span></div>
+          <div><Clock3 size={22} /><strong>2日前</strong><span>最後に会った</span></div>
           <div><UsersRound size={22} /><strong>5人</strong><span>共通のつながり</span></div>
           <div><MessageCircle size={22} /><strong>高い</strong><span>メッセージ頻度</span></div>
         </div>

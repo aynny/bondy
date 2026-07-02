@@ -24,6 +24,19 @@ const socialAccounts: SocialAccount[] = [
   { label: 'note', logo: './assets/social/note.svg', placeholder: 'note URL' },
 ];
 
+const socialLinks: Record<SocialKey, string> = {
+  Instagram: 'https://www.instagram.com/',
+  X: 'https://x.com/',
+  Threads: 'https://www.threads.net/',
+  TikTok: 'https://www.tiktok.com/',
+  BeReal: 'https://bereal.com/',
+  Setlog: 'https://setlog.app/',
+  Facebook: 'https://www.facebook.com/',
+  YouTube: 'https://www.youtube.com/',
+  LinkedIn: 'https://www.linkedin.com/',
+  note: 'https://note.com/',
+};
+
 export function SnsList({ actions }: { actions: AppActions }) {
   const [values, setValues] = useState<Record<string, string>>({
     Instagram: '',
@@ -111,6 +124,12 @@ export function SnsList({ actions }: { actions: AppActions }) {
               <button className={publicMap[active.label] ? 'active' : ''} onClick={() => setPublicMap((prev) => ({ ...prev, [active.label]: true }))}>公開</button>
               <button className={!publicMap[active.label] ? 'active' : ''} onClick={() => setPublicMap((prev) => ({ ...prev, [active.label]: false }))}>非公開</button>
             </div>
+            <button
+              className="sns-open-button"
+              onClick={() => window.open(socialLinks[active.label], '_blank', 'noopener,noreferrer')}
+            >
+              {active.label}を開く
+            </button>
             <button className="sns-save-button" onClick={save}>{saving ? '保存中...' : '保存'}</button>
           </section>
         </div>

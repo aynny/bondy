@@ -1,7 +1,7 @@
 import { ChangeEvent, useRef, useState } from 'react';
 import { Briefcase, Calendar, Camera, ChevronDown, ChevronLeft, GraduationCap, MapPin, MoreHorizontal, Plus, QrCode, Search, X } from 'lucide-react';
 import { AppActions } from '../App';
-import { currentUser } from '../data/people';
+import { currentUser, people } from '../data/people';
 
 const LOGO_DEV_TOKEN = 'pk_HOeQqXbFRCG-0PJjNVf_Vw';
 
@@ -158,7 +158,51 @@ const universityOptions = [
   '津田塾大学', '東京女子大学', '日本女子大学', '同志社大学', '立命館大学', '関西大学', '関西学院大学', '近畿大学',
   '南山大学', '名城大学', '中京大学', '愛知大学', '愛知学院大学', '名古屋市立大学', '名古屋工業大学', '大阪公立大学',
   '東京都立大学', '横浜市立大学', '福岡大学', '西南学院大学', '立命館アジア太平洋大学',
+  '小樽商科大学', '帯広畜産大学', '旭川医科大学', '弘前大学', '岩手大学', '秋田大学', '山形大学', '福島大学',
+  '茨城大学', '宇都宮大学', '群馬大学', '埼玉大学', '東京学芸大学', '東京農工大学', '電気通信大学', '東京海洋大学',
+  '長岡技術科学大学', '新潟大学', '富山大学', '金沢大学', '福井大学', '山梨大学', '信州大学', '岐阜大学',
+  '静岡大学', '三重大学', '滋賀大学', '滋賀医科大学', '京都工芸繊維大学', '奈良女子大学', '和歌山大学',
+  '鳥取大学', '島根大学', '岡山大学', '山口大学', '徳島大学', '鳴門教育大学', '香川大学', '愛媛大学',
+  '高知大学', '佐賀大学', '長崎大学', '熊本大学', '大分大学', '宮崎大学', '鹿児島大学', '琉球大学',
+  '札幌医科大学', '青森公立大学', '岩手県立大学', '国際教養大学', '会津大学', '高崎経済大学', '前橋工科大学',
+  '埼玉県立大学', '千葉県立保健医療大学', '東京医科歯科大学', '産業技術大学院大学', '神奈川県立保健福祉大学',
+  '新潟県立大学', '富山県立大学', '石川県立大学', '福井県立大学', '都留文科大学', '長野県立大学',
+  '岐阜薬科大学', '静岡県立大学', '愛知県立大学', '京都府立大学', '兵庫県立大学', '奈良県立大学',
+  '島根県立大学', '岡山県立大学', '県立広島大学', '高知県立大学', '福岡県立大学', '熊本県立大学',
+  '宮崎公立大学', '沖縄県立芸術大学', '北海学園大学', '東北学院大学', '獨協大学', '国際武道大学',
+  '千葉工業大学', '亜細亜大学', '桜美林大学', '大妻女子大学', '共立女子大学', '工学院大学', '国士舘大学',
+  '駒沢女子大学', '芝浦工業大学', '順天堂大学', '昭和女子大学', '白百合女子大学', '聖心女子大学',
+  '創価大学', '大東文化大学', '拓殖大学', '玉川大学', '帝京大学', '東海大学', '東京電機大学',
+  '東京都市大学', '東京農業大学', '東邦大学', '東洋英和女学院大学', '二松学舎大学', '文教大学',
+  '武蔵野大学', '明星大学', '立正大学', '神奈川大学', '関東学院大学', 'フェリス女学院大学',
+  '金沢工業大学', '愛知淑徳大学', '椙山女学園大学', '中部大学', '豊田工業大学', '名古屋外国語大学',
+  '名古屋学芸大学', '京都産業大学', '京都女子大学', '同志社女子大学', '佛教大学', '龍谷大学',
+  '大阪工業大学', '大阪経済大学', '関西外国語大学', '甲南大学', '神戸学院大学', '神戸女学院大学',
+  '武庫川女子大学', '岡山理科大学', '広島修道大学', '松山大学', '久留米大学', '熊本学園大学',
+  'Harvard University', 'Stanford University', 'Massachusetts Institute of Technology', 'University of California, Berkeley',
+  'University of California, Los Angeles', 'Columbia University', 'Yale University', 'Princeton University', 'University of Oxford',
+  'University of Cambridge', 'Imperial College London', 'University College London', 'National University of Singapore',
+  'Nanyang Technological University', 'Seoul National University', 'Yonsei University', 'Korea University', 'Peking University',
+  'Tsinghua University', 'University of Hong Kong', 'University of Toronto', 'University of British Columbia',
 ];
+
+const cityOptions = [
+  '東京都渋谷区', '東京都新宿区', '東京都港区', '東京都目黒区', '東京都品川区', '東京都世田谷区', '東京都千代田区',
+  '横浜市', '川崎市', 'さいたま市', '千葉市', '札幌市', '仙台市', '名古屋市', '京都市', '大阪市', '神戸市',
+  '広島市', '福岡市', '那覇市', '岐阜県', '静岡市', '金沢市', '新潟市', '熊本市', '鹿児島市',
+  'New York', 'Los Angeles', 'San Francisco', 'Seattle', 'Boston', 'Chicago', 'Austin', 'Washington D.C.',
+  'Toronto', 'Vancouver', 'London', 'Paris', 'Berlin', 'Amsterdam', 'Madrid', 'Barcelona', 'Rome', 'Milan',
+  'Zurich', 'Geneva', 'Stockholm', 'Copenhagen', 'Oslo', 'Helsinki', 'Dublin', 'Lisbon', 'Vienna',
+  'Singapore', 'Seoul', 'Busan', 'Beijing', 'Shanghai', 'Shenzhen', 'Hong Kong', 'Taipei', 'Bangkok',
+  'Ho Chi Minh City', 'Hanoi', 'Kuala Lumpur', 'Jakarta', 'Manila', 'Sydney', 'Melbourne', 'Auckland',
+  'Dubai', 'Abu Dhabi', 'Doha', 'Tel Aviv', 'Istanbul', 'Mumbai', 'Bengaluru', 'Delhi', 'São Paulo',
+  'Rio de Janeiro', 'Mexico City', 'Buenos Aires', 'Cape Town', 'Johannesburg',
+];
+
+const yearOptions = Array.from({ length: 62 }, (_, index) => String(1970 + index));
+const birthdayYearOptions = Array.from({ length: 80 }, (_, index) => String(2026 - index));
+const monthOptions = Array.from({ length: 12 }, (_, index) => String(index + 1));
+const dayOptions = Array.from({ length: 31 }, (_, index) => String(index + 1));
 
 type ProfileForm = {
   name: string;
@@ -177,22 +221,39 @@ type ProfileForm = {
 type Career = {
   title: string;
   company: string;
-  period: string;
+  period?: string;
+  startYear?: string;
+  startMonth?: string;
+  endYear?: string;
+  endMonth?: string;
 };
+
+type VisibilityValue = 'public' | 'private';
+type VisibilityKey = 'location' | 'birthday' | 'highSchool' | 'university' | 'vocational' | 'currentWork';
 
 type StoredProfile = {
   form?: Partial<ProfileForm>;
   photo?: string;
   crop?: { zoom: number; x: number; y: number };
   careerRows?: Career[];
+  visibility?: Partial<Record<VisibilityKey, VisibilityValue>>;
 };
 
 const careers: Career[] = [
-  { title: 'Women@Dior Mentee', company: 'Dior', period: '2024年2月 - 2025年4月' },
-  { title: 'Sales Intern', company: 'Tesla', period: '2025年2月 - 2025年8月' },
-  { title: 'Solution Engineer Intern', company: 'Microsoft', period: '2025年8月 - 2025年9月' },
-  { title: 'Global Brand Intern', company: 'Fast Retailing', period: '2026年3月 - 2026年4月' },
+  { title: 'Women@Dior Mentee', company: 'Dior', startYear: '2024', startMonth: '2', endYear: '2025', endMonth: '4' },
+  { title: 'Sales Intern', company: 'Tesla', startYear: '2025', startMonth: '2', endYear: '2025', endMonth: '8' },
+  { title: 'Solution Engineer Intern', company: 'Microsoft', startYear: '2025', startMonth: '8', endYear: '2025', endMonth: '9' },
+  { title: 'Global Brand Intern', company: 'Fast Retailing', startYear: '2026', startMonth: '3', endYear: '2026', endMonth: '4' },
 ];
+
+const defaultVisibility: Record<VisibilityKey, VisibilityValue> = {
+  location: 'public',
+  birthday: 'public',
+  highSchool: 'public',
+  university: 'public',
+  vocational: 'public',
+  currentWork: 'public',
+};
 
 function readStoredProfile(): StoredProfile {
   try {
@@ -242,11 +303,37 @@ function CompanyLogo({ company }: { company: string }) {
   );
 }
 
-function VisibilityToggle() {
+function parseBirthday(value: string) {
+  const [year = '2000', month = '1', day = '1'] = value.replace(/-/g, '/').split('/');
+  return { year, month: String(Number(month) || 1), day: String(Number(day) || 1) };
+}
+
+function formatBirthday(year: string, month: string, day: string) {
+  return `${year}/${month.padStart(2, '0')}/${day.padStart(2, '0')}`;
+}
+
+function normalizeCareer(career: Career): Career {
+  if (career.startYear && career.endYear) return career;
+  const parts = career.period?.match(/(\d{4})年(\d{1,2})月\s*-\s*(\d{4})年(\d{1,2})月/);
+  return {
+    ...career,
+    startYear: parts?.[1] || '2025',
+    startMonth: parts?.[2] || '1',
+    endYear: parts?.[3] || '2025',
+    endMonth: parts?.[4] || '12',
+  };
+}
+
+function careerPeriodLabel(career: Career) {
+  const normalized = normalizeCareer(career);
+  return `${normalized.startYear}年${normalized.startMonth}月 - ${normalized.endYear}年${normalized.endMonth}月`;
+}
+
+function VisibilityToggle({ value, onChange }: { value: VisibilityValue; onChange: (value: VisibilityValue) => void }) {
   return (
     <span className="edit-privacy-toggle">
-      <b>公開</b>
-      <i>非公開</i>
+      <button className={value === 'public' ? 'active' : ''} onClick={() => onChange('public')}>公開</button>
+      <button className={value === 'private' ? 'active' : ''} onClick={() => onChange('private')}>非公開</button>
     </span>
   );
 }
@@ -264,7 +351,10 @@ export function Profile({ actions }: { actions: AppActions }) {
   const [cropOpen, setCropOpen] = useState(false);
   const [crop, setCrop] = useState(storedProfile.crop || { zoom: 112, x: 50, y: 50 });
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [careerRows, setCareerRows] = useState(storedProfile.careerRows?.length ? storedProfile.careerRows : careers);
+  const [careerRows, setCareerRows] = useState((storedProfile.careerRows?.length ? storedProfile.careerRows : careers).map(normalizeCareer));
+  const [visibility, setVisibility] = useState<Record<VisibilityKey, VisibilityValue>>({ ...defaultVisibility, ...storedProfile.visibility });
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [form, setForm] = useState<ProfileForm>({
     name: storedProfile.form?.name || storedAccount.name || currentUser.name,
     handle: storedProfile.form?.handle || storedAccount.handle || currentUser.handle.replace('@', ''),
@@ -293,6 +383,20 @@ export function Profile({ actions }: { actions: AppActions }) {
     .filter((university) => university.includes(universityQuery.trim()) || university.toLowerCase().includes(universityQuery.trim().toLowerCase()))
     .slice(0, 36);
 
+  const locationMatches = cityOptions
+    .filter((city) => city.includes(locationQuery.trim()) || city.toLowerCase().includes(locationQuery.trim().toLowerCase()))
+    .slice(0, 48);
+
+  const ownHandle = (storedAccount.handle || currentUser.handle).replace(/^@/, '').trim().toLowerCase();
+  const normalizedHandle = form.handle.replace(/^@/, '').trim().toLowerCase();
+  const handleTaken = normalizedHandle.length > 0 && normalizedHandle !== ownHandle && people.some((person) => person.handle.replace(/^@/, '').toLowerCase() === normalizedHandle);
+  const birthdayParts = parseBirthday(form.birthday);
+
+  const updateVisibility = (key: VisibilityKey, value: VisibilityValue) => {
+    setSaveState('idle');
+    setVisibility((prev) => ({ ...prev, [key]: value }));
+  };
+
   const chooseCompany = (company: string) => {
     if (companyPickerTarget === 'current') {
       update('currentCompany', company);
@@ -311,13 +415,19 @@ export function Profile({ actions }: { actions: AppActions }) {
     setUniversityPickerOpen(false);
   };
 
+  const chooseLocation = (city: string) => {
+    update('location', city);
+    setLocationQuery('');
+    setLocationPickerOpen(false);
+  };
+
   const updateCareer = (index: number, key: keyof Career, value: string) => {
     setSaveState('idle');
     setCareerRows((prev) => prev.map((career, careerIndex) => (careerIndex === index ? { ...career, [key]: value } : career)));
   };
 
   const addCareer = () => {
-    setCareerRows((prev) => [...prev, { title: '', company: 'Microsoft', period: '2025年1月 - 2025年12月' }]);
+    setCareerRows((prev) => [...prev, { title: '', company: 'Microsoft', startYear: '2025', startMonth: '1', endYear: '2025', endMonth: '12' }]);
   };
 
   const removeCareer = (index: number) => {
@@ -336,8 +446,12 @@ export function Profile({ actions }: { actions: AppActions }) {
   };
 
   const saveProfile = () => {
+    if (handleTaken) {
+      window.alert('このIDはすでに使われています。別のIDを入力してください。');
+      return;
+    }
     setSaveState('saving');
-    window.localStorage.setItem('bondyProfile', JSON.stringify({ form, photo, crop, careerRows }));
+    window.localStorage.setItem('bondyProfile', JSON.stringify({ form, photo, crop, careerRows, visibility }));
     window.setTimeout(() => setSaveState('saved'), 520);
   };
 
@@ -386,15 +500,43 @@ export function Profile({ actions }: { actions: AppActions }) {
 
         <section className="edit-section-card">
           <h2>基本情報</h2>
-          <label>名前 <em>*</em><input value={form.name} onChange={(event) => update('name', event.target.value)} /></label>
-          <label>ユーザーID <em>*</em><input value={form.handle} onChange={(event) => update('handle', event.target.value)} /></label>
+          <label><span className="required-label">名前<em>*</em></span><input value={form.name} onChange={(event) => update('name', event.target.value)} /></label>
+          <label>
+            <span className="required-label">ユーザーID<em>*</em></span>
+            <input value={form.handle} onChange={(event) => update('handle', event.target.value)} />
+            {form.handle.trim() && (
+              <small className={`id-check ${handleTaken ? 'bad' : 'good'}`}>
+                {handleTaken ? 'このIDはすでに使われています' : 'このIDは使用できます'}
+              </small>
+            )}
+          </label>
           <div className="edit-inline-field">
-            <div className="edit-field-head"><strong>所在地</strong><VisibilityToggle /></div>
-            <button className="edit-select-button">{form.location}<ChevronDown size={18} /></button>
+            <div className="edit-field-head"><strong>所在地</strong><VisibilityToggle value={visibility.location} onChange={(value) => updateVisibility('location', value)} /></div>
+            <button className="edit-select-button" onClick={() => setLocationPickerOpen((prev) => !prev)}>{form.location || '都市を選択'}<ChevronDown size={18} /></button>
+            {locationPickerOpen && (
+              <div className="company-picker-panel location-picker-panel">
+                <label><Search size={17} /><input value={locationQuery} onChange={(event) => setLocationQuery(event.target.value)} placeholder="都市名を検索" /></label>
+                <div>
+                  {locationMatches.map((city) => (
+                    <button key={city} onClick={() => chooseLocation(city)}><span>{city}</span></button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <div className="edit-inline-field">
-            <div className="edit-field-head"><strong>誕生日</strong><VisibilityToggle /></div>
-            <input value={form.birthday} onChange={(event) => update('birthday', event.target.value)} />
+            <div className="edit-field-head"><strong>誕生日</strong><VisibilityToggle value={visibility.birthday} onChange={(value) => updateVisibility('birthday', value)} /></div>
+            <div className="birthday-picker">
+              <select value={birthdayParts.year} onChange={(event) => update('birthday', formatBirthday(event.target.value, birthdayParts.month, birthdayParts.day))}>
+                {birthdayYearOptions.map((year) => <option key={year}>{year}</option>)}
+              </select>
+              <select value={birthdayParts.month} onChange={(event) => update('birthday', formatBirthday(birthdayParts.year, event.target.value, birthdayParts.day))}>
+                {monthOptions.map((month) => <option key={month}>{month}</option>)}
+              </select>
+              <select value={birthdayParts.day} onChange={(event) => update('birthday', formatBirthday(birthdayParts.year, birthdayParts.month, event.target.value))}>
+                {dayOptions.map((day) => <option key={day}>{day}</option>)}
+              </select>
+            </div>
           </div>
         </section>
 
@@ -407,12 +549,12 @@ export function Profile({ actions }: { actions: AppActions }) {
             ['専門学校', 'vocational', '例:Bondy デザイン専門学校'],
           ].map(([label, key, placeholder]) => (
             <div className="education-edit-card" key={key}>
-              <div className="edit-field-head"><strong>{label}</strong><VisibilityToggle /></div>
+              <div className="edit-field-head"><strong>{label}</strong><VisibilityToggle value={visibility[key as VisibilityKey]} onChange={(value) => updateVisibility(key as VisibilityKey, value)} /></div>
               {key === 'university' ? (
                 <>
-                  <div className="editable-with-clear">
+                  <div className={`editable-with-clear ${form.university ? '' : 'single'}`}>
                     <button className="edit-select-button" onClick={() => setUniversityPickerOpen((prev) => !prev)}>
-                      {form.university || placeholder}<ChevronDown size={18} />
+                      <span className={form.university ? '' : 'placeholder'}>{form.university || placeholder}</span><ChevronDown size={18} />
                     </button>
                     {form.university && <button onClick={() => update('university', '')} aria-label="大学を削除"><X size={17} /></button>}
                   </div>
@@ -448,7 +590,7 @@ export function Profile({ actions }: { actions: AppActions }) {
           <h2>現在の仕事 <em>学校または会社 必須</em></h2>
           <p>いまの仕事や所属している会社を入力できます。</p>
           <div className="current-work-card">
-            <div className="edit-field-head"><strong>現在</strong><VisibilityToggle /></div>
+            <div className="edit-field-head"><strong>現在</strong><VisibilityToggle value={visibility.currentWork} onChange={(value) => updateVisibility('currentWork', value)} /></div>
             <input value={form.currentRole} onChange={(event) => update('currentRole', event.target.value)} placeholder="職種・役割 例: Solution Engineer" />
             <div className="company-input-row">
               <CompanyLogo company={form.currentCompany} />
@@ -472,7 +614,7 @@ export function Profile({ actions }: { actions: AppActions }) {
             <div className="period-grid">
               <span>開始</span>
               <select value={form.currentYear} onChange={(event) => update('currentYear', event.target.value)}>
-                {['2024', '2025', '2026'].map((year) => <option key={year}>{year}</option>)}
+                {yearOptions.map((year) => <option key={year}>{year}</option>)}
               </select>
               <select value={form.currentMonth} onChange={(event) => update('currentMonth', event.target.value)}>
                 {Array.from({ length: 12 }, (_, index) => String(index + 1)).map((month) => <option key={month}>{month}</option>)}
@@ -517,7 +659,27 @@ export function Profile({ actions }: { actions: AppActions }) {
                       </div>
                     </div>
                   )}
-                  <input value={career.period} onChange={(event) => updateCareer(index, 'period', event.target.value)} placeholder="2025年2月 - 2025年8月" />
+                  <div className="career-period-picker">
+                    <label>
+                      <small>開始</small>
+                      <select value={career.startYear} onChange={(event) => updateCareer(index, 'startYear', event.target.value)}>
+                        {yearOptions.map((year) => <option key={year}>{year}</option>)}
+                      </select>
+                      <select value={career.startMonth} onChange={(event) => updateCareer(index, 'startMonth', event.target.value)}>
+                        {monthOptions.map((month) => <option key={month}>{month}</option>)}
+                      </select>
+                    </label>
+                    <label>
+                      <small>終了</small>
+                      <select value={career.endYear} onChange={(event) => updateCareer(index, 'endYear', event.target.value)}>
+                        {yearOptions.map((year) => <option key={year}>{year}</option>)}
+                      </select>
+                      <select value={career.endMonth} onChange={(event) => updateCareer(index, 'endMonth', event.target.value)}>
+                        {monthOptions.map((month) => <option key={month}>{month}</option>)}
+                      </select>
+                    </label>
+                    <em>{careerPeriodLabel(career)}</em>
+                  </div>
                 </span>
                 <button className="career-remove-button" onClick={() => removeCareer(index)} aria-label="職歴を削除"><X size={17} /></button>
               </div>
