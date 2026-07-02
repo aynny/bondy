@@ -1767,7 +1767,7 @@ button {
 .sns-editor-overlay {
   position: fixed;
   inset: 0;
-  z-index: 160;
+  z-index: 420;
   display: grid;
   place-items: end center;
   padding: 18px;
@@ -2020,7 +2020,7 @@ button {
 /* Reference-matched connection detail */
 .bond-detail-screen {
   min-height: calc(100vh - 96px);
-  padding: 18px 26px 126px;
+  padding: 18px 24px 126px;
   color: #090d14;
   background:
     radial-gradient(circle at 50% 12%, rgba(255,255,255,0.98), rgba(247,248,251,0.78) 44%, rgba(255,255,255,0.95) 100%);
@@ -2046,22 +2046,22 @@ button {
 .bond-detail-header h1 {
   margin: 0;
   text-align: center;
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 950;
   letter-spacing: -0.05em;
 }
 
 .bond-detail-hero {
   display: grid;
-  grid-template-columns: 148px 1fr 126px;
-  gap: 22px;
+  grid-template-columns: 126px minmax(0, 1fr) 112px;
+  gap: 18px;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 28px;
 }
 
 .bond-detail-avatar {
-  width: 148px;
-  height: 148px;
+  width: 126px;
+  height: 126px;
   border-radius: 999px;
   object-fit: cover;
   background: #eef0f4;
@@ -2072,33 +2072,38 @@ button {
 }
 
 .bond-detail-copy p {
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   color: #737883;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
 }
 
 .bond-detail-copy h2 {
-  margin: 0 0 10px;
-  font-size: 30px;
+  margin: 0 0 9px;
+  font-size: 28px;
   line-height: 1;
   font-weight: 950;
   letter-spacing: -0.06em;
+  white-space: nowrap;
 }
 
 .bond-detail-copy > span {
   display: block;
-  margin-top: 8px;
+  margin-top: 7px;
   color: #5f6672;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 760;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bond-detail-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 16px;
+  gap: 8px;
+  margin-top: 13px;
 }
 
 .bond-detail-tags b {
@@ -2115,8 +2120,8 @@ button {
 }
 
 .bond-score-ring {
-  width: 122px;
-  height: 122px;
+  width: 108px;
+  height: 108px;
   display: grid;
   place-items: center;
   align-content: center;
@@ -2130,14 +2135,14 @@ button {
 
 .bond-score-ring strong {
   color: #ff5470;
-  font-size: 45px;
+  font-size: 40px;
   line-height: 0.9;
   font-weight: 950;
   letter-spacing: -0.07em;
 }
 
 .bond-score-ring span {
-  margin-top: 8px;
+  margin-top: 6px;
   color: #ff5470;
   font-size: 14px;
   font-weight: 900;
@@ -2146,9 +2151,9 @@ button {
 .bond-detail-actions {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  gap: 20px;
   margin-bottom: 26px;
-  padding: 0 22px;
+  padding: 0 16px;
 }
 
 .bond-detail-actions button {
@@ -2384,7 +2389,7 @@ button {
 
 .profile-edit-title {
   display: grid;
-  grid-template-columns: 34px 1fr auto;
+  grid-template-columns: 34px 1fr;
   gap: 12px;
   align-items: start;
   padding: 4px 0 4px;
@@ -2397,28 +2402,12 @@ button {
   place-items: center;
 }
 
-.profile-edit-save-top {
-  min-width: 74px;
-  min-height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 0 12px;
-  border-radius: 999px;
-  color: #fff;
-  background: #05080f;
-  font-size: 12px;
-  font-weight: 950;
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.14);
-}
-
 .profile-edit-title h1 {
   margin: 0;
   color: #05080f;
-  font-size: 30px;
+  font-size: 28px;
   font-weight: 950;
-  letter-spacing: -0.07em;
+  letter-spacing: -0.055em;
 }
 
 .profile-edit-title p {
@@ -2435,6 +2424,58 @@ button {
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 14px 38px rgba(15, 24, 38, 0.06), inset 0 0 0 1px rgba(15, 24, 38, 0.06);
+}
+
+.edit-photo-card {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 14px 38px rgba(15, 24, 38, 0.06), inset 0 0 0 1px rgba(15, 24, 38, 0.06);
+}
+
+.edit-photo-button {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.edit-photo-preview,
+.crop-preview {
+  overflow: hidden;
+  display: block;
+  border-radius: 999px;
+  background: #eef1f5;
+}
+
+.edit-photo-preview {
+  width: 96px;
+  height: 96px;
+  padding: 4px;
+  background: #fff;
+  box-shadow: 0 16px 34px rgba(15, 24, 38, 0.14);
+}
+
+.edit-photo-preview img,
+.crop-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.edit-photo-button i {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border-radius: 999px;
+  color: #101722;
+  background: #f6f7f9;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 950;
 }
 
 .edit-section-card h2 {
@@ -2670,6 +2711,11 @@ button {
   font-weight: 900;
 }
 
+.university-picker-panel > div > button {
+  grid-template-columns: 1fr;
+  padding-inline: 14px;
+}
+
 .company-picker-panel .edit-company-logo {
   width: 42px;
   height: 42px;
@@ -2721,11 +2767,13 @@ button {
 }
 
 .career-preview-row {
+  position: relative;
   display: grid;
-  grid-template-columns: 58px 1fr;
+  grid-template-columns: 58px 1fr 34px;
   gap: 14px;
   align-items: center;
-  min-height: 86px;
+  min-height: 92px;
+  padding: 12px 0;
   border-bottom: 1px solid rgba(15, 24, 38, 0.08);
 }
 
@@ -2763,6 +2811,49 @@ button {
   font-weight: 780;
 }
 
+.editable-career-row span {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.editable-career-row input,
+.editable-career-row span > button {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  outline: 0;
+  border-radius: 13px;
+  padding: 0 12px;
+  background: #f8f8f9;
+  color: #101722;
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow: inset 0 0 0 1px rgba(15, 24, 38, 0.06);
+}
+
+.editable-career-row span > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+}
+
+.career-company-picker {
+  margin: 2px 0 4px;
+}
+
+.career-remove-button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #222832;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(15, 24, 38, 0.1);
+}
+
 .profile-edit-save-bottom {
   min-height: 58px;
   border-radius: 999px;
@@ -2773,35 +2864,108 @@ button {
   box-shadow: 0 18px 38px rgba(0, 0, 0, 0.18);
 }
 
+.crop-editor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 430;
+  display: grid;
+  place-items: end center;
+  padding: 18px;
+  background: rgba(8, 12, 20, 0.24);
+  backdrop-filter: blur(18px);
+}
+
+.crop-editor-sheet {
+  width: min(430px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 30px 76px rgba(8, 14, 24, 0.24), inset 0 0 0 1px rgba(12, 29, 51, 0.08);
+}
+
+.crop-editor-sheet header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.crop-editor-sheet h2 {
+  margin: 0;
+  color: #05080f;
+  font-size: 20px;
+  font-weight: 950;
+  letter-spacing: -0.05em;
+}
+
+.crop-editor-sheet header button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #f3f4f6;
+}
+
+.crop-preview {
+  width: min(280px, 70vw);
+  height: min(280px, 70vw);
+  justify-self: center;
+  box-shadow: 0 20px 58px rgba(15, 24, 38, 0.16), 0 0 0 7px #fff;
+}
+
+.crop-editor-sheet label {
+  display: grid;
+  gap: 8px;
+  color: #5d6673;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.crop-editor-sheet input[type="range"] {
+  width: 100%;
+  accent-color: #05080f;
+}
+
+.crop-editor-sheet > button {
+  min-height: 54px;
+  border-radius: 999px;
+  color: #fff;
+  background: #05080f;
+  font-size: 15px;
+  font-weight: 950;
+}
+
 @media (max-width: 520px) {
   .bond-detail-screen {
     padding: 12px 16px 116px;
   }
 
   .bond-detail-hero {
-    grid-template-columns: 96px minmax(0, 1fr) 78px;
-    gap: 12px;
+    grid-template-columns: 82px minmax(0, 1fr) 74px;
+    gap: 10px;
     align-items: center;
     margin-bottom: 24px;
   }
 
   .bond-detail-avatar {
-    width: 96px;
-    height: 96px;
+    width: 82px;
+    height: 82px;
   }
 
   .bond-score-ring {
     grid-column: auto;
     justify-self: end;
-    width: 76px;
-    height: 76px;
+    width: 72px;
+    height: 72px;
     margin-top: 0;
     border-width: 3px;
     box-shadow: inset 0 0 0 5px rgba(255, 255, 255, 0.78);
   }
 
   .bond-score-ring strong {
-    font-size: 28px;
+    font-size: 27px;
   }
 
   .bond-score-ring span {
@@ -2816,7 +2980,7 @@ button {
 
   .bond-detail-copy h2 {
     margin-bottom: 7px;
-    font-size: 22px;
+    font-size: 21px;
   }
 
   .bond-detail-copy > span {

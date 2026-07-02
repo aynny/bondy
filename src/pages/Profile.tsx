@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Briefcase, Calendar, ChevronDown, ChevronLeft, GraduationCap, MapPin, MoreHorizontal, Plus, QrCode, Save, Search, X } from 'lucide-react';
+import { ChangeEvent, useRef, useState } from 'react';
+import { Briefcase, Calendar, Camera, ChevronDown, ChevronLeft, GraduationCap, MapPin, MoreHorizontal, Plus, QrCode, Search, X } from 'lucide-react';
 import { AppActions } from '../App';
 import { currentUser } from '../data/people';
 
@@ -8,7 +8,6 @@ const LOGO_DEV_TOKEN = 'pk_HOeQqXbFRCG-0PJjNVf_Vw';
 const companyDomains: Record<string, string> = {
   Dior: 'dior.com',
   Tesla: 'tesla.com',
-  microsoft: 'microsoft.com',
   Microsoft: 'microsoft.com',
   'Fast Retailing': 'fastretailing.com',
   Apple: 'apple.com',
@@ -27,16 +26,78 @@ const companyDomains: Record<string, string> = {
   Toyota: 'toyota-global.com',
   Honda: 'honda.com',
   Panasonic: 'panasonic.com',
+  Mitsubishi: 'mitsubishi.com',
+  Hitachi: 'hitachi.com',
+  Fujitsu: 'fujitsu.com',
+  NEC: 'nec.com',
+  Canon: 'canon.com',
+  Nikon: 'nikon.com',
+  Toshiba: 'global.toshiba',
+  SoftBank: 'softbank.jp',
+  NTT: 'group.ntt',
+  KDDI: 'kddi.com',
+  LINE: 'line.me',
+  DeNA: 'dena.com',
+  GREE: 'gree.co.jp',
+  Sansan: 'sansan.com',
+  Freee: 'freee.co.jp',
+  MoneyForward: 'moneyforward.com',
+  Wantedly: 'wantedly.com',
+  note: 'note.com',
+  Cookpad: 'cookpad.com',
+  ZOZO: 'zozo.com',
+  Uniqlo: 'uniqlo.com',
+  SevenEleven: '7-eleven.com',
+  Lawson: 'lawson.jp',
+  FamilyMart: 'family.co.jp',
+  Muji: 'muji.com',
+  Shiseido: 'shiseido.com',
+  Kao: 'kao.com',
+  Suntory: 'suntory.com',
+  Asahi: 'asahigroup-holdings.com',
+  Kirin: 'kirinholdings.com',
+  Ajinomoto: 'ajinomoto.com',
+  Meiji: 'meiji.com',
+  Nissin: 'nissin.com',
+  ANA: 'ana.co.jp',
+  JAL: 'jal.com',
+  JR: 'jreast.co.jp',
+  Dentsu: 'dentsu.co.jp',
+  Hakuhodo: 'hakuhodo.co.jp',
+  McKinsey: 'mckinsey.com',
+  BCG: 'bcg.com',
+  Bain: 'bain.com',
+  Deloitte: 'deloitte.com',
+  PwC: 'pwc.com',
+  EY: 'ey.com',
+  KPMG: 'kpmg.com',
+  Accenture: 'accenture.com',
+  IBM: 'ibm.com',
+  Oracle: 'oracle.com',
+  Adobe: 'adobe.com',
+  Nvidia: 'nvidia.com',
+  Intel: 'intel.com',
+  Samsung: 'samsung.com',
+  Netflix: 'netflix.com',
+  Spotify: 'spotify.com',
+  Uber: 'uber.com',
+  Airbnb: 'airbnb.com',
+  Stripe: 'stripe.com',
+  Shopify: 'shopify.com',
+  Notion: 'notion.so',
+  OpenAI: 'openai.com',
 };
 
-const featuredCompanies = [
-  'Microsoft', 'Apple', 'Google', 'Amazon', 'Meta', 'Tesla', 'Dior', 'Fast Retailing', 'Mercari', 'SmartHR',
-  'LayerX', 'Salesforce', 'CyberAgent', 'Recruit', 'Rakuten', 'Sony', 'Nintendo', 'Toyota', 'Honda', 'Panasonic',
-];
+const companyOptions = Object.keys(companyDomains);
 
-const companyOptions = [
-  ...featuredCompanies,
-  ...Array.from({ length: 3980 }, (_, index) => `企業 ${String(index + 1).padStart(4, '0')}`),
+const universityOptions = [
+  '北海道大学', '東北大学', '筑波大学', '千葉大学', '東京大学', '東京科学大学', '一橋大学', '東京外国語大学', 'お茶の水女子大学',
+  '横浜国立大学', '名古屋大学', '京都大学', '大阪大学', '神戸大学', '広島大学', '九州大学', '早稲田大学', '慶應義塾大学',
+  '上智大学', '東京理科大学', '明治大学', '青山学院大学', '立教大学', '中央大学', '法政大学', '学習院大学', '成蹊大学',
+  '成城大学', '明治学院大学', '國學院大學', '武蔵大学', '日本大学', '東洋大学', '駒澤大学', '専修大学', '国際基督教大学',
+  '津田塾大学', '東京女子大学', '日本女子大学', '同志社大学', '立命館大学', '関西大学', '関西学院大学', '近畿大学',
+  '南山大学', '名城大学', '中京大学', '愛知大学', '愛知学院大学', '名古屋市立大学', '名古屋工業大学', '大阪公立大学',
+  '東京都立大学', '横浜市立大学', '福岡大学', '西南学院大学', '立命館アジア太平洋大学',
 ];
 
 type ProfileForm = {
@@ -62,7 +123,7 @@ type Career = {
 const careers: Career[] = [
   { title: 'Women@Dior Mentee', company: 'Dior', period: '2024年2月 - 2025年4月' },
   { title: 'Sales Intern', company: 'Tesla', period: '2025年2月 - 2025年8月' },
-  { title: 'Solution Engineer Intern', company: 'microsoft', period: '2025年8月 - 2025年9月' },
+  { title: 'Solution Engineer Intern', company: 'Microsoft', period: '2025年8月 - 2025年9月' },
   { title: 'Global Brand Intern', company: 'Fast Retailing', period: '2026年3月 - 2026年4月' },
 ];
 
@@ -105,8 +166,15 @@ function VisibilityToggle() {
 export function Profile({ actions }: { actions: AppActions }) {
   const [editing, setEditing] = useState(false);
   const [companyQuery, setCompanyQuery] = useState('');
-  const [companyPickerOpen, setCompanyPickerOpen] = useState(false);
+  const [universityQuery, setUniversityQuery] = useState('');
+  const [universityPickerOpen, setUniversityPickerOpen] = useState(false);
+  const [companyPickerTarget, setCompanyPickerTarget] = useState<'current' | `career-${number}` | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [photo, setPhoto] = useState(currentUser.avatar);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [crop, setCrop] = useState({ zoom: 112, x: 50, y: 50 });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [careerRows, setCareerRows] = useState(careers);
   const [form, setForm] = useState<ProfileForm>({
     name: currentUser.name,
     handle: currentUser.handle.replace('@', ''),
@@ -128,12 +196,52 @@ export function Profile({ actions }: { actions: AppActions }) {
 
   const companyMatches = companyOptions
     .filter((company) => company.toLowerCase().includes(companyQuery.trim().toLowerCase()))
+    .slice(0, 40);
+
+  const universityMatches = universityOptions
+    .filter((university) => university.includes(universityQuery.trim()) || university.toLowerCase().includes(universityQuery.trim().toLowerCase()))
     .slice(0, 36);
 
   const chooseCompany = (company: string) => {
-    update('currentCompany', company);
+    if (companyPickerTarget === 'current') {
+      update('currentCompany', company);
+    } else if (companyPickerTarget?.startsWith('career-')) {
+      const index = Number(companyPickerTarget.replace('career-', ''));
+      setSaveState('idle');
+      setCareerRows((prev) => prev.map((career, careerIndex) => (careerIndex === index ? { ...career, company } : career)));
+    }
     setCompanyQuery('');
-    setCompanyPickerOpen(false);
+    setCompanyPickerTarget(null);
+  };
+
+  const chooseUniversity = (university: string) => {
+    update('university', university);
+    setUniversityQuery('');
+    setUniversityPickerOpen(false);
+  };
+
+  const updateCareer = (index: number, key: keyof Career, value: string) => {
+    setSaveState('idle');
+    setCareerRows((prev) => prev.map((career, careerIndex) => (careerIndex === index ? { ...career, [key]: value } : career)));
+  };
+
+  const addCareer = () => {
+    setCareerRows((prev) => [...prev, { title: '', company: 'Microsoft', period: '2025年1月 - 2025年12月' }]);
+  };
+
+  const removeCareer = (index: number) => {
+    setCareerRows((prev) => prev.filter((_, careerIndex) => careerIndex !== index));
+  };
+
+  const handlePhoto = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPhoto(String(reader.result));
+      setCropOpen(true);
+    };
+    reader.readAsDataURL(file);
   };
 
   const saveProfile = () => {
@@ -157,10 +265,21 @@ export function Profile({ actions }: { actions: AppActions }) {
             <h1>プロフィール編集</h1>
             <p>登録時と同じ項目をまとめて編集できます。</p>
           </div>
-          <button className="profile-edit-save-top" onClick={saveProfile}>
-            <Save size={15} />{saveState === 'saving' ? '保存中' : saveState === 'saved' ? '保存済み' : '保存'}
-          </button>
         </header>
+
+        <section className="edit-photo-card">
+          <button className="edit-photo-button" onClick={() => fileInputRef.current?.click()}>
+            <span className="edit-photo-preview">
+              <img
+                src={photo}
+                alt={form.name}
+                style={{ transform: `scale(${crop.zoom / 100})`, transformOrigin: `${crop.x}% ${crop.y}%` }}
+              />
+            </span>
+            <i><Camera size={18} />写真を変更</i>
+          </button>
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhoto} hidden />
+        </section>
 
         <section className="edit-section-card">
           <h2>基本情報</h2>
@@ -186,16 +305,37 @@ export function Profile({ actions }: { actions: AppActions }) {
           ].map(([label, key, placeholder]) => (
             <div className="education-edit-card" key={key}>
               <div className="edit-field-head"><strong>{label}</strong><VisibilityToggle /></div>
-              <div className="editable-with-clear">
-                <input
-                  value={form[key as keyof ProfileForm]}
-                  onChange={(event) => update(key as keyof ProfileForm, event.target.value)}
-                  placeholder={placeholder}
-                />
-                {form[key as keyof ProfileForm] && (
-                  <button onClick={() => update(key as keyof ProfileForm, '')} aria-label={`${label}を削除`}><X size={17} /></button>
-                )}
-              </div>
+              {key === 'university' ? (
+                <>
+                  <div className="editable-with-clear">
+                    <button className="edit-select-button" onClick={() => setUniversityPickerOpen((prev) => !prev)}>
+                      {form.university || placeholder}<ChevronDown size={18} />
+                    </button>
+                    {form.university && <button onClick={() => update('university', '')} aria-label="大学を削除"><X size={17} /></button>}
+                  </div>
+                  {universityPickerOpen && (
+                    <div className="company-picker-panel university-picker-panel">
+                      <label><Search size={17} /><input value={universityQuery} onChange={(event) => setUniversityQuery(event.target.value)} placeholder="大学名を検索" /></label>
+                      <div>
+                        {universityMatches.map((university) => (
+                          <button key={university} onClick={() => chooseUniversity(university)}><span>{university}</span></button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="editable-with-clear">
+                  <input
+                    value={form[key as keyof ProfileForm]}
+                    onChange={(event) => update(key as keyof ProfileForm, event.target.value)}
+                    placeholder={placeholder}
+                  />
+                  {form[key as keyof ProfileForm] && (
+                    <button onClick={() => update(key as keyof ProfileForm, '')} aria-label={`${label}を削除`}><X size={17} /></button>
+                  )}
+                </div>
+              )}
               <label className="student-check"><input type="checkbox" />現在在学中</label>
             </div>
           ))}
@@ -209,13 +349,13 @@ export function Profile({ actions }: { actions: AppActions }) {
             <input value={form.currentRole} onChange={(event) => update('currentRole', event.target.value)} placeholder="職種・役割 例: Solution Engineer" />
             <div className="company-input-row">
               <CompanyLogo company={form.currentCompany} />
-              <button onClick={() => setCompanyPickerOpen((prev) => !prev)}>
+              <button onClick={() => setCompanyPickerTarget(companyPickerTarget === 'current' ? null : 'current')}>
                 {form.currentCompany || '企業を選択または入力'}<ChevronDown size={18} />
               </button>
             </div>
-            {companyPickerOpen && (
+            {companyPickerTarget === 'current' && (
               <div className="company-picker-panel">
-                <label><Search size={17} /><input value={companyQuery} onChange={(event) => setCompanyQuery(event.target.value)} placeholder="企業名を検索（約4,000社）" /></label>
+                <label><Search size={17} /><input value={companyQuery} onChange={(event) => setCompanyQuery(event.target.value)} placeholder="公式ロゴ対応企業を検索" /></label>
                 <div>
                   {companyMatches.map((company) => (
                     <button key={company} onClick={() => chooseCompany(company)}>
@@ -249,17 +389,31 @@ export function Profile({ actions }: { actions: AppActions }) {
               <h2>今までの職歴</h2>
               <p>インターン、前職、プロジェクトなどを追加できます。</p>
             </div>
-            <button><Plus size={24} /></button>
+            <button onClick={addCareer}><Plus size={24} /></button>
           </div>
           <div className="career-list-preview">
-            {careers.map((career) => (
-              <div className="career-preview-row" key={`${career.company}-${career.title}`}>
+            {careerRows.map((career, index) => (
+              <div className="career-preview-row editable-career-row" key={`${career.company}-${index}`}>
                 <CompanyLogo company={career.company} />
                 <span>
-                  <strong>{career.title}</strong>
-                  <b>{career.company}</b>
-                  <small>{career.period}</small>
+                  <input value={career.title} onChange={(event) => updateCareer(index, 'title', event.target.value)} placeholder="職種・役割" />
+                  <button onClick={() => setCompanyPickerTarget(companyPickerTarget === `career-${index}` ? null : `career-${index}`)}>{career.company}<ChevronDown size={16} /></button>
+                  {companyPickerTarget === `career-${index}` && (
+                    <div className="company-picker-panel career-company-picker">
+                      <label><Search size={17} /><input value={companyQuery} onChange={(event) => setCompanyQuery(event.target.value)} placeholder="企業名を検索" /></label>
+                      <div>
+                        {companyMatches.map((company) => (
+                          <button key={company} onClick={() => chooseCompany(company)}>
+                            <CompanyLogo company={company} />
+                            <span>{company}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <input value={career.period} onChange={(event) => updateCareer(index, 'period', event.target.value)} placeholder="2025年2月 - 2025年8月" />
                 </span>
+                <button className="career-remove-button" onClick={() => removeCareer(index)} aria-label="職歴を削除"><X size={17} /></button>
               </div>
             ))}
           </div>
@@ -268,6 +422,28 @@ export function Profile({ actions }: { actions: AppActions }) {
         <button className="profile-edit-save-bottom" onClick={saveProfile}>
           {saveState === 'saving' ? '保存中...' : saveState === 'saved' ? '保存しました' : 'プロフィールを保存'}
         </button>
+
+        {cropOpen && (
+          <div className="crop-editor-overlay">
+            <section className="crop-editor-sheet">
+              <header>
+                <h2>写真を調整</h2>
+                <button onClick={() => setCropOpen(false)}><X size={21} /></button>
+              </header>
+              <div className="crop-preview">
+                <img
+                  src={photo}
+                  alt=""
+                  style={{ transform: `scale(${crop.zoom / 100})`, transformOrigin: `${crop.x}% ${crop.y}%` }}
+                />
+              </div>
+              <label>拡大<input type="range" min="100" max="180" value={crop.zoom} onChange={(event) => setCrop((prev) => ({ ...prev, zoom: Number(event.target.value) }))} /></label>
+              <label>左右<input type="range" min="20" max="80" value={crop.x} onChange={(event) => setCrop((prev) => ({ ...prev, x: Number(event.target.value) }))} /></label>
+              <label>上下<input type="range" min="20" max="80" value={crop.y} onChange={(event) => setCrop((prev) => ({ ...prev, y: Number(event.target.value) }))} /></label>
+              <button onClick={() => setCropOpen(false)}>この写真にする</button>
+            </section>
+          </div>
+        )}
       </div>
     );
   }
@@ -292,7 +468,7 @@ export function Profile({ actions }: { actions: AppActions }) {
         </div>
         <div className="profile-stats">
           <span><b>128</b>つながり</span>
-          <span><b>43</b>あった回数</span>
+          <span><b>43</b>会った回数</span>
           <span><b>12</b>所属グループ</span>
         </div>
       </section>
